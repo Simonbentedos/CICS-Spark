@@ -1,0 +1,586 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+ /* =============================================
+   CICS Design System
+   ============================================= */
+
+@layer base {
+  :root {
+    /* Color tokens */
+    --color-primary: 179 27 36; /* CICS Maroon #B31B24 */
+    --color-primary-dark: 140 20 30;
+    --color-navy: 26 26 46; /* #1A1A2E */
+    --color-grey: 51 51 51; /* #333333 */
+    --color-light-grey: 103 103 103;
+    --color-border: 220 219 215;
+    --color-background: 248 249 250;
+
+    /* Spacing tokens */
+    --spacing-page-x: 300px;
+    --spacing-section: 2rem;
+
+    /* Transition tokens */
+    --transition-fast: 150ms ease;
+    --transition-normal: 250ms ease;
+    --transition-slow: 350ms ease;
+    --background: 0 0% 100%;
+    --foreground: 240 10% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 15%;
+    --primary: 20 73% 48%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 10% 15%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 0 0% 40%;
+    --accent: 20 73% 95%;
+    --accent-foreground: 20 73% 48%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 30 4% 85%;
+    --input: 30 4% 85%;
+    --ring: 20 73% 48%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+    /* CICS maroon variables */
+    --cics-maroon: #B31B24;
+    --cics-maroon-600: #8F151C;
+    --cics-maroon-rgb: 179,27,36;
+  }
+
+  /* Base typography */
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-bg-grey text-grey-700 font-body;
+  }
+
+  /* Headings use Outfit font */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading text-navy;
+  }
+
+  h1 { @apply text-h1; }
+  h2 { @apply text-h2; }
+  h3 { @apply text-h3; }
+  h4 { @apply text-h4; }
+  h5 { @apply text-h5; }
+  h6 { @apply text-h6; }
+
+  /* Body text uses Inter */
+  p, span, div, li, td, th, label, input, textarea, select, button {
+    @apply font-body;
+  }
+
+  /* Links */
+  a {
+    color: var(--cics-maroon);
+    transition: color 200ms ease;
+  }
+  a:hover { color: var(--cics-maroon-600); }
+
+  /* Focus styles */
+  *:focus-visible {
+    outline: 2px solid var(--cics-maroon);
+    outline-offset: 2px;
+  }
+
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+@layer components {
+  /* =============================================
+     Typography Components
+     ============================================= */
+  
+  .heading-display {
+    @apply font-heading text-display text-navy;
+  }
+
+  .heading-display-sm {
+    @apply font-heading text-display-sm text-navy;
+  }
+
+  .heading-1 {
+    @apply font-heading text-h1 text-navy;
+  }
+
+  .heading-2 {
+    @apply font-heading text-h2 text-navy;
+  }
+
+  .heading-3 {
+    @apply font-heading text-h3 text-navy;
+  }
+
+  .heading-4 {
+    @apply font-heading text-h4 text-navy;
+  }
+
+  .heading-section {
+    @apply font-heading text-base font-bold uppercase tracking-wide text-white;
+  }
+
+  .body-text {
+    @apply font-body text-body text-grey-700;
+  }
+
+  .body-text-sm {
+    @apply font-body text-body-sm text-grey-600;
+  }
+
+  .body-text-xs {
+    @apply font-body text-body-xs text-grey-600;
+  }
+
+  .label-text {
+    @apply font-body text-label text-grey-700;
+  }
+
+  .caption-text {
+    @apply font-body text-caption text-grey-500;
+  }
+
+  .link-text {
+    @apply font-body hover:underline transition-colors cursor-pointer;
+    color: var(--cics-maroon);
+  }
+  .link-text:hover { color: var(--cics-maroon-600); }
+
+  /* =============================================
+     Section Components
+     ============================================= */
+
+  .section-header {
+    @apply px-4 py-2;
+    background-color: var(--cics-maroon);
+  }
+
+  .section-header-title {
+    @apply heading-section;
+  }
+
+  /* =============================================
+     Card Components
+     ============================================= */
+
+  .card {
+    @apply bg-white rounded-card shadow-card transition-shadow hover:shadow-card-hover;
+  }
+
+  .card-bordered {
+    @apply bg-white rounded-lg;
+    border: 1px solid var(--cics-maroon);
+  }
+
+  /* Action Card - Homepage feature cards */
+  .action-card {
+    @apply bg-white rounded-lg w-[200px] h-[200px] relative transition-shadow hover:shadow-card-hover;
+    border: 1px solid rgba(var(--cics-maroon-rgb), 0.18);
+  }
+
+  .action-card-content {
+    @apply absolute -top-9 left-0 right-0 flex flex-col items-center gap-5 p-2;
+  }
+
+  .action-card-icon {
+    @apply bg-white rounded size-14 flex items-center justify-center transition-all duration-200;
+    border: 1px solid rgba(var(--cics-maroon-rgb), 0.14);
+  }
+
+  .action-card:hover .action-card-icon,
+  .group:hover .action-card-icon {
+    background-color: var(--cics-maroon);
+  }
+
+  .action-card-icon svg {
+    @apply size-8 transition-colors duration-200;
+    stroke-width: 1.5;
+    color: var(--cics-maroon);
+  }
+
+  .action-card:hover .action-card-icon svg,
+  .group:hover .action-card-icon svg {
+    @apply text-white;
+  }
+
+  .action-card-title {
+    @apply font-heading text-navy text-base tracking-wide leading-6 text-center whitespace-pre-line;
+  }
+
+  .action-card-description {
+    @apply font-body text-navy text-[11.2px] leading-4 text-center whitespace-pre-line px-4;
+  }
+
+  /* =============================================
+     Button Components
+     ============================================= */
+
+  .btn {
+    @apply inline-flex items-center justify-center font-body font-medium transition-all rounded disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn:focus-visible { outline: 2px solid var(--cics-maroon); outline-offset: 2px; }
+
+  .btn-primary {
+    @apply btn text-white px-4 py-2;
+    background-color: var(--cics-maroon);
+  }
+  .btn-primary:hover { background-color: var(--cics-maroon-600); }
+
+  .btn-secondary {
+    @apply btn bg-navy text-white hover:bg-navy-600 px-4 py-2;
+  }
+
+  .btn-outline {
+    @apply btn px-4 py-2;
+    border: 1px solid var(--cics-maroon);
+    color: var(--cics-maroon);
+  }
+  .btn-outline:hover { background-color: var(--cics-maroon); color: white; }
+
+  .btn-ghost {
+    @apply btn px-4 py-2;
+    color: var(--cics-maroon);
+  }
+  .btn-ghost:hover { background-color: rgba(var(--cics-maroon-rgb), 0.06); }
+
+  .btn-sm {
+    @apply text-sm px-3 py-1.5;
+  }
+
+  .btn-lg {
+    @apply text-lg px-6 py-3;
+  }
+
+  /* =============================================
+     Form Components
+     ============================================= */
+
+  .input {
+    @apply w-full bg-white border border-grey-300 rounded px-3 py-2 text-body-sm placeholder:text-grey-400 disabled:bg-grey-100 disabled:cursor-not-allowed;
+  }
+  .input:focus { outline: none; box-shadow: 0 0 0 4px rgba(var(--cics-maroon-rgb), 0.08); border-color: transparent; }
+
+  .input-bordered {
+    @apply input;
+    border: 1px solid var(--cics-maroon);
+  }
+
+  .form-label {
+    @apply block text-label text-navy mb-1;
+  }
+
+  .form-helper {
+    @apply text-caption text-grey-500 mt-1;
+  }
+
+  .form-error {
+    @apply text-caption text-red-600 mt-1;
+  }
+
+  /* =============================================
+     Navigation Components
+     ============================================= */
+
+  .nav-link {
+    @apply font-body text-grey-700 px-4 py-3 transition-colors;
+  }
+  .nav-link:hover { color: var(--cics-maroon); }
+
+  .nav-link-active {
+    @apply nav-link border-b-2;
+    color: var(--cics-maroon);
+    border-color: var(--cics-maroon);
+  }
+
+  .sidebar-link {
+    @apply font-body text-body-xs hover:underline transition-colors;
+    color: var(--cics-maroon);
+  }
+
+  /* Header patterned band used under the header */
+  .header-pattern {
+    height: 36px;
+    background-color: #f6f6f6;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='36' viewBox='0 0 40 36'><rect fill='%23f6f6f6' width='40' height='36'/><path d='M0 18h40' stroke='%23e9e9e9' stroke-width='1'/></svg>");
+    background-repeat: repeat-x;
+    background-position: center;
+  }
+
+  /* Footer styles */
+  .site-footer {
+    background: #ffffff;
+    border-top: 4px solid var(--cics-maroon);
+    color: var(--foreground);
+  }
+
+  .site-footer a { color: inherit; }
+  .site-footer a:hover { color: var(--cics-maroon); }
+
+  /* =============================================
+     Layout Components
+     ============================================= */
+
+  .page-container {
+    @apply max-w-[1920px] mx-auto;
+  }
+
+  .content-padding {
+    @apply px-8 lg:px-[300px];
+  }
+
+  .sidebar-section {
+    @apply w-60 flex flex-col gap-2.5;
+  }
+
+  /* =============================================
+     Reusable Date + Calendar Style Contract
+     ============================================= */
+
+  .cics-date-input {
+    @apply h-[34px] w-full rounded-[3px] border-[#999999] bg-white px-[10px] pr-[34px] text-[13px] text-[#767676] placeholder:text-[#767676] focus:ring-1;
+  }
+
+  .cics-search-select {
+    @apply h-[50px] w-[158px] rounded-none border-[#9a9a9a] px-[10px] text-[13px] text-[#767676] focus:ring-1;
+  }
+
+  .cics-search-select-content {
+    @apply rounded-none border-[#b8b8b8] font-body text-[13px] text-[#767676];
+  }
+
+  .cics-date-picker-trigger {
+    @apply h-[34px] w-[154px] justify-start rounded-[3px] border-[#999999] bg-white px-[10px] text-left font-normal text-[12px] leading-[16px] text-[#767676] transition-colors duration-200 hover:bg-white;
+  }
+
+  .cics-date-picker-icon {
+    @apply h-3.5 w-3.5 text-[#888888] transition-colors duration-200;
+  }
+
+  .cics-date-picker-dropdown-nav {
+    @apply flex w-full items-center gap-2;
+  }
+
+  .cics-date-picker-dropdown-trigger {
+    @apply first:flex-1 last:shrink-0;
+  }
+
+  .cics-date-trigger {
+    @apply absolute right-[2px] top-1/2 z-10 h-[28px] w-[28px] -translate-y-1/2 rounded-[3px] border-0 bg-transparent p-0 text-[#888888] shadow-none hover:bg-[#f2f2f2];
+  }
+
+  .cics-calendar-surface {
+    @apply rounded-[8px] border border-[#e6e6e6] bg-white p-2 shadow-[0_8px_22px_rgba(17,24,39,0.08)];
+  }
+
+  .cics-calendar-popover {
+    @apply w-auto rounded-[8px] border-[#e6e6e6] bg-white p-0 shadow-[0_10px_26px_rgba(17,24,39,0.1)];
+  }
+
+  .cics-calendar-months {
+    @apply flex flex-col;
+  }
+
+  .cics-calendar-month {
+    @apply space-y-2;
+  }
+
+  .cics-calendar-caption {
+    @apply relative mb-2 flex h-9 items-center justify-center px-7;
+  }
+
+  .cics-calendar-caption-label {
+    @apply font-body text-[18px] leading-[24px] text-[#232323];
+  }
+
+  .cics-calendar-dropdowns {
+    @apply flex items-center justify-center gap-1;
+  }
+
+  .cics-calendar-dropdown-root {
+    @apply relative;
+  }
+
+  .cics-calendar-dropdown {
+    @apply h-[30px] min-w-[84px] appearance-none rounded-md border border-transparent bg-white pl-2 pr-6 font-body text-[13px] leading-[18px] text-[#232323] focus:border-[#d8d8d8] focus:outline-none;
+  }
+
+  .cics-calendar-nav {
+    @apply absolute inset-x-0 top-0 flex items-center justify-between px-0;
+  }
+
+  .cics-calendar-nav-btn {
+    @apply h-[30px] w-[30px] rounded-[8px] border-[#e3e3e3] bg-white p-0 text-[#474747] hover:bg-[#f6f6f6];
+  }
+
+  .cics-calendar-chevron {
+    @apply h-[14px] w-[14px] text-[#5f5f5f];
+  }
+
+  .cics-calendar-month-grid {
+    @apply w-full border-collapse;
+  }
+
+  .cics-calendar-weekdays {
+    @apply flex;
+  }
+
+  .cics-calendar-weekday {
+    @apply w-9 pb-1 text-center font-body text-[12px] font-normal text-[#a8a8a8];
+  }
+
+  .cics-calendar-weeks {
+    @apply mt-[1px] flex flex-col gap-[2px];
+  }
+
+  .cics-calendar-week {
+    @apply flex;
+  }
+
+  .cics-calendar-day {
+    @apply h-9 w-9 p-0 text-center;
+  }
+
+  .cics-calendar-day-btn {
+    @apply h-9 w-9 rounded-[9px] p-0 font-body text-[15px] leading-[20px] text-[#141414] transition-colors duration-200 hover:bg-[#f2f2f2];
+  }
+
+  .cics-calendar-selected {
+    @apply rounded-[9px] bg-[#1D7BF2] text-white hover:bg-[#1D7BF2] hover:text-white;
+  }
+
+  .cics-calendar-today {
+    @apply rounded-[9px] bg-[#efefef] text-[#141414];
+  }
+
+  .cics-calendar-outside {
+    @apply text-[#b6b6b6];
+  }
+
+  .cics-calendar-disabled {
+    @apply text-[#c9c9c9] opacity-60;
+  }
+
+  .cics-calendar-hidden {
+    @apply invisible;
+  }
+
+  /* =============================================
+     Shared Motion Contracts
+     ============================================= */
+
+  .cics-motion-popover {
+    @apply data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95;
+    @apply data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2;
+  }
+
+  .cics-motion-select {
+    @apply data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95;
+    @apply data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2;
+  }
+
+  .cics-motion-accordion-trigger {
+    @apply transition-colors duration-200;
+  }
+
+  .cics-motion-accordion-content {
+    overflow: hidden;
+  }
+
+  .cics-motion-accordion-content[data-state='open'] {
+    animation: cicsAccordionDown 0.2s ease-out;
+  }
+
+  .cics-motion-accordion-content[data-state='closed'] {
+    animation: cicsAccordionUp 0.2s ease-out;
+  }
+}
+
+@layer utilities {
+  /* Text utilities */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  /* Animation utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes cicsAccordionDown {
+    from { height: 0; opacity: 0; }
+    to { height: var(--radix-accordion-content-height); opacity: 1; }
+  }
+
+  @keyframes cicsAccordionUp {
+    from { height: var(--radix-accordion-content-height); opacity: 1; }
+    to { height: 0; opacity: 0; }
+  }
+}
+
+/* =============================================
+   Custom Scrollbar
+   ============================================= */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-grey-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-grey-300 rounded;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-grey-400;
+}
