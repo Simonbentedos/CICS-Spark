@@ -1,3 +1,10 @@
+# Agents
+CLAUDE.md
+.claude/*
+.github/*
+.claude
+.github
+
 # Dependencies
 /node_modules
 /.pnp

@@ -1,7 +1,10 @@
-# Agents and Skills
+# Agents
 CLAUDE.md
 .claude/*
 .github/*
+.claude
+.github
+
 
 # compiled output
 /dist
