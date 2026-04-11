@@ -6,6 +6,14 @@ function canUseStorage() {
   return typeof window !== 'undefined'
 }
 
+function setCookie(name: string, value: string) {
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; SameSite=Lax`
+}
+
+function deleteCookie(name: string) {
+  document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+}
+
 export function getStudentSession(): StudentSession | null {
   if (!canUseStorage()) {
     return null
@@ -20,7 +28,7 @@ export function getStudentSession(): StudentSession | null {
   try {
     const parsed = JSON.parse(raw) as StudentSession
 
-    if (!parsed?.email || !parsed?.name || !parsed?.token || !parsed?.studentId) {
+    if (!parsed?.email || !parsed?.name || !parsed?.token) {
       return null
     }
 
@@ -35,7 +43,10 @@ export function setStudentSession(session: StudentSession) {
     return
   }
 
-  localStorage.setItem(STUDENT_SESSION_KEY, JSON.stringify(session))
+  const serialized = JSON.stringify(session)
+  localStorage.setItem(STUDENT_SESSION_KEY, serialized)
+  // Mirror to cookie so middleware can read it server-side
+  setCookie(STUDENT_SESSION_KEY, serialized)
 }
 
 export function clearStudentSession() {
@@ -44,4 +55,5 @@ export function clearStudentSession() {
   }
 
   localStorage.removeItem(STUDENT_SESSION_KEY)
+  deleteCookie(STUDENT_SESSION_KEY)
 }

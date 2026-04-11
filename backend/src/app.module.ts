@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
@@ -24,10 +26,11 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 
 @Module({
   imports: [
-    // ConfigModule allows reading environment variables from .env
     ConfigModule.forRoot({ isGlobal: true }),
 
-    // Supabase client provider
+    // Global rate limiting: 100 req / 60 s per IP
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
+
     DatabaseModule,
 
     // Auth + RBAC (login, logout, /me, guards)
@@ -53,6 +56,10 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     NotificationsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    // Apply ThrottlerGuard globally
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class AppModule {}

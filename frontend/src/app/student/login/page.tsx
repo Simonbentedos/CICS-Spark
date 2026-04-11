@@ -5,37 +5,37 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { ArrowLeft, Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import { Button, Card, Input, Label } from '@/components/ui'
-import { SAMPLE_STUDENTS, createStudentToken, findStudentAccount } from '@/lib/mock-student'
-import { setStudentSession } from '@/lib/student/session'
+import { SAMPLE_STUDENTS } from '@/lib/mock-student'
+import { login } from '@/lib/api/auth'
 
 export default function StudentLoginPage() {
-  const [email, setEmail] = useState(SAMPLE_STUDENTS[0].email)
-  const [password, setPassword] = useState(SAMPLE_STUDENTS[0].password)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
   const router = useRouter()
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    setLoading(true)
 
-    const matched = findStudentAccount(email.trim(), password)
+    try {
+      const data = await login(email.trim(), password)
 
-    if (!matched) {
-      setError('Invalid student email or password')
-      return
+      if (data.role !== 'student') {
+        setError('This portal is for student accounts only. Use the Admin Login.')
+        return
+      }
+
+      router.push('/student/dashboard')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Login failed'
+      setError(msg)
+    } finally {
+      setLoading(false)
     }
-
-    setStudentSession({
-      name: matched.name,
-      email: matched.email,
-      studentId: matched.studentId,
-      department: matched.department,
-      token: createStudentToken(matched.email),
-      loginAt: new Date().toISOString(),
-    })
-
-    router.push('/student/dashboard')
   }
 
   return (
@@ -62,7 +62,16 @@ export default function StudentLoginPage() {
                 <Label htmlFor="email" className="mb-2 block text-[14px] font-medium text-[#134e4a]">Email Address</Label>
                 <div className="relative">
                   <Mail className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#90a4a0]" />
-                  <Input id="email" type="email" value={email} onChange={(ev) => setEmail(ev.target.value)} className="h-[46px] rounded-[8px] border-[#d9e5e1] bg-white pl-10" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(ev) => setEmail(ev.target.value)}
+                    placeholder="Enter your email"
+                    required
+                    maxLength={255}
+                    className="h-[46px] rounded-[8px] border-[#d9e5e1] bg-white pl-10"
+                  />
                 </div>
               </div>
 
@@ -70,7 +79,15 @@ export default function StudentLoginPage() {
                 <Label htmlFor="password" className="mb-2 block text-[14px] font-medium text-[#134e4a]">Password</Label>
                 <div className="relative">
                   <Lock className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#90a4a0]" />
-                  <Input id="password" type={showPassword ? 'text' : 'password'} value={password} onChange={(ev) => setPassword(ev.target.value)} className="h-[46px] rounded-[8px] border-[#d9e5e1] bg-white pl-10 pr-10" />
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(ev) => setPassword(ev.target.value)}
+                    placeholder="Enter your password"
+                    required
+                    className="h-[46px] rounded-[8px] border-[#d9e5e1] bg-white pl-10 pr-10"
+                  />
                   <button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7d928e]">
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
@@ -79,7 +96,12 @@ export default function StudentLoginPage() {
 
               {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-              <Button className="h-[48px] w-full rounded-[8px] bg-[#0f766e] text-[16px] text-white hover:bg-[#0f766e]">Sign In</Button>
+              <Button
+                className="h-[48px] w-full rounded-[8px] bg-[#0f766e] text-[16px] text-white hover:bg-[#0f766e] disabled:opacity-60"
+                disabled={loading}
+              >
+                {loading ? 'Signing in…' : 'Sign In'}
+              </Button>
             </form>
           </div>
         </Card>

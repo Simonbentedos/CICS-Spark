@@ -73,6 +73,27 @@ export class AdminService {
     };
   }
 
+  // ─── User Listing ─────────────────────────────────────────────────────────
+
+  /**
+   * getUsers returns all users scoped by department.
+   * Admins see only their department; super_admin sees all.
+   */
+  async getUsers(currentUser: any) {
+    let query = this.databaseService.client
+      .from('users')
+      .select('id, email, first_name, last_name, role, department, is_active, created_at')
+      .order('created_at', { ascending: false });
+
+    if (currentUser.role === 'admin') {
+      query = query.eq('department', currentUser.department);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new InternalServerErrorException(error.message);
+    return data ?? [];
+  }
+
   // ─── M-04: Submission Review ───────────────────────────────────────────────
 
   /**
@@ -100,6 +121,35 @@ export class AdminService {
     const { data, error } = await query;
     if (error) throw new InternalServerErrorException(error.message);
     return data;
+  }
+
+  /**
+   * getSubmissionById returns a single document by ID, with its review history.
+   */
+  async getSubmissionById(documentId: string, currentUser: any) {
+    const { data: document, error } = await this.databaseService.client
+      .from('documents')
+      .select(
+        'id, title, authors, abstract, year, department, type, track_specialization, adviser, keywords, pdf_file_path, uploaded_by, status, created_at, updated_at',
+      )
+      .eq('id', documentId)
+      .single();
+
+    if (error || !document) {
+      throw new NotFoundException('Document not found.');
+    }
+
+    if (currentUser.role === 'admin' && document.department !== currentUser.department) {
+      throw new ForbiddenException('You can only view documents from your department.');
+    }
+
+    const { data: reviews } = await this.databaseService.client
+      .from('reviews')
+      .select('id, decision, feedback_text, reviewed_by, created_at')
+      .eq('document_id', documentId)
+      .order('created_at', { ascending: false });
+
+    return { ...document, reviews: reviews ?? [] };
   }
 
   /**

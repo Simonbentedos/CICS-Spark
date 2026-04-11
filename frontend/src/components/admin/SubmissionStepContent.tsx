@@ -12,9 +12,14 @@ type SubmissionStepContentProps = {
   step: SubmissionStepMeta
   draft: SubmissionDraft
   onDraftChange: (patch: Partial<SubmissionDraft>) => void
+  /** When provided, a real <input type="file"> is rendered instead of the filename text input */
+  pdfFile?: File | null
+  onFileChange?: (file: File | null) => void
+  duplicateWarning?: string | null
+  onTitleBlur?: () => void
 }
 
-export default function SubmissionStepContent({ step, draft, onDraftChange }: Readonly<SubmissionStepContentProps>) {
+export default function SubmissionStepContent({ step, draft, onDraftChange, pdfFile, onFileChange, duplicateWarning, onTitleBlur }: Readonly<SubmissionStepContentProps>) {
   if (step.key === 'basic-info') {
     return (
       <>
@@ -26,7 +31,11 @@ export default function SubmissionStepContent({ step, draft, onDraftChange }: Re
             className="h-11 border-grey-200"
             value={draft.title}
             onChange={(event) => onDraftChange({ title: event.target.value })}
+            onBlur={onTitleBlur}
           />
+          {duplicateWarning ? (
+            <p className="text-xs text-amber-700 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">{duplicateWarning}</p>
+          ) : null}
         </div>
 
         <div className="grid gap-3 md:grid-cols-3">
@@ -143,21 +152,45 @@ export default function SubmissionStepContent({ step, draft, onDraftChange }: Re
       <>
         <div className="space-y-2">
           <Label className="text-sm font-medium text-grey-700">Upload PDF *</Label>
-          <div className="flex min-h-[180px] flex-col items-center justify-center rounded-md border border-grey-200 bg-white">
-            <Upload className="mb-2 h-10 w-10 text-grey-500" />
-            <div className="w-full max-w-[320px] space-y-2 px-4">
-              <Input
-                placeholder="Enter file name (e.g., thesis.pdf)"
-                className="h-10 border-grey-200"
-                value={draft.fileName}
-                onChange={(event) => onDraftChange({ fileName: event.target.value })}
+          {onFileChange ? (
+            <label className="flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed border-grey-200 bg-white hover:border-[#0f766e] hover:bg-[#f0fdf9] transition-colors">
+              <Upload className="mb-2 h-10 w-10 text-grey-400" />
+              {pdfFile ? (
+                <div className="text-center px-4">
+                  <p className="text-sm font-medium text-[#0f766e]">{pdfFile.name}</p>
+                  <p className="text-xs text-grey-500 mt-0.5">{(pdfFile.size / 1024 / 1024).toFixed(2)} MB — click to replace</p>
+                </div>
+              ) : (
+                <div className="text-center px-4">
+                  <p className="text-sm font-medium text-grey-700">Click to choose a PDF file</p>
+                  <p className="text-xs text-grey-500 mt-0.5">or drag and drop here</p>
+                </div>
+              )}
+              <input
+                type="file"
+                accept=".pdf,application/pdf"
+                className="sr-only"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] ?? null
+                  onFileChange(file)
+                  if (file) onDraftChange({ fileName: file.name })
+                }}
               />
-              <Button type="button" className="h-10 w-full px-5" onClick={() => onDraftChange({ fileName: draft.fileName || 'thesis-document.pdf' })}>
-                Choose PDF File
-              </Button>
+            </label>
+          ) : (
+            <div className="flex min-h-[180px] flex-col items-center justify-center rounded-md border border-grey-200 bg-white">
+              <Upload className="mb-2 h-10 w-10 text-grey-500" />
+              <div className="w-full max-w-[320px] space-y-2 px-4">
+                <Input
+                  placeholder="Enter file name (e.g., thesis.pdf)"
+                  className="h-10 border-grey-200"
+                  value={draft.fileName}
+                  onChange={(event) => onDraftChange({ fileName: event.target.value })}
+                />
+              </div>
+              <p className="mt-2 text-xs text-grey-500">Maximum file size: 50MB</p>
             </div>
-            <p className="mt-2 text-xs text-grey-500">Maximum file size: 50MB</p>
-          </div>
+          )}
         </div>
 
         <div className="rounded-md border border-cics-maroon-300 bg-cics-maroon-50 p-3 text-xs text-grey-700">

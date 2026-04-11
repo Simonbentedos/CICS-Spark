@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Get,
   Body,
   UseGuards,
   UseInterceptors,
@@ -23,6 +24,16 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 @UseGuards(SupabaseGuard, RolesGuard)
 export class StudentController {
   constructor(private readonly studentService: StudentService) {}
+
+  /**
+   * GET /api/student/documents
+   * Student-only. Returns all documents uploaded by the authenticated student.
+   */
+  @Get('documents')
+  @Roles('student')
+  getMyDocuments(@Request() req: any) {
+    return this.studentService.getMyDocuments(req.user.id);
+  }
 
   /**
    * POST /api/student/documents

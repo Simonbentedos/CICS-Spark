@@ -92,6 +92,15 @@ export class DocumentsController {
   // ─── Item routes ─────────────────────────────────────────────────────────
 
   /**
+   * GET /api/documents/:id
+   * Public. Returns a single approved document by UUID.
+   */
+  @Get(':id')
+  getDocumentById(@Param('id') id: string) {
+    return this.documentsService.getDocumentById(id);
+  }
+
+  /**
    * PUT /api/documents/:id
    * Student-only. Re-upload a revised PDF and/or update metadata.
    * Only permitted when document status='revision'. Resets status to 'pending'.

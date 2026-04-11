@@ -99,6 +99,7 @@ export interface AdminSession {
   email: string
   departmentCode: 'cs' | 'it' | 'is'
   departmentName: string
+  role: 'admin' | 'super_admin'
   token: string
   loginAt: string
 }

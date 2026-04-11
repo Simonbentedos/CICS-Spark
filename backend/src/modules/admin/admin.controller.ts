@@ -34,6 +34,18 @@ export class AdminController {
     return this.adminService.createStudent(createStudentDto);
   }
 
+  // ─── User Listing ─────────────────────────────────────────────────────────
+
+  /**
+   * GET /api/admin/users
+   * Admin or super_admin only. Lists users scoped by department.
+   */
+  @Get('users')
+  @Roles('admin', 'super_admin')
+  getUsers(@Request() req: any) {
+    return this.adminService.getUsers(req.user);
+  }
+
   // ─── M-04: Submission Review ───────────────────────────────────────────────
 
   /**
@@ -45,6 +57,16 @@ export class AdminController {
   @Roles('admin', 'super_admin')
   getSubmissions(@Request() req: any, @Query('status') status?: string) {
     return this.adminService.getSubmissions(req.user, status);
+  }
+
+  /**
+   * GET /api/admin/submissions/:id
+   * Admin or super_admin only. Fetches a single submission with its review history.
+   */
+  @Get('submissions/:id')
+  @Roles('admin', 'super_admin')
+  getSubmissionById(@Param('id') id: string, @Request() req: any) {
+    return this.adminService.getSubmissionById(id, req.user);
   }
 
   /**

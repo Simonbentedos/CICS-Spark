@@ -6,6 +6,14 @@ function canUseStorage() {
   return typeof window !== 'undefined'
 }
 
+function setCookie(name: string, value: string) {
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; SameSite=Lax`
+}
+
+function deleteCookie(name: string) {
+  document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+}
+
 export function getAdminSession(): AdminSession | null {
   if (!canUseStorage()) {
     return null
@@ -24,7 +32,7 @@ export function getAdminSession(): AdminSession | null {
       return null
     }
 
-    if (!parsed.departmentCode || !parsed.departmentName) {
+    if (!parsed.departmentCode || !parsed.departmentName || !parsed.role) {
       return null
     }
 
@@ -39,7 +47,10 @@ export function setAdminSession(session: AdminSession) {
     return
   }
 
-  localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(session))
+  const serialized = JSON.stringify(session)
+  localStorage.setItem(ADMIN_SESSION_KEY, serialized)
+  // Mirror to cookie so middleware can read it server-side
+  setCookie(ADMIN_SESSION_KEY, serialized)
 }
 
 export function clearAdminSession() {
@@ -48,4 +59,5 @@ export function clearAdminSession() {
   }
 
   localStorage.removeItem(ADMIN_SESSION_KEY)
+  deleteCookie(ADMIN_SESSION_KEY)
 }

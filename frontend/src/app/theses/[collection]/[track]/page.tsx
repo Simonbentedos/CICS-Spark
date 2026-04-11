@@ -1,44 +1,53 @@
+"use client"
+
+import { useEffect, useState } from 'react'
 import { notFound } from 'next/navigation'
 import { CICSHeader, CICSFooter, SecondaryNav, Sidebar } from '@/components/layout'
 import { CollectionHeading, ThesisListItem } from '@/components/thesis'
-import {
-  getThesisTracksByCollection,
-  listThesesByTrack,
-  thesisCollections,
-} from '@/lib/utils/theses-data'
+import { thesisCollections, getThesisTracksByCollection, type ThesisEntry } from '@/lib/utils/theses-data'
+import { listDocuments, type ApiDocument } from '@/lib/api/documents'
 
-export const dynamicParams = false
+function apiDocToEntry(doc: ApiDocument): ThesisEntry {
+  return {
+    slug: doc.id,
+    title: doc.title,
+    authors: Array.isArray(doc.authors) ? doc.authors.join(', ') : String(doc.authors ?? ''),
+    date: doc.year ? String(doc.year) : new Date(doc.created_at).getFullYear().toString(),
+    type: doc.type === 'thesis' ? 'Thesis' : 'Capstone',
+    abstract: doc.abstract ?? '',
+    tags: Array.isArray(doc.keywords) ? doc.keywords.join(', ') : '',
+    departmentSlug: '',
+    trackSlug: doc.track_specialization ?? '',
+  }
+}
 
-export function generateStaticParams() {
-  return thesisCollections.flatMap((collection) =>
-    getThesisTracksByCollection(collection.slug).map((track) => ({
-      collection: collection.slug,
-      track: track.slug,
-    }))
-  )
+const COLLECTION_TO_DEPT: Record<string, string> = {
+  'department-of-computer-science': 'CS',
 }
 
 interface ThesisTrackPageProps {
-  params: {
-    collection: string
-    track: string
-  }
+  params: { collection: string; track: string }
 }
 
 export default function ThesisTrackPage({ params }: Readonly<ThesisTrackPageProps>) {
-  const collection = thesisCollections.find((item) => item.slug === params.collection)
+  const collection = thesisCollections.find((c) => c.slug === params.collection)
+  const track = collection ? getThesisTracksByCollection(collection.slug).find((t) => t.slug === params.track) : undefined
 
-  if (!collection) {
+  const [entries, setEntries] = useState<ThesisEntry[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!collection || !track) return
+    const dept = COLLECTION_TO_DEPT[params.collection]
+    listDocuments({ department: dept, type: 'thesis', track: params.track, limit: 100 })
+      .then(({ data }) => setEntries(data.map(apiDocToEntry)))
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [params.collection, params.track])
+
+  if (!collection || !track) {
     notFound()
   }
-
-  const track = getThesisTracksByCollection(collection.slug).find((item) => item.slug === params.track)
-
-  if (!track) {
-    notFound()
-  }
-
-  const entries = listThesesByTrack(collection.slug, track.slug)
 
   return (
     <div className="min-h-screen bg-bg-grey flex flex-col">
@@ -65,16 +74,22 @@ export default function ThesisTrackPage({ params }: Readonly<ThesisTrackPageProp
 
             <div className="w-full border-b border-[#dddddd] mb-8" />
 
-            <div className="flex flex-col gap-7">
-              {entries.map((entry, index) => (
-                <ThesisListItem
-                  key={entry.slug}
-                  entry={entry}
-                  collectionSlug={`${collection.slug}/${track.slug}`}
-                  showDivider={index !== entries.length - 1}
-                />
-              ))}
-            </div>
+            {loading ? (
+              <p className="text-sm text-[#888888]">Loading…</p>
+            ) : entries.length === 0 ? (
+              <p className="text-sm text-[#888888]">No published theses in this track yet.</p>
+            ) : (
+              <div className="flex flex-col gap-7">
+                {entries.map((entry, index) => (
+                  <ThesisListItem
+                    key={entry.slug}
+                    entry={entry}
+                    collectionSlug={`${collection.slug}/${track.slug}`}
+                    showDivider={index !== entries.length - 1}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </main>
       </div>

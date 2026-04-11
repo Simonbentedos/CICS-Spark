@@ -1,13 +1,9 @@
 "use client"
 
 import { useEffect, useMemo, useState } from 'react'
-import { CalendarDays, Eye, Plus } from 'lucide-react'
+import { CalendarDays, Eye } from 'lucide-react'
 import Link from 'next/link'
-import {
-  Button,
-  Card,
-  CardContent,
-} from '@/components/ui'
+import { Card, CardContent } from '@/components/ui'
 import AdminBadge from '@/components/admin/AdminBadge'
 import AdminDataTable from '@/components/admin/AdminDataTable'
 import AdminFilterBar from '@/components/admin/AdminFilterBar'
@@ -15,133 +11,123 @@ import AdminMetricCards from '@/components/admin/AdminMetricCards'
 import AdminPagination from '@/components/admin/AdminPagination'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import AdminSubmissionFilters from '@/components/admin/AdminSubmissionFilters'
-import { adminRepository } from '@/lib/admin/admin-repository'
-import {
-  getSubmissionDepartments,
-  getSubmissionStatusTone,
-  getSubmissionStatuses,
-} from '@/lib/utils'
-import type { SubmissionRecord, SubmissionStatus } from '@/types/admin'
+import { getAdminSubmissions, type ApiDocument } from '@/lib/api/documents'
+import { getSubmissionStatusTone, getSubmissionStatuses } from '@/lib/utils'
+import type { AdminStatCard } from '@/types/admin'
 
 const PAGE_SIZE = 8
 
-function parseDate(date: string) {
-  const [monthToken, dayToken] = date.split(' ')
-  const monthMap: Record<string, number> = {
-    Jan: 0,
-    Feb: 1,
-    Mar: 2,
-    Apr: 3,
-    May: 4,
-    Jun: 5,
-    Jul: 6,
-    Aug: 7,
-    Sep: 8,
-    Oct: 9,
-    Nov: 10,
-    Dec: 11,
-  }
-
-  return new Date(2025, monthMap[monthToken] ?? 0, Number(dayToken ?? 1)).getTime()
+const STATUS_LABEL: Record<string, string> = {
+  pending: 'Pending Review',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  revision: 'Revision Requested',
 }
 
 export default function AdminSubmissionsPage() {
+  const [submissions, setSubmissions] = useState<ApiDocument[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
   const [searchQuery, setSearchQuery] = useState('')
   const [department, setDepartment] = useState('all-departments')
   const [status, setStatus] = useState('all-status')
   const [sortOrder, setSortOrder] = useState('date-desc')
   const [page, setPage] = useState(1)
-  const [submissions] = useState<SubmissionRecord[]>(() => adminRepository.listSubmissions())
-  const [summaryCards] = useState(() => adminRepository.getSubmissionSummaryCards())
 
-  const departments = useMemo(() => getSubmissionDepartments(submissions), [submissions])
+  useEffect(() => {
+    getAdminSubmissions()
+      .then(setSubmissions)
+      .catch((err) => setError(err.message ?? 'Failed to load submissions'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  // Read URL params on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const q = params.get('search')
+    const s = params.get('status')
+    if (q) setSearchQuery(q)
+    if (s) setStatus(s)
+  }, [])
+
+  useEffect(() => { setPage(1) }, [searchQuery, department, status, sortOrder])
+
+  const departments = useMemo(
+    () => ['all-departments', ...Array.from(new Set(submissions.map((s) => s.department)))],
+    [submissions],
+  )
   const statuses = useMemo(() => getSubmissionStatuses(), [])
 
-  const filteredSubmissions = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase()
+  const summaryCards: AdminStatCard[] = useMemo(() => [
+    { label: 'Pending Review', value: submissions.filter((s) => s.status === 'pending').length, tone: 'orange' },
+    { label: 'Approved', value: submissions.filter((s) => s.status === 'approved').length, tone: 'green' },
+    { label: 'Rejected', value: submissions.filter((s) => s.status === 'rejected').length, tone: 'red' },
+    { label: 'Revision', value: submissions.filter((s) => s.status === 'revision').length, tone: 'violet' },
+    { label: 'Total', value: submissions.length, tone: 'default' },
+  ], [submissions])
 
-    const base = submissions.filter((submission) => {
-      const matchesQuery =
-        !normalizedQuery ||
-        submission.title.toLowerCase().includes(normalizedQuery) ||
-        submission.author.toLowerCase().includes(normalizedQuery)
-
-      const matchesDepartment = department === 'all-departments' || submission.department === department
-      const matchesStatus = status === 'all-status' || submission.status === (status as SubmissionStatus)
-
-      return matchesQuery && matchesDepartment && matchesStatus
+  const filtered = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    const base = submissions.filter((doc) => {
+      const authors = (doc.authors as string[]).join(' ')
+      const matchesQ = !q || doc.title.toLowerCase().includes(q) || authors.toLowerCase().includes(q)
+      const matchesDept = department === 'all-departments' || doc.department === department
+      const docLabel = STATUS_LABEL[doc.status] ?? doc.status
+      const matchesStatus = status === 'all-status' || docLabel === status || doc.status === status
+      return matchesQ && matchesDept && matchesStatus
     })
-
-    return base.sort((left, right) => {
-      const delta = parseDate(left.date) - parseDate(right.date)
+    return base.sort((a, b) => {
+      const delta = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       return sortOrder === 'date-asc' ? delta : -delta
     })
-  }, [department, searchQuery, sortOrder, status, submissions])
+  }, [submissions, searchQuery, department, status, sortOrder])
 
-  const totalPages = Math.max(1, Math.ceil(filteredSubmissions.length / PAGE_SIZE))
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const safePage = Math.min(page, totalPages)
-  const pagedSubmissions = filteredSubmissions.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
-
-  const startRow = filteredSubmissions.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1
-  const endRow = Math.min(safePage * PAGE_SIZE, filteredSubmissions.length)
-
-  useEffect(() => {
-    setPage(1)
-  }, [searchQuery, department, status, sortOrder])
-
-  useEffect(() => {
-    if (!('window' in globalThis)) {
-      return
-    }
-
-    const params = new URLSearchParams(globalThis.location.search)
-    const query = params.get('search')
-    const statusParam = params.get('status')
-
-    if (query) {
-      setSearchQuery(query)
-    }
-
-    if (statusParam) {
-      if (statusParam === 'all-status' || statuses.includes(statusParam as SubmissionStatus)) {
-        setStatus(statusParam)
-      }
-    }
-  }, [statuses])
+  const paged = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+  const startRow = filtered.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1
+  const endRow = Math.min(safePage * PAGE_SIZE, filtered.length)
 
   const columns = useMemo(
     () => [
       {
         id: 'title',
-        header: 'Thesis Title',
+        header: 'Title',
         className: 'max-w-[360px]',
-        renderCell: (submission: SubmissionRecord) => <span className="line-clamp-2">{submission.title}</span>,
+        renderCell: (doc: ApiDocument) => <span className="line-clamp-2">{doc.title}</span>,
       },
-      { id: 'author', header: 'Author', renderCell: (submission: SubmissionRecord) => submission.author },
-      { id: 'department', header: 'Department', renderCell: (submission: SubmissionRecord) => submission.department },
+      {
+        id: 'authors',
+        header: 'Authors',
+        renderCell: (doc: ApiDocument) => (doc.authors as string[]).slice(0, 2).join(', '),
+      },
+      { id: 'department', header: 'Dept', renderCell: (doc: ApiDocument) => doc.department },
       {
         id: 'date',
-        header: 'Date',
-        renderCell: (submission: SubmissionRecord) => (
+        header: 'Submitted',
+        renderCell: (doc: ApiDocument) => (
           <span className="inline-flex items-center gap-1">
             <CalendarDays className="h-3.5 w-3.5 text-grey-500" />
-            {submission.date}
+            {new Date(doc.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </span>
         ),
       },
       {
         id: 'status',
         header: 'Status',
-        renderCell: (submission: SubmissionRecord) => (
-          <AdminBadge label={submission.status} tone={getSubmissionStatusTone(submission.status)} />
-        ),
+        renderCell: (doc: ApiDocument) => {
+          const label = STATUS_LABEL[doc.status] ?? doc.status
+          return <AdminBadge label={label} tone={getSubmissionStatusTone(label as any)} />
+        },
       },
       {
         id: 'action',
         header: 'Action',
-        renderCell: (submission: SubmissionRecord) => (
+        renderCell: (doc: ApiDocument) => (
           <Link
-            href={`/admin/submissions/review/${submission.id}`}
+            href={`/admin/submissions/review/${doc.id}`}
             className="inline-flex items-center gap-1 text-cics-maroon no-underline transition-colors hover:text-cics-maroon-600"
           >
             <Eye className="h-3.5 w-3.5" />
@@ -150,25 +136,21 @@ export default function AdminSubmissionsPage() {
         ),
       },
     ],
-    []
+    [],
   )
 
   return (
     <div className="space-y-4">
       <AdminPageHeader
         title="Submissions"
-        subtitle="Review and manage thesis submissions"
-        action={
-          <Button asChild className="h-9 rounded-md px-4 text-xs">
-            <Link href="/admin/submissions/new/permission" className="no-underline">
-              <Plus className="mr-1 h-4 w-4" />
-              Add Thesis
-            </Link>
-          </Button>
-        }
+        subtitle="Review and manage thesis and capstone submissions"
       />
 
       <AdminMetricCards cards={summaryCards} columnsClassName="sm:grid-cols-2 lg:grid-cols-5" compact />
+
+      {error && (
+        <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
+      )}
 
       <Card className="border border-grey-200 shadow-none">
         <CardContent className="space-y-4 p-4">
@@ -190,19 +172,23 @@ export default function AdminSubmissionsPage() {
             }
           />
 
-          <AdminDataTable
-            columns={columns}
-            rows={pagedSubmissions}
-            rowKey={(submission) => submission.id}
-            emptyMessage="No submissions match your filters."
-            minWidthClassName="min-w-[980px]"
-          />
+          {loading ? (
+            <p className="py-8 text-center text-xs text-grey-500">Loading submissions…</p>
+          ) : (
+            <AdminDataTable
+              columns={columns}
+              rows={paged}
+              rowKey={(doc) => doc.id}
+              emptyMessage="No submissions match your filters."
+              minWidthClassName="min-w-[980px]"
+            />
+          )}
 
           <AdminPagination
             page={safePage}
             totalPages={totalPages}
             onPageChange={setPage}
-            leftText={`Showing ${startRow} to ${endRow} of ${filteredSubmissions.length} results`}
+            leftText={`Showing ${startRow} to ${endRow} of ${filtered.length} results`}
           />
         </CardContent>
       </Card>

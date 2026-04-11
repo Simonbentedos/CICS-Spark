@@ -22,8 +22,9 @@ export const ADMIN_NAV_ITEMS = [
   { href: '/', label: 'Homepage', icon: 'home' },
   { href: '/admin/dashboard', label: 'Dashboard', icon: 'dashboard' },
   { href: '/admin/submissions', label: 'Submissions', icon: 'submissions' },
-  { href: '/admin/reports', label: 'Reports', icon: 'reports' },
+  { href: '/admin/fulltext-requests', label: 'Full-Text Requests', icon: 'fulltext' },
   { href: '/admin/users', label: 'Users', icon: 'users' },
+  { href: '/admin/reports', label: 'Reports', icon: 'reports' },
   { href: '/admin/settings', label: 'Settings', icon: 'settings' },
 ] as const
 

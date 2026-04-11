@@ -7,6 +7,23 @@ export class StudentService {
   constructor(private databaseService: DatabaseService) {}
 
   /**
+   * getMyDocuments returns all submissions by the authenticated student,
+   * newest first, including review history (latest review per document).
+   */
+  async getMyDocuments(userId: string) {
+    const { data, error } = await this.databaseService.client
+      .from('documents')
+      .select(
+        'id, title, authors, abstract, year, department, type, track_specialization, adviser, keywords, status, created_at, updated_at',
+      )
+      .eq('uploaded_by', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw new InternalServerErrorException(error.message);
+    return data ?? [];
+  }
+
+  /**
    * uploadDocument stores the PDF in Supabase Storage under the `documents`
    * bucket, then inserts a record into the `documents` table.
    * Status defaults to 'pending' and is set by the database.

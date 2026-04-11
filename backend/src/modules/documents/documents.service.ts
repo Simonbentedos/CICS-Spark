@@ -201,6 +201,29 @@ export class DocumentsService {
     return data;
   }
 
+  // ─── GET /api/documents/:id ──────────────────────────────────────────────
+
+  /**
+   * getDocumentById returns a single approved document by UUID.
+   * Public endpoint — only approved documents are accessible.
+   */
+  async getDocumentById(documentId: string) {
+    const { data: document, error } = await this.databaseService.client
+      .from('documents')
+      .select(
+        'id, title, authors, abstract, year, department, type, track_specialization, adviser, keywords, uploaded_by, created_at, updated_at',
+      )
+      .eq('id', documentId)
+      .eq('status', 'approved')
+      .single();
+
+    if (error || !document) {
+      throw new NotFoundException('Document not found or not publicly available.');
+    }
+
+    return document;
+  }
+
   // ─── GET /api/documents/check-duplicate ───────────────────────────────────
 
   /**

@@ -1,141 +1,166 @@
 "use client"
 
 import { useEffect, useMemo, useState } from 'react'
-import { Mail, Pencil, Plus, Trash2 } from 'lucide-react'
-import {
-  Button,
-  Card,
-  CardContent,
-} from '@/components/ui'
+import { Mail, Plus } from 'lucide-react'
+import { Button, Card, CardContent } from '@/components/ui'
 import AdminBadge from '@/components/admin/AdminBadge'
 import AdminDataTable from '@/components/admin/AdminDataTable'
 import AdminFilterBar from '@/components/admin/AdminFilterBar'
 import AdminPagination from '@/components/admin/AdminPagination'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import AdminUserDialog from '@/components/admin/AdminUserDialog'
-import { adminRepository } from '@/lib/admin/admin-repository'
-import {
-  getUserRoleTone,
-  getUserStatusTone,
-} from '@/lib/utils'
-import type { UserRecord } from '@/types/admin'
+import { getAdminUsers, createStudent, type ApiUser } from '@/lib/api/users'
 
 const PAGE_SIZE = 8
 
+const ROLE_TONE: Record<string, 'blue' | 'orange' | 'violet' | 'default'> = {
+  super_admin: 'violet',
+  admin: 'blue',
+  student: 'orange',
+}
+
 export default function AdminUsersPage() {
+  const [users, setUsers] = useState<ApiUser[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [users, setUsers] = useState<UserRecord[]>([])
   const [page, setPage] = useState(1)
-  const [dialogState, setDialogState] = useState<{ mode: 'add' | 'edit'; user?: UserRecord } | null>(null)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
-  useEffect(() => {
-    setUsers(adminRepository.listUsers())
-  }, [])
+  function fetchUsers() {
+    setLoading(true)
+    getAdminUsers()
+      .then(setUsers)
+      .catch((err) => setError(err.message ?? 'Failed to load users'))
+      .finally(() => setLoading(false))
+  }
 
-  const filteredUsers = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase()
+  useEffect(() => { fetchUsers() }, [])
+  useEffect(() => { setPage(1) }, [searchQuery])
 
-    return users.filter((user) => {
-      const matchesQuery =
-        !normalizedQuery ||
-        user.name.toLowerCase().includes(normalizedQuery) ||
-        user.email.toLowerCase().includes(normalizedQuery)
-
-      return matchesQuery
-    })
+  const filtered = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    return users.filter(
+      (u) =>
+        !q ||
+        `${u.first_name} ${u.last_name}`.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q),
+    )
   }, [searchQuery, users])
 
-  useEffect(() => {
-    setPage(1)
-  }, [searchQuery])
-
-  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE))
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const safePage = Math.min(page, totalPages)
-  const pagedUsers = filteredUsers.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+  const paged = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   const columns = useMemo(
     () => [
       {
         id: 'name',
         header: 'Name',
-        renderCell: (user: UserRecord) => (
+        renderCell: (u: ApiUser) => (
           <span className="inline-flex items-center gap-2">
             <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-cics-maroon text-[10px] text-white">
-              {user.name.split(' ').map((part) => part[0]).join('').slice(0, 2)}
+              {`${u.first_name[0] ?? ''}${u.last_name[0] ?? ''}`}
             </span>
-            <span>{user.name}</span>
+            {u.first_name} {u.last_name}
           </span>
         ),
       },
       {
         id: 'email',
         header: 'Email',
-        renderCell: (user: UserRecord) => (
+        renderCell: (u: ApiUser) => (
           <span className="inline-flex items-center gap-1 text-grey-600">
             <Mail className="h-3.5 w-3.5 text-grey-400" />
-            {user.email}
+            {u.email}
           </span>
         ),
       },
       {
         id: 'role',
         header: 'Role',
-        renderCell: (user: UserRecord) => <AdminBadge label={user.role} tone={getUserRoleTone(user.role)} />,
+        renderCell: (u: ApiUser) => (
+          <AdminBadge
+            label={u.role.replace('_', ' ')}
+            tone={ROLE_TONE[u.role] ?? 'default'}
+          />
+        ),
+      },
+      {
+        id: 'department',
+        header: 'Dept',
+        renderCell: (u: ApiUser) => u.department ?? '—',
       },
       {
         id: 'status',
         header: 'Status',
-        renderCell: (user: UserRecord) => <AdminBadge label={user.status} tone={getUserStatusTone(user.status)} />,
+        renderCell: (u: ApiUser) => (
+          <AdminBadge
+            label={u.is_active ? 'Active' : 'Inactive'}
+            tone={u.is_active ? 'green' : 'default'}
+          />
+        ),
       },
       {
         id: 'dateAdded',
         header: 'Date Added',
-        renderCell: (user: UserRecord) => user.dateAdded ?? '—',
-      },
-      {
-        id: 'actions',
-        header: 'Actions',
-        renderCell: (user: UserRecord) => (
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setDialogState({ mode: 'edit', user })}
-              className="text-grey-500 hover:text-cics-maroon"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                adminRepository.deleteUser(user.id)
-                setUsers(adminRepository.listUsers())
-              }}
-              className="text-grey-500 hover:text-red-600"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        ),
+        renderCell: (u: ApiUser) =>
+          new Date(u.created_at).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          }),
       },
     ],
-    []
+    [],
   )
 
-  const activeUsers = users.filter((user) => user.status === 'Active').length
-  const inactiveUsers = users.filter((user) => user.status === 'Inactive').length
+  async function handleAddStudent(payload: {
+    name: string
+    email: string
+    role: string
+    department?: string
+  }) {
+    setSaving(true)
+    setSaveError(null)
+    const nameParts = payload.name.trim().split(' ')
+    const first_name = nameParts[0] ?? ''
+    const last_name = nameParts.slice(1).join(' ') || first_name
+
+    try {
+      await createStudent({
+        email: payload.email,
+        first_name,
+        last_name,
+        department: (payload.department ?? 'CS') as 'CS' | 'IT' | 'IS',
+      })
+      setDialogOpen(false)
+      fetchUsers()
+    } catch (err: unknown) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to create student')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="space-y-4">
       <AdminPageHeader
         title="User Management"
-        subtitle="Manage admin users and their permissions"
+        subtitle="Manage student accounts in your department"
         action={
-          <Button className="h-9 rounded-md px-4 text-xs" onClick={() => setDialogState({ mode: 'add' })}>
+          <Button className="h-9 rounded-md px-4 text-xs" onClick={() => setDialogOpen(true)}>
             <Plus className="mr-1 h-4 w-4" />
-            Add User
+            Add Student
           </Button>
         }
       />
+
+      {error && (
+        <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
+      )}
 
       <Card className="border border-grey-200 shadow-none">
         <CardContent className="space-y-4 p-4">
@@ -145,55 +170,47 @@ export default function AdminUsersPage() {
             searchPlaceholder="Search users by name or email..."
           />
 
-          <AdminDataTable
-            columns={columns}
-            rows={pagedUsers}
-            rowKey={(user) => user.id}
-            emptyMessage="No users match your search."
-            minWidthClassName="min-w-[980px]"
-          />
+          {loading ? (
+            <p className="py-8 text-center text-xs text-grey-500">Loading users…</p>
+          ) : (
+            <AdminDataTable
+              columns={columns}
+              rows={paged}
+              rowKey={(u) => u.id}
+              emptyMessage="No users match your search."
+              minWidthClassName="min-w-[980px]"
+            />
+          )}
 
           <AdminPagination
             page={safePage}
             totalPages={totalPages}
             onPageChange={setPage}
-            leftText={`Showing ${filteredUsers.length} of ${users.length} users`}
-            rightContent={<p className="text-xs text-grey-500">Active: {activeUsers} · Inactive: {inactiveUsers}</p>}
+            leftText={`Showing ${filtered.length} of ${users.length} users`}
+            rightContent={
+              <p className="text-xs text-grey-500">
+                Active: {users.filter((u) => u.is_active).length} · Inactive: {users.filter((u) => !u.is_active).length}
+              </p>
+            }
           />
         </CardContent>
       </Card>
 
-      {dialogState ? (
+      {dialogOpen ? (
         <AdminUserDialog
-          mode={dialogState.mode}
-          user={dialogState.user}
-          onClose={() => setDialogState(null)}
+          mode="add"
+          onClose={() => { setDialogOpen(false); setSaveError(null) }}
           onSubmit={(payload) => {
-            if (dialogState.mode === 'add') {
-              const newUser: UserRecord = {
-                id: `usr-${Date.now()}`,
-                name: payload.name,
-                email: payload.email,
-                role: payload.role as UserRecord['role'],
-                department: 'Repository Office',
-                status: 'Active',
-                lastLogin: 'Never',
-                dateAdded: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-              }
-              adminRepository.createUser(newUser)
-            } else if (dialogState.user) {
-              adminRepository.updateUser(dialogState.user.id, {
-                name: payload.name,
-                email: payload.email,
-                role: payload.role as UserRecord['role'],
-                status: payload.status as UserRecord['status'],
-              })
-            }
-            setUsers(adminRepository.listUsers())
-            setDialogState(null)
+            handleAddStudent(payload)
           }}
         />
       ) : null}
+
+      {saveError && (
+        <p className="fixed bottom-4 right-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-md">
+          {saveError}
+        </p>
+      )}
     </div>
   )
 }

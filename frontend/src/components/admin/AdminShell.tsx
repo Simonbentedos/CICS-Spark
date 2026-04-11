@@ -12,15 +12,18 @@ import {
   LogOut,
   Settings,
   Users,
+  Inbox,
 } from 'lucide-react'
 import { ADMIN_NAV_ITEMS, ADMIN_PROFILE, cn, getAdminTopTitle } from '@/lib/utils'
 import { clearAdminSession, getAdminSession } from '@/lib/admin/session'
 import { getAdminTheme } from '@/lib/admin/theme'
+import { logout } from '@/lib/api/auth'
 
 const iconMap = {
   home: Home,
   dashboard: LayoutGrid,
   submissions: FolderOpen,
+  fulltext: Inbox,
   reports: FileText,
   users: Users,
   settings: Settings,
@@ -54,18 +57,11 @@ export default function AdminShell({ children }: Readonly<{ children: React.Reac
     return null
   }
 
-  function handleLogout() {
+  async function handleLogout() {
     const shouldLogout = window.confirm('Are you sure you want to log out?')
-
-    if (!shouldLogout) {
-      return
-    }
-
-    try {
-      clearAdminSession()
-    } finally {
-      router.push('/login')
-    }
+    if (!shouldLogout) return
+    await logout('admin')
+    router.push('/login')
   }
 
   const [homeItem, ...adminItems] = ADMIN_NAV_ITEMS
@@ -118,7 +114,9 @@ export default function AdminShell({ children }: Readonly<{ children: React.Reac
             <div className="space-y-1">
               {adminItems.map((item) => {
               const Icon = iconMap[item.icon]
-              const active = pathname === item.href || (item.href === '/admin/submissions' && pathname.startsWith('/admin/submissions/'))
+              const active = pathname === item.href ||
+                (item.href === '/admin/submissions' && pathname.startsWith('/admin/submissions/')) ||
+                (item.href === '/admin/fulltext-requests' && pathname.startsWith('/admin/fulltext-requests'))
 
               return (
                 <Link
