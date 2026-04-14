@@ -18,6 +18,11 @@ export class DatabaseService implements OnModuleInit {
         autoRefreshToken: false,
         persistSession: false,
       },
+      global: {
+        headers: {
+          Authorization: `Bearer ${key}`,
+        },
+      },
     });
 
     this.logger.log('Supabase client initialized');

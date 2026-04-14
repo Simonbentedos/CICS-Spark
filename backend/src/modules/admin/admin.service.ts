@@ -37,40 +37,66 @@ export class AdminService {
       throw new ConflictException('A student with this email already exists.');
     }
 
-    // Invite the user — Supabase creates the auth user and sends a set-password link
-    const { data: inviteData, error: inviteError } =
-      await this.databaseService.client.auth.admin.inviteUserByEmail(email);
+    // Create the auth user with a confirmed email so no invite flow is needed
+    const tempPassword = dto.password ?? 'Password123!';
+    const { data: authData, error: authError } =
+      await this.databaseService.client.auth.admin.createUser({
+        email,
+        password: tempPassword,
+        email_confirm: true,
+      });
 
-    if (inviteError || !inviteData.user) {
+    if (authError || !authData.user) {
       throw new InternalServerErrorException(
-        inviteError?.message || 'Failed to send student invitation.',
+        authError?.message || 'Failed to create student auth account.',
       );
     }
 
     const { data: user, error: userError } = await this.databaseService.client
       .from('users')
       .insert({
-        id: inviteData.user.id,
+        id: authData.user.id,
         email,
         first_name,
         last_name,
         role: 'student',
         department,
-        is_active: false,
+        is_active: true,
       })
       .select('id, email, first_name, last_name, role, department, is_active, created_at')
       .single();
 
     if (userError) {
       // Roll back the auth user so we don't leave an orphaned auth record
-      await this.databaseService.client.auth.admin.deleteUser(inviteData.user.id);
-      throw new InternalServerErrorException('Failed to create student record.');
+      await this.databaseService.client.auth.admin.deleteUser(authData.user.id);
+      throw new InternalServerErrorException(userError.message || 'Failed to create student record.');
     }
 
     return {
-      message: 'Student account created. An invitation email has been sent.',
+      message: 'Student account created successfully.',
       student: user,
     };
+  }
+
+  // ─── User Listing ─────────────────────────────────────────────────────────
+
+  /**
+   * getUsers returns all users scoped by department.
+   * Admins see only their department; super_admin sees all.
+   */
+  async getUsers(currentUser: any) {
+    let query = this.databaseService.client
+      .from('users')
+      .select('id, email, first_name, last_name, role, department, is_active, created_at')
+      .order('created_at', { ascending: false });
+
+    if (currentUser.role === 'admin') {
+      query = query.eq('department', currentUser.department);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new InternalServerErrorException(error.message);
+    return data ?? [];
   }
 
   // ─── M-04: Submission Review ───────────────────────────────────────────────
@@ -100,6 +126,35 @@ export class AdminService {
     const { data, error } = await query;
     if (error) throw new InternalServerErrorException(error.message);
     return data;
+  }
+
+  /**
+   * getSubmissionById returns a single document by ID, with its review history.
+   */
+  async getSubmissionById(documentId: string, currentUser: any) {
+    const { data: document, error } = await this.databaseService.client
+      .from('documents')
+      .select(
+        'id, title, authors, abstract, year, department, type, track_specialization, adviser, keywords, pdf_file_path, uploaded_by, status, created_at, updated_at',
+      )
+      .eq('id', documentId)
+      .single();
+
+    if (error || !document) {
+      throw new NotFoundException('Document not found.');
+    }
+
+    if (currentUser.role === 'admin' && document.department !== currentUser.department) {
+      throw new ForbiddenException('You can only view documents from your department.');
+    }
+
+    const { data: reviews } = await this.databaseService.client
+      .from('reviews')
+      .select('id, decision, feedback_text, reviewed_by, created_at')
+      .eq('document_id', documentId)
+      .order('created_at', { ascending: false });
+
+    return { ...document, reviews: reviews ?? [] };
   }
 
   /**
@@ -181,6 +236,33 @@ export class AdminService {
    * Admins see requests for documents in their department; super_admin sees all.
    */
   async getFulltextRequests(currentUser: any, status?: string) {
+    // For admins: scope to requests for documents in their department only
+    if (currentUser.role === 'admin') {
+      const { data: deptDocs } = await this.databaseService.client
+        .from('documents')
+        .select('id')
+        .eq('department', currentUser.department);
+
+      const docIds = (deptDocs ?? []).map((d: any) => d.id);
+
+      if (docIds.length === 0) return [];
+
+      let query = this.databaseService.client
+        .from('fulltext_requests')
+        .select(
+          'id, document_id, requester_name, requester_email, purpose, department, status, handled_by, created_at, fulfilled_at',
+        )
+        .in('document_id', docIds)
+        .order('created_at', { ascending: false });
+
+      if (status) query = query.eq('status', status);
+
+      const { data, error } = await query;
+      if (error) throw new InternalServerErrorException(error.message);
+      return data;
+    }
+
+    // Super admin: see all
     let query = this.databaseService.client
       .from('fulltext_requests')
       .select(

@@ -19,7 +19,8 @@ import AdminFilterBar from '@/components/admin/AdminFilterBar'
 import AdminMetricCards from '@/components/admin/AdminMetricCards'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import { adminRepository } from '@/lib/admin/admin-repository'
-import { getSubmissionDepartments, getSubmissionStatuses } from '@/lib/utils'
+import { getSubmissionStatuses } from '@/lib/utils'
+import { getAdminSession } from '@/lib/admin/session'
 import type {
   DepartmentReportRow,
   ReportDateRange,
@@ -57,23 +58,41 @@ function getStatusBarClass(status: SubmissionStatus) {
   return 'bg-cics-maroon-300'
 }
 
+const CICS_DEPARTMENTS = ['Computer Science', 'Information Technology', 'Information Systems']
+
 export default function AdminReportsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPreset, setSelectedPreset] = useState<ReportExportPreset>('executive-summary')
   const [selectedFormat, setSelectedFormat] = useState<ReportExportFormat>('csv')
-  const [filters, setFilters] = useState<ReportFilters>({
+
+  // Scope department filter based on session role
+  const sessionDept = useMemo(() => {
+    if (typeof window === 'undefined') return null
+    const session = getAdminSession()
+    if (!session || session.role === 'super_admin') return null
+    return session.departmentName ?? null
+  }, [])
+
+  const [filters, setFilters] = useState<ReportFilters>(() => ({
     range: '30d',
-    department: 'all-departments',
+    department: sessionDept ?? 'all-departments',
     status: 'all-status',
-  })
-  const [report, setReport] = useState<ReportSnapshot>(() => adminRepository.getReportSnapshot({ range: '30d', department: 'all-departments', status: 'all-status' }))
+  }))
+  const [report, setReport] = useState<ReportSnapshot>(() => adminRepository.getReportSnapshot({
+    range: '30d',
+    department: sessionDept ?? 'all-departments',
+    status: 'all-status',
+  }))
 
   useEffect(() => {
     setReport(adminRepository.getReportSnapshot(filters))
   }, [filters])
 
-  const submissions = useMemo(() => adminRepository.listSubmissions(), [])
-  const departments = useMemo(() => getSubmissionDepartments(submissions), [submissions])
+  // Dept-scoped admins can only see their own department
+  const departments = useMemo(
+    () => sessionDept ? [sessionDept] : CICS_DEPARTMENTS,
+    [sessionDept],
+  )
   const statuses = useMemo(() => getSubmissionStatuses(), [])
 
   const maxTrend = Math.max(1, ...report.trend.map((item) => item.submitted))
@@ -239,7 +258,7 @@ export default function AdminReportsPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-navy">Department Breakdown</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="overflow-x-auto">
             <AdminDataTable<DepartmentReportRow>
               columns={[
                 { id: 'department', header: 'Department', renderCell: (row) => row.department },
@@ -251,7 +270,7 @@ export default function AdminReportsPage() {
               rows={filteredDepartments}
               rowKey={(row) => row.department}
               emptyMessage="No department data for selected filters."
-              minWidthClassName="min-w-[680px]"
+              minWidthClassName="min-w-[400px]"
             />
           </CardContent>
         </Card>
@@ -291,7 +310,7 @@ export default function AdminReportsPage() {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-navy">Audit Logs</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           <AdminDataTable
             columns={[
               { id: 'at', header: 'Time', renderCell: (row) => row.at },
@@ -303,7 +322,7 @@ export default function AdminReportsPage() {
             rows={report.auditLogs}
             rowKey={(row) => row.id}
             emptyMessage="No audit logs available for selected filters."
-            minWidthClassName="min-w-[980px]"
+            minWidthClassName="min-w-[760px]"
           />
         </CardContent>
       </Card>

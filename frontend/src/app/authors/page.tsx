@@ -1,37 +1,68 @@
-import { CICSFooter, CICSHeader, SecondaryNav, Sidebar } from '@/components/layout'
+"use client"
 
-const AUTHOR_GROUPS: Record<string, string[]> = {
-  A: ['Aragon, Lianne Marie'],
-  B: ['Bautista, Noel Vincent', 'Bernardo, Keziah Mae'],
-  C: ['Cabrera, Eliseo Miguel'],
-  D: ['Del Rosario, Andrea Nicole', 'Domingo, Ryan Paolo'],
-  E: ['Enriquez, Tricia Anne'],
-  F: ['Flores, Mateo Gabriel'],
-  G: ['Gonzales, Patricia Lou'],
-  H: ['Hernandez, Joaquin Luis'],
-  I: [],
-  J: ['Javier, Danielle Cruz'],
-  K: ['King, Marcus Allen'],
-  L: ['Lim, Sophia Therese'],
-  M: ['Mendoza, Zachary Cole'],
-  N: ['Navarro, Elena Faith'],
-  O: ['Ocampo, Andre Luis'],
-  P: ['Pineda, Carissa Joy'],
-  Q: ['Quimson, Rafael Jude'],
-  R: ['Ramos, Isabelle Grace'],
-  S: ['Santos, Dominic Kyle'],
-  T: ['Torres, Bianca Camille'],
-  U: [],
-  V: ['Valdez, Hannah Paige'],
-  W: ['Wu, Cedric James'],
-  X: [],
-  Y: ['Yu, Clarisse Anne'],
-  Z: ['Zamora, Miguel Andres'],
+import { useEffect, useState } from 'react'
+import { CICSFooter, CICSHeader, SecondaryNav, Sidebar } from '@/components/layout'
+import { listDocuments } from '@/lib/api/documents'
+
+const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
+
+// Normalise an author string to "Last, First" for sorting
+function normaliseName(name: string): string {
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) return name
+  const last = parts[parts.length - 1]
+  const rest = parts.slice(0, -1).join(' ')
+  return `${last}, ${rest}`
 }
 
-const LETTERS = Object.keys(AUTHOR_GROUPS)
+function getFirstLetter(name: string): string {
+  const normalised = normaliseName(name)
+  return normalised.charAt(0).toUpperCase()
+}
 
 export default function AuthorsPage() {
+  const [authorGroups, setAuthorGroups] = useState<Record<string, string[]>>({})
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    listDocuments({ limit: 500 })
+      .then(({ data }) => {
+        const seen = new Set<string>()
+        const groups: Record<string, string[]> = {}
+
+        for (const letter of LETTERS) {
+          groups[letter] = []
+        }
+
+        for (const doc of data) {
+          const authors: string[] = Array.isArray(doc.authors)
+            ? doc.authors
+            : typeof doc.authors === 'string'
+            ? [doc.authors]
+            : []
+
+          for (const author of authors) {
+            const clean = author.trim()
+            if (!clean || seen.has(clean)) continue
+            seen.add(clean)
+            const letter = getFirstLetter(clean)
+            if (groups[letter]) {
+              groups[letter].push(normaliseName(clean))
+            }
+          }
+        }
+
+        // Sort each letter's list alphabetically
+        for (const letter of LETTERS) {
+          groups[letter].sort()
+        }
+
+        setAuthorGroups(groups)
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [])
+
   return (
     <div className="min-h-screen bg-bg-grey flex flex-col">
       <CICSHeader />
@@ -48,8 +79,8 @@ export default function AuthorsPage() {
         <Sidebar />
 
         <main className="flex-1 min-w-0 pt-7 pb-8">
-          <p className="font-body text-[14px] leading-[28px] text-[#555] mb-4">
-            Browse contributors alphabetically. Click a name to view author materials.
+          <p className="font-body text-[14px] leading-[24px] text-[#555] mb-4">
+            Listing of authors who have works in the repository. Click the name of an author to see a listing of that person&apos;s work.
           </p>
 
           <div className="relative border-b border-[#d6d4d4] pb-[11px] mb-5">
@@ -57,40 +88,43 @@ export default function AuthorsPage() {
             <div className="absolute left-0 bottom-[-1px] h-[3px] w-[95px] bg-[#f3aa2c] rounded-tr-[5px] rounded-br-[5px]" />
           </div>
 
-          <div className="border border-[#d8d8d8] bg-[#f4f4f4] p-3 flex flex-wrap gap-x-3 gap-y-1 mb-6">
-            {LETTERS.map((letter) => (
-              <a key={letter} href={`#author-${letter}`} className="font-body text-[30px] leading-none text-cics-maroon hover:underline no-underline">
-                {letter}
-              </a>
-            ))}
-          </div>
+          {loading ? (
+            <p className="text-sm text-[#888888]">Loading authors…</p>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-x-2 gap-y-1 mb-6">
+                {LETTERS.map((letter) => (
+                  <a key={letter} href={`#author-${letter}`} className="font-body text-[20px] leading-none text-cics-maroon hover:underline no-underline">
+                    {letter}
+                  </a>
+                ))}
+              </div>
 
-          <div className="space-y-6">
-            {LETTERS.map((letter) => {
-              const names = AUTHOR_GROUPS[letter]
+              <div className="space-y-6">
+                {LETTERS.map((letter) => {
+                  const names = authorGroups[letter] ?? []
+                  if (names.length === 0) return null
 
-              return (
-                <section key={letter} id={`author-${letter}`} className="scroll-mt-24">
-                  <h2 className="font-heading text-[36px] text-cics-maroon leading-none mb-2">{letter}</h2>
-                  {names.length > 0 ? (
-                    <div className="flex flex-col gap-1">
-                      {names.map((name) => (
-                        <a
-                          key={name}
-                          href="/search"
-                          className="font-body text-[15px] text-cics-maroon hover:underline w-fit"
-                        >
-                          {name}
-                        </a>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="font-body text-[13px] text-[#888]">No authors indexed.</p>
-                  )}
-                </section>
-              )
-            })}
-          </div>
+                  return (
+                    <section key={letter} id={`author-${letter}`} className="scroll-mt-24">
+                      <h2 className="font-heading text-[36px] text-cics-maroon leading-none mb-2">{letter}</h2>
+                      <div className="flex flex-col gap-1">
+                        {names.map((name) => (
+                          <a
+                            key={name}
+                            href={`/search?q=${encodeURIComponent(name.replace(/,\s*/, ' ').trim())}`}
+                            className="font-body text-[15px] text-cics-maroon hover:underline w-fit"
+                          >
+                            {name}
+                          </a>
+                        ))}
+                      </div>
+                    </section>
+                  )
+                })}
+              </div>
+            </>
+          )}
         </main>
       </div>
 

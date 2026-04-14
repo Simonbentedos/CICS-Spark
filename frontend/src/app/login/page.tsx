@@ -12,38 +12,41 @@ import {
 import { Button, Card, Input, Label } from '@/components/ui'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { createAdminToken, findAdminAccount, SAMPLE_ADMIN, SAMPLE_ADMINS } from '@/lib/mock-admin'
-import { setAdminSession } from '@/lib/admin/session'
+import { login } from '@/lib/api/auth'
+import { SAMPLE_ADMINS } from '@/lib/mock-admin'
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
-  const [email, setEmail] = useState(SAMPLE_ADMIN.email)
-  const [password, setPassword] = useState(SAMPLE_ADMIN.password)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
   const router = useRouter()
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    setLoading(true)
 
-    const normalizedEmail = email.trim()
-    const matchedAdmin = findAdminAccount(normalizedEmail, password)
+    try {
+      const data = await login(email.trim(), password.trim())
 
-    if (matchedAdmin) {
-      const token = createAdminToken(normalizedEmail)
-      setAdminSession({
-        name: matchedAdmin.name,
-        email: normalizedEmail,
-        departmentCode: matchedAdmin.departmentCode,
-        departmentName: matchedAdmin.departmentName,
-        token,
-        loginAt: new Date().toISOString(),
-      })
-      router.push('/admin/dashboard')
-      return
+      if (data.role === 'student') {
+        setError('Use the Student Login for student accounts.')
+        return
+      }
+
+      if (data.role === 'super_admin') {
+        router.push('/superadmin/dashboard')
+      } else {
+        router.push('/admin/dashboard')
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Login failed'
+      setError(msg)
+    } finally {
+      setLoading(false)
     }
-
-    setError('Invalid email or password')
   }
 
   return (
@@ -62,8 +65,8 @@ export default function LoginPage() {
         <section className="mx-auto mt-8 max-w-[448px]">
           <div className="flex flex-col items-center text-center">
             <img
-              src="/images/CICS SEAL.png" // to change to better quality
-              alt="UST Seal"
+              src="/images/CICS SEAL.png"
+              alt="UST CICS Seal"
               className="h-32 w-32 object-contain"
             />
             <h1 className="mt-2 font-heading text-[36px] leading-[36px] font-semibold text-[#1A1A2E]">
@@ -101,6 +104,8 @@ export default function LoginPage() {
                       value={email}
                       onChange={(ev) => setEmail(ev.target.value)}
                       placeholder="Enter email"
+                      required
+                      maxLength={255}
                       className="h-[46px] rounded-[8px] border-[#d9d9d9] bg-white pl-10 pr-3 text-[14px] text-[#444] placeholder:text-[#a7a7a7] focus:ring-1"
                     />
                   </div>
@@ -118,6 +123,7 @@ export default function LoginPage() {
                       value={password}
                       onChange={(ev) => setPassword(ev.target.value)}
                       placeholder="Enter your password"
+                      required
                       className="h-[46px] rounded-[8px] border-[#d9d9d9] bg-white pl-10 pr-10 text-[14px] text-[#444] placeholder:text-[#a7a7a7] focus:ring-1"
                     />
                     <button
@@ -133,18 +139,11 @@ export default function LoginPage() {
 
                 {error && <p className="text-sm text-red-600">{error}</p>}
 
-                <div className="flex items-center justify-between">
-                  <label className="inline-flex items-center gap-2 text-[14px] text-[#888888]">
-                    <input type="checkbox" className="h-4 w-4 rounded border-[#c8c8c8] accent-cics-maroon" />
-                    <span>Remember me</span>
-                  </label>
-                  <Link href="#" className="text-[14px] text-cics-maroon hover:underline">
-                    Forgot password?
-                  </Link>
-                </div>
-
-                <Button className="h-[48px] w-full rounded-[8px] bg-cics-maroon text-[16px] font-medium text-white hover:bg-cics-maroon">
-                  Sign In
+                <Button
+                  className="h-[48px] w-full rounded-[8px] bg-cics-maroon text-[16px] font-medium text-white hover:bg-cics-maroon disabled:opacity-60"
+                  disabled={loading}
+                >
+                  {loading ? 'Signing in…' : 'Sign In'}
                 </Button>
               </form>
             </div>

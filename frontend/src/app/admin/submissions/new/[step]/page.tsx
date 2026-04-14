@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { use, useMemo, useState } from 'react'
 import { Button } from '@/components/ui'
 import SubmissionStepLayout from '@/components/admin/SubmissionStepLayout'
 import SubmissionStepContent, { isSubmissionStepKey } from '@/components/admin/SubmissionStepContent'
@@ -10,7 +10,8 @@ import { adminRepository } from '@/lib/admin/admin-repository'
 import { getAdminSession } from '@/lib/admin/session'
 import { getSubmissionStep } from '@/lib/utils'
 
-export default function NewThesisStepPage({ params }: Readonly<{ params: { step: string } }>) {
+export default function NewThesisStepPage({ params: paramsPromise }: Readonly<{ params: Promise<{ step: string }> }>) {
+  const params = use(paramsPromise)
   const router = useRouter()
   const step = isSubmissionStepKey(params.step) ? getSubmissionStep(params.step) : undefined
 

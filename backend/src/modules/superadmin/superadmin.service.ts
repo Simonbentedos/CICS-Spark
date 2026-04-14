@@ -32,38 +32,43 @@ export class SuperadminService {
       throw new ConflictException('An account with this email already exists.');
     }
 
-    // Invite the user — Supabase creates the auth user and sends a set-password link
-    const { data: inviteData, error: inviteError } =
-      await this.databaseService.client.auth.admin.inviteUserByEmail(email);
+    // Create the auth user with a confirmed email so no invite flow is needed
+    const tempPassword = dto.password ?? 'Password123!';
+    const { data: authData, error: authError } =
+      await this.databaseService.client.auth.admin.createUser({
+        email,
+        password: tempPassword,
+        email_confirm: true,
+      });
 
-    if (inviteError || !inviteData.user) {
+    if (authError || !authData.user) {
       throw new InternalServerErrorException(
-        inviteError?.message || 'Failed to send admin invitation.',
+        authError?.message || 'Failed to create admin auth account.',
       );
     }
 
     const { data: user, error: userError } = await this.databaseService.client
       .from('users')
       .insert({
-        id: inviteData.user.id,
+        id: authData.user.id,
         email,
         first_name,
         last_name,
         role: 'admin',
         department,
-        is_active: false,
+        is_active: true,
       })
       .select('id, email, first_name, last_name, role, department, is_active, created_at')
       .single();
 
     if (userError) {
       // Roll back the auth user so we don't leave an orphaned auth record
-      await this.databaseService.client.auth.admin.deleteUser(inviteData.user.id);
-      throw new InternalServerErrorException('Failed to create admin record.');
+      await this.databaseService.client.auth.admin.deleteUser(authData.user.id);
+      throw new InternalServerErrorException(userError.message || 'Failed to create admin record.');
     }
 
     return {
-      message: 'Admin account created. An invitation email has been sent.',
+      message: 'Admin account created successfully.',
       admin: user,
     };
   }

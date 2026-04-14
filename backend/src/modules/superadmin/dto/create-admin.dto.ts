@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, IsIn } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, IsIn, IsOptional, MinLength } from 'class-validator';
 
 export class CreateAdminDto {
   @IsEmail({}, { message: 'Must provide a valid email address.' })
@@ -16,4 +16,9 @@ export class CreateAdminDto {
   @IsString()
   @IsIn(['IS', 'IT', 'CS'], { message: 'Department must be IS, IT, or CS.' })
   department: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(8, { message: 'Password must be at least 8 characters.' })
+  password?: string;
 }

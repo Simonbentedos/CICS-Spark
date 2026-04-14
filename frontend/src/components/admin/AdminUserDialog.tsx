@@ -11,12 +11,14 @@ type Mode = 'add' | 'edit'
 type AdminUserDialogProps = {
   mode: Mode
   user?: UserRecord
+  lockedRole?: 'admin' | 'student'
   onClose: () => void
   onSubmit: (payload: {
     id?: string
     name: string
     email: string
     role: string
+    department?: string
     status: string
     password?: string
     confirmPassword?: string
@@ -119,15 +121,23 @@ function PasswordFields({
   )
 }
 
+const DEPARTMENT_OPTIONS = [
+  { value: 'CS', label: 'Computer Science (CS)' },
+  { value: 'IT', label: 'Information Technology (IT)' },
+  { value: 'IS', label: 'Information Systems (IS)' },
+]
+
 export default function AdminUserDialog({
   mode,
   user,
+  lockedRole,
   onClose,
   onSubmit,
 }: Readonly<AdminUserDialogProps>) {
   const [name, setName] = useState(user?.name ?? '')
   const [email, setEmail] = useState(user?.email ?? '')
-  const [role, setRole] = useState(user?.role ?? 'Admin')
+  const [role, setRole] = useState(lockedRole ?? user?.role ?? 'Admin')
+  const [department, setDepartment] = useState<string>('CS')
   const [status, setStatus] = useState(user?.status ?? 'Active')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -135,9 +145,12 @@ export default function AdminUserDialog({
 
   const isAdd = mode === 'add'
   const isEdit = mode === 'edit'
-  const title = isAdd ? 'Add New User' : 'Edit Admin User'
+  const roleLabel = lockedRole === 'student' ? 'Student' : lockedRole === 'admin' ? 'Admin' : undefined
+  const title = isAdd
+    ? lockedRole === 'student' ? 'Add New Student' : lockedRole === 'admin' ? 'Add New Admin' : 'Add New User'
+    : 'Edit Admin User'
   const subtitle = isAdd
-    ? 'Create a new admin account for the SAGE repository system.'
+    ? 'Create a new account for the SPARK repository system.'
     : 'Update user information and permissions.'
 
   const mustShowPasswordFields = isAdd || changePassword
@@ -158,6 +171,7 @@ export default function AdminUserDialog({
       name: name.trim(),
       email: email.trim(),
       role,
+      department: isAdd ? department : undefined,
       status,
       password: mustShowPasswordFields ? password : undefined,
       confirmPassword: mustShowPasswordFields ? confirmPassword : undefined,
@@ -180,18 +194,39 @@ export default function AdminUserDialog({
 
         <div className="space-y-1">
           <Label className="text-sm text-navy">Role</Label>
-          <Select value={role} onValueChange={(value) => setRole(value as UserRole)}>
-            <SelectTrigger className="h-10 focus-visible:ring-2 focus-visible:ring-cics-maroon focus-visible:ring-offset-1" aria-label="User role">
-              <SelectValue placeholder="Select role" />
-            </SelectTrigger>
-            <SelectContent>
-              {USER_ROLE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {isAdd ? <p className="text-xs text-grey-500">Super Admins can manage user accounts</p> : null}
+          {lockedRole ? (
+            <div className="h-10 flex items-center rounded-md border border-grey-200 bg-grey-50 px-3 text-sm text-grey-700 select-none">
+              {roleLabel}
+            </div>
+          ) : (
+            <Select value={role} onValueChange={(value) => setRole(value as UserRole)}>
+              <SelectTrigger className="h-10 focus-visible:ring-2 focus-visible:ring-cics-maroon focus-visible:ring-offset-1" aria-label="User role">
+                <SelectValue placeholder="Select role" />
+              </SelectTrigger>
+              <SelectContent>
+                {USER_ROLE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
+
+        {isAdd ? (
+          <div className="space-y-1">
+            <Label className="text-sm text-navy">Department *</Label>
+            <Select value={department} onValueChange={setDepartment}>
+              <SelectTrigger className="h-10 focus-visible:ring-2 focus-visible:ring-cics-maroon focus-visible:ring-offset-1" aria-label="Department">
+                <SelectValue placeholder="Select department" />
+              </SelectTrigger>
+              <SelectContent>
+                {DEPARTMENT_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
 
         {isEdit ? (
           <EditModeFields

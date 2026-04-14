@@ -34,6 +34,7 @@ export interface SubmissionDraft {
   publishedOn: string
   department: string
   documentType: string
+  trackSpecialization: string
   degree: string
   thesisAdvisor: string
   panelChair: string
@@ -99,6 +100,7 @@ export interface AdminSession {
   email: string
   departmentCode: 'cs' | 'it' | 'is'
   departmentName: string
+  role: 'admin' | 'super_admin'
   token: string
   loginAt: string
 }

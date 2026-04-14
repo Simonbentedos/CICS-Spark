@@ -12,13 +12,12 @@ const PoliciesDocument = dynamic(() => import('@/components/policies/PoliciesDoc
 })
 
 interface PoliciesPageProps {
-  searchParams?: {
-    policy?: string
-  }
+  searchParams?: Promise<{ policy?: string }>
 }
 
-export default function PoliciesPage({ searchParams }: Readonly<PoliciesPageProps>) {
-  const activePolicy = searchParams?.policy === 'et' ? 'et' : 'ir'
+export default async function PoliciesPage({ searchParams }: Readonly<PoliciesPageProps>) {
+  const resolvedParams = await searchParams
+  const activePolicy = resolvedParams?.policy === 'et' ? 'et' : 'ir'
 
   return (
     <div className="min-h-screen bg-bg-grey flex flex-col">

@@ -12,13 +12,12 @@ export function generateStaticParams() {
 }
 
 interface CollectionPageProps {
-  params: {
-    collection: string
-  }
+  params: Promise<{ collection: string }>
 }
 
-export default function CollectionPage({ params }: Readonly<CollectionPageProps>) {
-  const collection = thesisCollections.find((item) => item.slug === params.collection)
+export default async function CollectionPage({ params }: Readonly<CollectionPageProps>) {
+  const { collection: collectionSlug } = await params
+  const collection = thesisCollections.find((item) => item.slug === collectionSlug)
 
   if (!collection) {
     notFound()

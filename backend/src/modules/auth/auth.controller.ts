@@ -1,4 +1,5 @@
 import { Controller, Post, Body, UseGuards, Get, Request } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { SupabaseGuard } from './supabase.guard';
@@ -10,8 +11,10 @@ export class AuthController {
   /**
    * POST /api/auth/login
    * Public. Authenticates a user and returns a session token, role, and department.
+   * Tighter rate limit: 10 attempts per minute per IP.
    */
   @Post('login')
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
   }

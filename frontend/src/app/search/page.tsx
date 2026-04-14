@@ -11,17 +11,14 @@ const AdvancedSearchPanel = dynamic(() => import('@/components/search/AdvancedSe
 })
 
 type SearchPageProps = {
-  searchParams?: {
-    q?: string
-    from?: string
-    to?: string
-  }
+  searchParams?: Promise<{ q?: string; from?: string; to?: string }>
 }
 
-export default function SearchPage({ searchParams }: SearchPageProps) {
-  const initialQuery = typeof searchParams?.q === 'string' ? searchParams.q : ''
-  const initialFromDate = typeof searchParams?.from === 'string' ? searchParams.from : ''
-  const initialToDate = typeof searchParams?.to === 'string' ? searchParams.to : ''
+export default async function SearchPage({ searchParams }: SearchPageProps) {
+  const resolvedParams = await searchParams
+  const initialQuery = typeof resolvedParams?.q === 'string' ? resolvedParams.q : ''
+  const initialFromDate = typeof resolvedParams?.from === 'string' ? resolvedParams.from : ''
+  const initialToDate = typeof resolvedParams?.to === 'string' ? resolvedParams.to : ''
 
   return (
     <div className="min-h-screen bg-bg-grey flex flex-col">

@@ -12,13 +12,12 @@ export function generateStaticParams() {
 }
 
 interface CapstoneDepartmentPageProps {
-  params: {
-    collection: string
-  }
+  params: Promise<{ collection: string }>
 }
 
-export default function CapstoneDepartmentPage({ params }: Readonly<CapstoneDepartmentPageProps>) {
-  const collection = capstoneCollections.find((item) => item.slug === params.collection)
+export default async function CapstoneDepartmentPage({ params }: Readonly<CapstoneDepartmentPageProps>) {
+  const { collection: collectionSlug } = await params
+  const collection = capstoneCollections.find((item) => item.slug === collectionSlug)
 
   if (!collection) {
     notFound()

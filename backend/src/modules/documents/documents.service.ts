@@ -54,7 +54,7 @@ export class DocumentsService {
 
     if (dbError) {
       await this.databaseService.client.storage.from('documents').remove([storagePath]);
-      throw new InternalServerErrorException('Failed to save document record.');
+      throw new InternalServerErrorException(dbError.message || 'Failed to save document record.');
     }
 
     return document;
@@ -199,6 +199,29 @@ export class DocumentsService {
     if (error) throw new BadRequestException(error.message);
 
     return data;
+  }
+
+  // ─── GET /api/documents/:id ──────────────────────────────────────────────
+
+  /**
+   * getDocumentById returns a single approved document by UUID.
+   * Public endpoint — only approved documents are accessible.
+   */
+  async getDocumentById(documentId: string) {
+    const { data: document, error } = await this.databaseService.client
+      .from('documents')
+      .select(
+        'id, title, authors, abstract, year, department, type, track_specialization, adviser, keywords, uploaded_by, created_at, updated_at',
+      )
+      .eq('id', documentId)
+      .eq('status', 'approved')
+      .single();
+
+    if (error || !document) {
+      throw new NotFoundException('Document not found or not publicly available.');
+    }
+
+    return document;
   }
 
   // ─── GET /api/documents/check-duplicate ───────────────────────────────────

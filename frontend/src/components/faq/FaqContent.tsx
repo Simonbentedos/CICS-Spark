@@ -42,11 +42,11 @@ const faqCategories: FaqCategory[] = [
         answer: 'An Institutional Repository is a digital archive that preserves and provides access to the scholarly and institutional output of the college.',
       },
       {
-        question: 'What is SAGE @USTCOE?',
-        answer: 'SAGE @USTCOE is the College of Education Repository platform for storing and sharing approved academic outputs.',
+        question: 'What is SPARK @USTCICS?',
+        answer: 'SPARK @USTCICS is the College of Information and Computing Sciences Repository platform for storing and sharing approved academic outputs.',
       },
       {
-        question: 'Why should I submit my work to SAGE @USTCOE?',
+        question: 'Why should I submit my work to SPARK @USTCICS?',
         answer: 'Submitting your work improves discoverability, supports long-term preservation, and contributes to institutional knowledge.',
       },
     ],
@@ -126,8 +126,8 @@ const faqCategories: FaqCategory[] = [
   },
   {
     key: 'search',
-    label: 'Searching SAGE@USTCOE (3)',
-    heading: 'Searching SAGE@USTCOE',
+    label: 'Searching SPARK@USTCICS (3)',
+    heading: 'Searching SPARK@USTCICS',
     items: [
       {
         question: 'How do I search by keyword?',

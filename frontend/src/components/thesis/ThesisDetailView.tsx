@@ -1,11 +1,15 @@
 import { Download, Mail } from 'lucide-react'
 import { Button, TypographyH2, TypographyMeta } from '@/components/ui'
 import { ThesisEntry, resolveThesisDetail } from '@/lib/utils/theses-data'
+import { downloadAbstractUrl } from '@/lib/api/documents'
 import CollectionHeading from './CollectionHeading'
 
 interface ThesisDetailViewProps {
   collectionTitle: string
   entry: ThesisEntry
+  /** When provided, wires the Download Abstract and Request Full Text buttons */
+  documentId?: string
+  onRequestFulltext?: () => void
 }
 
 interface DetailRowProps {
@@ -30,7 +34,7 @@ function DetailRow({ label, value }: Readonly<DetailRowProps>) {
   )
 }
 
-export default function ThesisDetailView({ collectionTitle, entry }: Readonly<ThesisDetailViewProps>) {
+export default function ThesisDetailView({ collectionTitle, entry, documentId, onRequestFulltext }: Readonly<ThesisDetailViewProps>) {
   const detail = resolveThesisDetail(entry)
 
   return (
@@ -71,15 +75,29 @@ export default function ThesisDetailView({ collectionTitle, entry }: Readonly<Th
         </div>
 
         <aside className="pt-0.5 flex flex-col gap-[38px]">
-          <Button
-            variant="outline"
-            className="w-[190px] min-h-[42px] rounded-none border-[#337ab7] text-[#337ab7] hover:bg-[#337ab7] hover:text-white"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Download Abstract
-          </Button>
+          {documentId ? (
+            <a
+              href={downloadAbstractUrl(documentId)}
+              download
+              className="inline-flex w-[190px] min-h-[42px] items-center justify-center rounded-none border border-[#337ab7] text-[#337ab7] hover:bg-[#337ab7] hover:text-white text-sm font-medium no-underline transition-colors"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download Abstract
+            </a>
+          ) : (
+            <Button
+              variant="outline"
+              className="w-[190px] min-h-[42px] rounded-none border-[#337ab7] text-[#337ab7] hover:bg-[#337ab7] hover:text-white"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download Abstract
+            </Button>
+          )}
 
-          <Button className="w-[190px] min-h-[42px] rounded-none bg-[#337ab7] border border-[#0074cc] hover:bg-[#2f6ea1]">
+          <Button
+            className="w-[190px] min-h-[42px] rounded-none bg-[#337ab7] border border-[#0074cc] hover:bg-[#2f6ea1]"
+            onClick={onRequestFulltext}
+          >
             <Mail className="h-4 w-4 mr-2" />
             Request Full Text
           </Button>
