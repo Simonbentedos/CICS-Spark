@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 function SidebarLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className="font-body text-[13px] text-cics-maroon hover:underline transition-colors">
+    <Link href={href} className="font-body text-[13px] text-gray-600 hover:underline transition-colors">
       {children}
     </Link>
   )

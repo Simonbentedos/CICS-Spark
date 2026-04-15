@@ -1,29 +1,55 @@
+"use client"
+
+import { use, useEffect, useState } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { CICSHeader, CICSFooter, SecondaryNav, Sidebar } from '@/components/layout'
 import { capstoneCollections, getCapstoneTracksByCollection } from '@/lib/utils/capstone-data'
-
-export const dynamicParams = false
-
-export function generateStaticParams() {
-  return capstoneCollections.map((collection) => ({
-    collection: collection.slug,
-  }))
-}
+import { getDocumentCounts } from '@/lib/api/documents'
+import type { SpecializationTrack } from '@/lib/utils/theses-data'
 
 interface CapstoneDepartmentPageProps {
   params: Promise<{ collection: string }>
 }
 
-export default async function CapstoneDepartmentPage({ params }: Readonly<CapstoneDepartmentPageProps>) {
-  const { collection: collectionSlug } = await params
-  const collection = capstoneCollections.find((item) => item.slug === collectionSlug)
+export default function CapstoneDepartmentPage({ params: paramsPromise }: Readonly<CapstoneDepartmentPageProps>) {
+  const params = use(paramsPromise)
+  const collection = capstoneCollections.find((item) => item.slug === params.collection)
+
+  const [tracks, setTracks] = useState<SpecializationTrack[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!collection) return
+
+    async function fetchTrackCounts() {
+      const baseTracks = getCapstoneTracksByCollection(collection!.slug)
+      const deptCode = collection!.slug === 'department-of-information-technology' ? 'IT' : 'IS'
+
+      const updated = await Promise.all(
+        baseTracks.map(async (track) => {
+          try {
+            const { total } = await getDocumentCounts({ 
+              department: deptCode, 
+              type: 'capstone',
+              track: track.title 
+            })
+            return { ...track, count: total }
+          } catch {
+            return { ...track, count: 0 }
+          }
+        })
+      )
+      setTracks(updated)
+      setLoading(false)
+    }
+
+    fetchTrackCounts()
+  }, [collection])
 
   if (!collection) {
     notFound()
   }
-
-  const tracks = getCapstoneTracksByCollection(collection.slug)
 
   return (
     <div className="min-h-screen bg-bg-grey flex flex-col">
@@ -53,19 +79,23 @@ export default async function CapstoneDepartmentPage({ params }: Readonly<Capsto
             <div className="absolute left-0 bottom-[-1px] h-[3px] w-[145px] bg-[#f3aa2c] rounded-tr-[5px] rounded-br-[5px]" />
           </div>
 
-          <div className="flex flex-col gap-5">
-            {tracks.map((track) => (
-              <section key={track.slug} className="flex flex-col">
-                <Link
-                  href={`/capstone/${collection.slug}/${track.slug}`}
-                  className="font-body text-[16px] leading-[30px] text-[#337ab7] hover:underline w-fit"
-                >
-                  {track.title} ({track.count})
-                </Link>
-                <p className="font-body text-[14px] leading-[20px] text-[#555]">{track.description}</p>
-              </section>
-            ))}
-          </div>
+          {loading ? (
+            <p className="text-sm text-grey-500">Loading tracks...</p>
+          ) : (
+            <div className="flex flex-col gap-5">
+              {tracks.map((track) => (
+                <section key={track.slug} className="flex flex-col">
+                  <Link
+                    href={`/capstone/${collection.slug}/${track.slug}`}
+                    className="font-body text-[16px] leading-[30px] text-[#337ab7] hover:underline w-fit"
+                  >
+                    {track.title} ({track.count})
+                  </Link>
+                  <p className="font-body text-[14px] leading-[20px] text-[#555]">{track.description}</p>
+                </section>
+              ))}
+            </div>
+          )}
         </main>
       </div>
 

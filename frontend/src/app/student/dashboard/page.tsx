@@ -120,11 +120,18 @@ export default function StudentDashboardPage() {
                     <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-grey-500">Type</th>
                     <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-grey-500">Submitted</th>
                     <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-grey-500">Status</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-grey-500">Feedback</th>
                     <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-grey-500">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-grey-100">
-                  {docs.map((doc) => (
+                  {docs.map((doc) => {
+                    const latestFeedback = doc.reviews
+                      ?.filter((r: any) => r.decision === 'revise' || r.decision === 'reject')
+                      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+                      ?.feedback_text ?? null
+
+                    return (
                     <tr key={doc.id} className="hover:bg-grey-50">
                       <td className="max-w-[320px] px-4 py-3">
                         <p className="line-clamp-2 text-grey-700">{doc.title}</p>
@@ -138,6 +145,15 @@ export default function StudentDashboardPage() {
                           {STATUS_LABEL[doc.status] ?? doc.status}
                         </span>
                       </td>
+                      <td className="max-w-[280px] px-4 py-3">
+                        {latestFeedback ? (
+                          <p className={`line-clamp-2 text-xs italic ${doc.status === 'rejected' ? 'text-red-700' : 'text-violet-700'}`}>
+                            {latestFeedback}
+                          </p>
+                        ) : (
+                          <span className="text-xs text-grey-400">—</span>
+                        )}
+                      </td>
                       <td className="whitespace-nowrap px-4 py-3">
                         {doc.status === 'revision' && (
                           <Link
@@ -150,7 +166,7 @@ export default function StudentDashboardPage() {
                         )}
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>

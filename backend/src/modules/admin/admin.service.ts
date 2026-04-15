@@ -37,13 +37,16 @@ export class AdminService {
       throw new ConflictException('A student with this email already exists.');
     }
 
-    // Create the auth user with a confirmed email so no invite flow is needed
-    const tempPassword = dto.password ?? 'Password123!';
+    // Create the auth user and send invite email
     const { data: authData, error: authError } =
-      await this.databaseService.client.auth.admin.createUser({
-        email,
-        password: tempPassword,
-        email_confirm: true,
+      await this.databaseService.client.auth.admin.inviteUserByEmail(email, {
+        data: {
+          first_name,
+          last_name,
+          role: 'student',
+          department,
+        },
+        redirectTo: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/callback`,
       });
 
     if (authError || !authData.user) {
@@ -61,7 +64,7 @@ export class AdminService {
         last_name,
         role: 'student',
         department,
-        is_active: true,
+        is_active: false, // Will be set to true when they confirm email
       })
       .select('id, email, first_name, last_name, role, department, is_active, created_at')
       .single();
@@ -73,7 +76,7 @@ export class AdminService {
     }
 
     return {
-      message: 'Student account created successfully.',
+      message: 'Student account created successfully. An invite email has been sent.',
       student: user,
     };
   }
@@ -158,6 +161,47 @@ export class AdminService {
   }
 
   /**
+   * getSubmissionPdfUrl generates a signed URL for admins to preview the PDF.
+   * Only admins from the same department (or super_admin) can access.
+   */
+  async getSubmissionPdfUrl(documentId: string, currentUser: any) {
+    // Fetch the document
+    const { data: document, error: fetchError } = await this.databaseService.client
+      .from('documents')
+      .select('id, pdf_file_path, department')
+      .eq('id', documentId)
+      .single();
+
+    if (fetchError || !document) {
+      throw new NotFoundException('Document not found.');
+    }
+
+    // Check permissions: admin can only view their department's documents
+    if (currentUser.role === 'admin' && document.department !== currentUser.department) {
+      throw new ForbiddenException('You can only preview documents from your department.');
+    }
+
+    if (!document.pdf_file_path) {
+      throw new NotFoundException('No PDF file associated with this document.');
+    }
+
+    // Generate a signed URL valid for 1 hour
+    const { data: signedUrlData, error: urlError } = await this.databaseService.client
+      .storage
+      .from('documents')
+      .createSignedUrl(document.pdf_file_path, 3600); // 3600 seconds = 1 hour
+
+    if (urlError || !signedUrlData) {
+      throw new InternalServerErrorException('Failed to generate PDF preview URL.');
+    }
+
+    return {
+      pdfUrl: signedUrlData.signedUrl,
+      expiresIn: 3600,
+    };
+  }
+
+  /**
    * reviewSubmission records a review decision (approve | reject | revise),
    * updates the document status, and fires a notification to the student.
    */
@@ -223,6 +267,51 @@ export class AdminService {
       reference_id: documentId,
     });
 
+    // Send email notification to student
+    try {
+      // Fetch student email
+      const { data: student } = await this.databaseService.client
+        .from('users')
+        .select('email, first_name, last_name')
+        .eq('id', document.uploaded_by)
+        .single();
+
+      if (student) {
+        const decisionText = {
+          approve: 'approved',
+          reject: 'rejected',
+          revise: 'requires revision',
+        }[dto.decision];
+
+        const subject = `Submission ${decisionText.charAt(0).toUpperCase() + decisionText.slice(1)} - SPARK Repository`;
+        
+        let message = `Dear ${student.first_name} ${student.last_name},\n\n`;
+        message += `Your submission "${document.title}" has been ${decisionText}.\n\n`;
+        
+        if (dto.feedback) {
+          message += `Feedback from reviewer:\n${dto.feedback}\n\n`;
+        }
+        
+        if (dto.decision === 'approve') {
+          message += `Your document is now published in the SPARK Repository and available to the public.\n\n`;
+        } else if (dto.decision === 'revise') {
+          message += `Please review the feedback and resubmit your document with the requested changes.\n\n`;
+        }
+        
+        message += `Thank you for your contribution to SPARK Repository.\n\nBest regards,\nSPARK Repository Team`;
+
+        // Note: Supabase doesn't have a built-in way to send custom emails
+        // This would require setting up a custom email service or using Supabase Edge Functions
+        // For now, we'll log that an email should be sent
+        console.log(`[EMAIL] To: ${student.email}, Subject: ${subject}, Message: ${message}`);
+        
+        // TODO: Implement actual email sending via Supabase Edge Function or external service
+      }
+    } catch (emailError) {
+      // Don't fail the review if email fails
+      console.error('Failed to send email notification:', emailError);
+    }
+
     return {
       message: `Document ${dto.decision}d successfully.`,
       document: updated,
@@ -279,6 +368,7 @@ export class AdminService {
 
   /**
    * updateFulltextRequest marks a full-text request as fulfilled or denied.
+   * Sends an email notification to the requester.
    */
   async updateFulltextRequest(
     requestId: string,
@@ -311,7 +401,28 @@ export class AdminService {
       .single();
 
     if (updateError) {
-      throw new InternalServerErrorException('Failed to update request status.');
+      throw new InternalServerErrorException('Failed to update full-text request.');
+    }
+
+    // Send email notification to requester
+    try {
+      const subject = status === 'fulfilled' 
+        ? 'Full-Text Request Approved - SPARK Repository'
+        : 'Full-Text Request Denied - SPARK Repository';
+      
+      const message = status === 'fulfilled'
+        ? `Dear ${request.requester_name},\n\nYour request for full-text access has been approved. The document will be sent to you shortly.\n\nThank you for using SPARK Repository.\n\nBest regards,\nSPARK Repository Team`
+        : `Dear ${request.requester_name},\n\nYour request for full-text access has been reviewed and unfortunately cannot be fulfilled at this time.\n\nIf you have questions, please contact the repository administrator.\n\nBest regards,\nSPARK Repository Team`;
+
+      // Note: Supabase doesn't have a built-in way to send custom emails
+      // This would require setting up a custom email service or using Supabase Edge Functions
+      // For now, we'll log that an email should be sent
+      console.log(`[EMAIL] To: ${request.requester_email}, Subject: ${subject}, Message: ${message}`);
+      
+      // TODO: Implement actual email sending via Supabase Edge Function or external service
+    } catch (emailError) {
+      // Don't fail the request if email fails
+      console.error('Failed to send email notification:', emailError);
     }
 
     return {

@@ -125,8 +125,20 @@ export default function ThesisItemPage({ params: paramsPromise }: Readonly<Thesi
                         </div>
                       </div>
                       <div className="space-y-1.5">
-                        <Label htmlFor="ft-dept" className="text-sm font-medium text-grey-700">Department / Affiliation</Label>
-                        <Input id="ft-dept" value={ftDept} onChange={(e) => setFtDept(e.target.value)} className="h-10 border-grey-200" />
+                        <Label htmlFor="ft-dept" className="text-sm font-medium text-grey-700">Department / Affiliation *</Label>
+                        <select
+                          id="ft-dept"
+                          required
+                          value={ftDept}
+                          onChange={(e) => setFtDept(e.target.value)}
+                          className="w-full h-10 rounded-md border border-grey-200 px-3 text-sm text-grey-700 outline-none focus-visible:ring-2 focus-visible:ring-[#337ab7]"
+                        >
+                          <option value="">Select department...</option>
+                          <option value="CS">Computer Science (CS)</option>
+                          <option value="IT">Information Technology (IT)</option>
+                          <option value="IS">Information Systems (IS)</option>
+                          <option value="Other">Other</option>
+                        </select>
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="ft-purpose" className="text-sm font-medium text-grey-700">Purpose *</Label>

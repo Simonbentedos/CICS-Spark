@@ -84,7 +84,7 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
           <Label htmlFor="publishedOn" className="text-sm font-medium text-grey-700">Date of Publication *</Label>
           <Input
             id="publishedOn"
-            placeholder="MM/DD/YYYY"
+            type="date"
             className="h-11 border-grey-200"
             value={draft.publishedOn}
             onChange={(event) => onDraftChange({ publishedOn: event.target.value })}

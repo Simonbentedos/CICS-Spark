@@ -9,6 +9,7 @@ import AdminBadge from '@/components/admin/AdminBadge'
 import ReviewActionDialog from '@/components/admin/ReviewActionDialog'
 import {
   getAdminSubmissionById,
+  getSubmissionPdfUrl,
   reviewSubmission,
   downloadAbstractUrl,
   type ApiDocument,
@@ -34,6 +35,8 @@ export default function SubmissionReviewPage({
   const [error, setError] = useState<string | null>(null)
   const [activeAction, setActiveAction] = useState<ReviewActionType | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [loadingPdf, setLoadingPdf] = useState(false)
 
   useEffect(() => {
     getAdminSubmissionById(params.submissionId)
@@ -41,6 +44,16 @@ export default function SubmissionReviewPage({
       .catch((err) => setError(err.message ?? 'Submission not found'))
       .finally(() => setLoading(false))
   }, [params.submissionId])
+
+  useEffect(() => {
+    if (submission) {
+      setLoadingPdf(true)
+      getSubmissionPdfUrl(params.submissionId)
+        .then((data) => setPdfUrl(data.pdfUrl))
+        .catch((err) => console.error('Failed to load PDF:', err))
+        .finally(() => setLoadingPdf(false))
+    }
+  }, [params.submissionId, submission])
 
   if (loading) {
     return <p className="px-4 py-10 text-sm text-grey-500">Loading submission…</p>
@@ -146,14 +159,28 @@ export default function SubmissionReviewPage({
 
           <Card className="border border-grey-200 shadow-none">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-navy">Document</CardTitle>
+              <CardTitle className="text-sm font-medium text-navy">Document Preview</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex min-h-[100px] items-center justify-center rounded-md border border-grey-200 bg-white text-sm text-grey-400">
-                PDF stored securely — not publicly accessible
-              </div>
+              {loadingPdf ? (
+                <div className="flex min-h-[400px] items-center justify-center rounded-md border border-grey-200 bg-white text-sm text-grey-400">
+                  Loading PDF preview...
+                </div>
+              ) : pdfUrl ? (
+                <div className="rounded-md border border-grey-200 bg-white overflow-hidden">
+                  <iframe
+                    src={pdfUrl}
+                    className="w-full h-[600px]"
+                    title="PDF Preview"
+                  />
+                </div>
+              ) : (
+                <div className="flex min-h-[400px] items-center justify-center rounded-md border border-grey-200 bg-white text-sm text-grey-400">
+                  PDF preview unavailable
+                </div>
+              )}
               <div className="flex items-center justify-between">
-                <p className="text-xs text-grey-500">Full-text access is restricted</p>
+                <p className="text-xs text-grey-500">Full-text access is restricted to admins</p>
                 <a
                   href={downloadAbstractUrl(submission.id)}
                   target="_blank"

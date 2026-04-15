@@ -1,8 +1,43 @@
+"use client"
+
+import { useEffect, useState } from 'react'
 import { CICSFooter, CICSHeader, SecondaryNav, Sidebar } from '@/components/layout'
 import Link from 'next/link'
 import { capstoneCollections } from '@/lib/utils/capstone-data'
+import { getDocumentCounts } from '@/lib/api/documents'
+
+type CollectionWithCount = {
+  slug: string
+  title: string
+  description: string
+  count: number
+}
 
 export default function CapstonePage() {
+  const [collections, setCollections] = useState<CollectionWithCount[]>(
+    capstoneCollections.map(c => ({ ...c, count: 0 }))
+  )
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchCounts() {
+      const updated = await Promise.all(
+        capstoneCollections.map(async (collection) => {
+          const deptCode = collection.slug === 'department-of-information-technology' ? 'IT' : 'IS'
+          try {
+            const { total } = await getDocumentCounts({ department: deptCode, type: 'capstone' })
+            return { ...collection, count: total }
+          } catch {
+            return { ...collection, count: 0 }
+          }
+        })
+      )
+      setCollections(updated)
+      setLoading(false)
+    }
+    fetchCounts()
+  }, [])
+
   return (
     <div className="min-h-screen bg-bg-grey flex flex-col">
       <CICSHeader />
@@ -30,21 +65,25 @@ export default function CapstonePage() {
             <div className="absolute left-0 bottom-[-1px] h-[3px] w-[100px] bg-[#f3aa2c] rounded-tr-[5px] rounded-br-[5px]" />
           </div>
 
-          <div className="flex flex-col gap-5">
-            {capstoneCollections.map((collection) => (
-              <section key={collection.title} className="flex flex-col">
-                <Link
-                  href={`/capstone/${collection.slug}`}
-                  className="font-body text-[16px] leading-[30px] text-[#337ab7] hover:underline w-fit"
-                >
-                  {collection.title} ({collection.count})
-                </Link>
-                <p className="font-body text-[14px] leading-[20px] text-[#555]">
-                  {collection.description}
-                </p>
-              </section>
-            ))}
-          </div>
+          {loading ? (
+            <p className="text-sm text-grey-500">Loading collections...</p>
+          ) : (
+            <div className="flex flex-col gap-5">
+              {collections.map((collection) => (
+                <section key={collection.title} className="flex flex-col">
+                  <Link
+                    href={`/capstone/${collection.slug}`}
+                    className="font-body text-[16px] leading-[30px] text-[#337ab7] hover:underline w-fit"
+                  >
+                    {collection.title} ({collection.count})
+                  </Link>
+                  <p className="font-body text-[14px] leading-[20px] text-[#555]">
+                    {collection.description}
+                  </p>
+                </section>
+              ))}
+            </div>
+          )}
         </main>
       </div>
 

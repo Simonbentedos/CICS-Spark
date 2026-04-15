@@ -56,6 +56,21 @@ export type FulltextRequest = {
 
 // ── Public endpoints ──────────────────────────────────────────────────────────
 
+export async function getDocumentCounts(params: {
+  department?: string
+  type?: string
+  track?: string
+}): Promise<{ total: number }> {
+  const qs = new URLSearchParams()
+  if (params.department) qs.set('department', params.department)
+  if (params.type) qs.set('type', params.type)
+  if (params.track) qs.set('track', params.track)
+  qs.set('limit', '1') // We only need the count, not the actual documents
+
+  const response = await apiRequest<ListDocumentsResponse>(`/api/documents?${qs.toString()}`, { token: null })
+  return { total: response.total }
+}
+
 export async function listDocuments(params: {
   department?: string
   type?: string
@@ -146,6 +161,10 @@ export async function getAdminSubmissions(status?: string): Promise<ApiDocument[
 
 export async function getAdminSubmissionById(id: string): Promise<ApiDocument> {
   return apiRequest<ApiDocument>(`/api/admin/submissions/${id}`)
+}
+
+export async function getSubmissionPdfUrl(id: string): Promise<{ pdfUrl: string; expiresIn: number }> {
+  return apiRequest<{ pdfUrl: string; expiresIn: number }>(`/api/admin/submissions/${id}/preview-pdf`)
 }
 
 export async function reviewSubmission(

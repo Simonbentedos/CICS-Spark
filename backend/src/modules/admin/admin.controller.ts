@@ -70,6 +70,16 @@ export class AdminController {
   }
 
   /**
+   * GET /api/admin/submissions/:id/preview-pdf
+   * Admin or super_admin only. Returns the PDF file for preview.
+   */
+  @Get('submissions/:id/preview-pdf')
+  @Roles('admin', 'super_admin')
+  async previewSubmissionPdf(@Param('id') id: string, @Request() req: any) {
+    return this.adminService.getSubmissionPdfUrl(id, req.user);
+  }
+
+  /**
    * POST /api/admin/submissions/:id/review
    * Admin or super_admin only. Approve, reject, or request revision on a submission.
    * Body: { decision: 'approve' | 'reject' | 'revise', feedback?: string }
