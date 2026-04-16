@@ -74,31 +74,31 @@ export default function ThesisDetailView({ collectionTitle, entry, documentId, o
           </div>
         </div>
 
-        <aside className="pt-0.5 flex flex-col gap-[38px]">
+        <aside className="pt-0.5 flex flex-col gap-4">
           {documentId ? (
             <a
               href={downloadAbstractUrl(documentId)}
               download
-              className="inline-flex w-[190px] min-h-[42px] items-center justify-center rounded-none border border-[#337ab7] text-[#337ab7] hover:bg-[#337ab7] hover:text-white text-sm font-medium no-underline transition-colors"
+              className="inline-flex w-[260px] min-h-[48px] items-center justify-center gap-2.5 rounded-full border-2 border-cics-maroon text-cics-maroon hover:bg-cics-maroon hover:text-white font-body text-[15px] font-semibold no-underline transition-colors duration-200"
             >
-              <Download className="h-4 w-4 mr-2" />
+              <Download className="h-[18px] w-[18px]" />
               Download Abstract
             </a>
           ) : (
             <Button
               variant="outline"
-              className="w-[190px] min-h-[42px] rounded-none border-[#337ab7] text-[#337ab7] hover:bg-[#337ab7] hover:text-white"
+              className="w-[260px] min-h-[48px] rounded-full border-2 border-cics-maroon text-cics-maroon hover:bg-cics-maroon hover:text-white font-body text-[15px] font-semibold transition-colors duration-200"
             >
-              <Download className="h-4 w-4 mr-2" />
+              <Download className="h-[18px] w-[18px] mr-2.5" />
               Download Abstract
             </Button>
           )}
 
           <Button
-            className="w-[190px] min-h-[42px] rounded-none bg-[#337ab7] border border-[#0074cc] hover:bg-[#2f6ea1]"
+            className="w-[260px] min-h-[48px] rounded-full bg-cics-maroon border-2 border-cics-maroon hover:bg-cics-maroon-600 hover:border-cics-maroon-600 text-white font-body text-[15px] font-semibold transition-colors duration-200"
             onClick={onRequestFulltext}
           >
-            <Mail className="h-4 w-4 mr-2" />
+            <Mail className="h-[18px] w-[18px] mr-2.5" />
             Request Full Text
           </Button>
         </aside>

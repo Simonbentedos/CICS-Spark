@@ -66,6 +66,8 @@ export default function Sidebar() {
       {/* Quick Links */}
       <SidebarSection title="QUICK LINKS">
         <SidebarLink href="/policies">Policies</SidebarLink>
+        <SidebarLink href="/privacy-policy">Privacy Policy</SidebarLink>
+        <SidebarLink href="/acceptable-use-policy">Acceptable Use Policy</SidebarLink>
         <SidebarLink href="https://www.ust.edu.ph">University Website</SidebarLink>
         <SidebarLink href="https://library.ust.edu.ph">University Libraries</SidebarLink>
         <SidebarLink href="/contact">Contact</SidebarLink>
