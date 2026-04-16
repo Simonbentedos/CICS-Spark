@@ -49,6 +49,14 @@ export default function AdminShell({ children }: Readonly<{ children: React.Reac
     setSessionEmail(session.email)
     setDepartmentCode(session.departmentCode)
     setAuthorized(true)
+
+    // Prevent double scrollbar by locking the main document body.
+    // AdminShell has its own scrollable containers inside.
+    document.body.style.overflow = 'hidden'
+    
+    return () => {
+      document.body.style.overflow = ''
+    }
   }, [router])
 
   if (!authorized) {
@@ -63,7 +71,7 @@ export default function AdminShell({ children }: Readonly<{ children: React.Reac
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-bg-grey">
+    <div className="flex fixed inset-0 flex-col overflow-hidden bg-bg-grey">
       <div className="h-3" style={{ backgroundColor: theme.accentHex }} />
 
       <header className="border-b border-grey-200 bg-white px-6 py-3" aria-label="Admin context bar">
