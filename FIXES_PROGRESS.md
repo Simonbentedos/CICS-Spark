@@ -1,5 +1,52 @@
 # SPARK System - Fixes Progress
 
+## Priority Task List (From PDF)
+
+### High Priority (Core Functionality)
+
+1. ❌ **Student upload form → wire to real backend**
+   - Currently saves to localStorage only
+   - Needs real POST `/api/documents/upload` + duplicate check call
+   - Status: NOT IMPLEMENTED
+
+2. ❌ **Student dashboard → wire to real submissions**
+   - Currently shows localStorage drafts, not actual submitted documents from DB
+   - Status: NOT IMPLEMENTED
+
+3. ❌ **Student revision flow**
+   - Editing/re-uploading a document marked for revision isn't wired
+   - Status: NOT IMPLEMENTED
+
+4. 🟡 **Public browse pages (thesis/capstone)**
+   - ✅ Dynamic document counts implemented
+   - ❌ Still showing hardcoded mock data, not real approved documents from Supabase
+   - Status: PARTIALLY IMPLEMENTED
+
+5. ❌ **Document detail page**
+   - Public thesis/capstone detail views still use mock data
+   - Status: NOT IMPLEMENTED
+
+### Medium Priority
+
+6. 🟡 **Full-text request modal**
+   - ✅ Department dropdown fixed (CS/IT/IS/Other)
+   - ❌ "Request Full Text" button on document detail pages isn't fully wired to POST `/api/fulltext-requests`
+   - Status: PARTIALLY IMPLEMENTED
+
+7. ❌ **Abstract download**
+   - The download button isn't wired to GET `/api/documents/:id/download-abstract`
+   - Status: NOT IMPLEMENTED
+
+8. ❌ **Super admin edit/delete users**
+   - Can create users but can't edit or deactivate them
+   - Status: NOT IMPLEMENTED
+
+9. ❌ **Authors page**
+   - Still hardcoded mock data, should pull from real approved documents
+   - Status: NOT IMPLEMENTED
+
+---
+
 ## Summary of Remaining Work
 
 ### FRONTEND ONLY: (7 issues)
@@ -223,63 +270,20 @@ If track names don't match, we may need to:
 - `frontend/src/app/theses/page.tsx` - Fetch real department counts
 - `frontend/src/app/theses/[collection]/page.tsx` - Fetch real track counts
 
-### Email Notifications ✅ PARTIALLY IMPLEMENTED
+### Email Notifications ⚠️ NOT IMPLEMENTED
 **Problem:** System needs to send email notifications for various events (student invite, fulltext requests, submission reviews)
 
-**Implemented:**
-- ✅ Student account creation now uses `inviteUserByEmail()` - sends invite email with password setup link
-- ✅ Added `redirectTo` parameter to invite emails - points to `/auth/callback`
-- ✅ Created auth callback page (`/auth/callback`) - handles Supabase redirect after email confirmation
-- ✅ Added `FRONTEND_URL` environment variable to backend
-- ✅ Added email notification logic to `updateFulltextRequest()` - logs to console (TODO: implement actual sending)
-- ✅ Added email notification logic to `reviewSubmission()` - logs to console (TODO: implement actual sending)
-- ✅ Fetches student email from users table for submission review notifications
-- ✅ Generates appropriate email content based on decision (approve/reject/revise)
+**Current Status:**
+- ✅ Student account creation uses `inviteUserByEmail()` - sends invite email with password setup link
+- ❌ Email notifications for submission reviews - NOT IMPLEMENTED
+- ❌ Email notifications for fulltext requests - NOT IMPLEMENTED
 
-**What Still Needs Work:**
-- ⚠️ **Supabase Dashboard Configuration Required:**
-  - Must configure Site URL: `http://localhost:3000`
-  - Must add Redirect URLs: `http://localhost:3000/auth/callback` and `http://localhost:3000/**`
-  - Go to: https://supabase.com/dashboard/project/qoxtlmpsguiosoatvtkj/auth/url-configuration
-- ⚠️ **Email Sending for Guest Requesters:**
-  - Full-text request emails need external service (Nodemailer with Gmail SMTP, SendGrid, Resend, etc.)
-  - Currently only logs email content to console with `[EMAIL]` prefix
-  - Requires email service setup (considering using `cics.sparkrepository@gmail.com` with Nodemailer)
+**What's Needed:**
+- Email service integration (Nodemailer with Gmail SMTP, SendGrid, Resend, or Supabase Edge Function)
+- Email templates for different notification types
+- Configuration for email sender credentials
 
-**Files Modified:**
-- `backend/src/modules/admin/admin.service.ts` - Added email notification logic and redirectTo parameter
-- `backend/.env` - Added `FRONTEND_URL=http://localhost:3000`
-- `backend/.env.example` - Added FRONTEND_URL documentation
-- `frontend/src/app/auth/callback/page.tsx` - Created auth callback handler
-
-**How it Works Now:**
-1. **When superadmin creates student account:**
-   - Supabase sends invite email with password setup link
-   - Link redirects to `/auth/callback` after confirmation
-   - Callback page automatically redirects to appropriate dashboard based on role
-   - Database trigger activates account (`is_active = true`) on email confirmation
-
-2. **When admin reviews a submission (approve/reject/revise):**
-   - System fetches student's email from users table
-   - Generates appropriate email subject and message
-   - Logs to console: `[EMAIL] To: student@email.com, Subject: ..., Message: ...`
-   - Creates in-app notification (already working)
-
-3. **When admin handles fulltext request (fulfilled/denied):**
-   - Generates appropriate email subject and message
-   - Logs to console: `[EMAIL] To: requester@email.com, Subject: ..., Message: ...`
-
-**Known Issues:**
-- ⚠️ Invite links showing "otp_expired" error - Fixed by adding redirectTo and callback page
-- ⚠️ Requires Supabase dashboard configuration (see above)
-- ⚠️ Old invite links are expired - need to create new student accounts to test
-
-**Next Steps for Full Implementation:**
-1. Configure Supabase Dashboard redirect URLs (REQUIRED for invite emails to work)
-2. Test student invite flow with new account creation
-3. Set up email service for guest requesters (Nodemailer + Gmail or external service)
-4. Replace console.log statements with actual email sending
-5. Test email delivery for all scenarios
+**Note:** Email notification logic was explored but reverted. Implementation requires external email service setup.
 
 ---
 
@@ -323,58 +327,45 @@ npm run dev  # from project root
 
 ### Completed in This Session:
 
-#### 1. ✅ Email Notifications for Submission Reviews
-- Added email notification logic to `reviewSubmission()` method
-- System now fetches student email and generates personalized messages
-- Includes feedback in email when provided by admin
-- Currently logs to console (awaiting email service integration)
-
-#### 2. ✅ Dynamic Document Counts for Thesis Pages
+#### 1. ✅ Dynamic Document Counts for Thesis Pages
 - Converted thesis main page to client component with real-time counts
 - Converted thesis collection page to fetch dynamic track counts
 - Both pages now show accurate counts from database
 - Matches capstone page implementation
 
-#### 3. ✅ Fixed Student Invite Email Flow
-- Added `redirectTo` parameter to invite emails
-- Created `/auth/callback` page to handle Supabase redirects
-- Added `FRONTEND_URL` environment variable
-- Callback page automatically redirects to appropriate dashboard
-
-#### 4. 🔍 Identified Email Service Requirements
-- Student invites work via Supabase Auth (built-in)
-- Guest requester emails need external service (Nodemailer/SendGrid/Resend)
-- Considering using `cics.sparkrepository@gmail.com` with Nodemailer
+#### 2. ✅ Dynamic Document Counts for Capstone Pages (Previous Session)
+- Already implemented in previous work
+- Thesis pages now follow same pattern
 
 ### Files Modified This Session:
-- `backend/src/modules/admin/admin.service.ts` - Email notifications + redirectTo
-- `backend/.env` - Added FRONTEND_URL
-- `backend/.env.example` - Added FRONTEND_URL
-- `frontend/src/app/auth/callback/page.tsx` - Created callback handler
 - `frontend/src/app/theses/page.tsx` - Dynamic counts
 - `frontend/src/app/theses/[collection]/page.tsx` - Dynamic counts
 - `FIXES_PROGRESS.md` - Updated documentation
 
-### Action Items Before Next Session:
-1. **Configure Supabase Dashboard** (REQUIRED):
-   - Set Site URL: `http://localhost:3000`
-   - Add Redirect URLs: `http://localhost:3000/auth/callback` and `http://localhost:3000/**`
-   - URL: https://supabase.com/dashboard/project/qoxtlmpsguiosoatvtkj/auth/url-configuration
+### Files Modified in Previous Sessions (Kept):
+- `backend/src/modules/admin/admin.controller.ts` - PDF preview endpoint
+- `backend/src/modules/admin/admin.service.ts` - PDF preview logic
+- `backend/src/modules/student/student.service.ts` - Include reviews in response
+- `frontend/src/app/admin/submissions/review/[submissionId]/page.tsx` - PDF viewer
+- `frontend/src/app/capstone/[collection]/[track]/[item]/page.tsx` - Department dropdown
+- `frontend/src/app/capstone/[collection]/page.tsx` - Dynamic counts
+- `frontend/src/app/capstone/page.tsx` - Dynamic counts
+- `frontend/src/app/student/dashboard/page.tsx` - Feedback column
+- `frontend/src/app/superadmin/submissions/review/[submissionId]/page.tsx` - PDF viewer
+- `frontend/src/app/theses/[collection]/[track]/[thesis]/page.tsx` - Department dropdown
+- `frontend/src/components/admin/SubmissionStepContent.tsx` - Date picker
+- `frontend/src/components/layout/Sidebar.tsx` - Gray links
+- `frontend/src/lib/api/documents.ts` - Document counts API
 
-2. **Test Student Invite Flow**:
-   - Restart backend server
-   - Create new student account
-   - Check email and click invite link
-   - Verify redirect to callback → dashboard works
-
-3. **Decide on Email Service**:
-   - Option A: Nodemailer with Gmail (`cics.sparkrepository@gmail.com`)
-   - Option B: External service (SendGrid, Resend, Mailgun)
-   - Option C: Supabase Edge Function with email service
+### Reverted Changes:
+- ❌ Email notification logic for submission reviews
+- ❌ Email notification logic for fulltext requests
+- ❌ Auth callback page (`/auth/callback`)
+- ❌ `redirectTo` parameter in invite emails
+- ❌ `FRONTEND_URL` environment variable
 
 ### Current Status Summary:
 - ✅ 8 issues fully fixed
-- 🔄 2 issues partially fixed (email notifications, full-text workflow)
-- ⏳ 12 issues remaining
-- 📊 Progress: ~40% complete
+- ⏳ 14 issues remaining
+- 📊 Progress: ~36% complete
 

@@ -46,7 +46,6 @@ export class AdminService {
           role: 'student',
           department,
         },
-        redirectTo: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/callback`,
       });
 
     if (authError || !authData.user) {
@@ -267,51 +266,6 @@ export class AdminService {
       reference_id: documentId,
     });
 
-    // Send email notification to student
-    try {
-      // Fetch student email
-      const { data: student } = await this.databaseService.client
-        .from('users')
-        .select('email, first_name, last_name')
-        .eq('id', document.uploaded_by)
-        .single();
-
-      if (student) {
-        const decisionText = {
-          approve: 'approved',
-          reject: 'rejected',
-          revise: 'requires revision',
-        }[dto.decision];
-
-        const subject = `Submission ${decisionText.charAt(0).toUpperCase() + decisionText.slice(1)} - SPARK Repository`;
-        
-        let message = `Dear ${student.first_name} ${student.last_name},\n\n`;
-        message += `Your submission "${document.title}" has been ${decisionText}.\n\n`;
-        
-        if (dto.feedback) {
-          message += `Feedback from reviewer:\n${dto.feedback}\n\n`;
-        }
-        
-        if (dto.decision === 'approve') {
-          message += `Your document is now published in the SPARK Repository and available to the public.\n\n`;
-        } else if (dto.decision === 'revise') {
-          message += `Please review the feedback and resubmit your document with the requested changes.\n\n`;
-        }
-        
-        message += `Thank you for your contribution to SPARK Repository.\n\nBest regards,\nSPARK Repository Team`;
-
-        // Note: Supabase doesn't have a built-in way to send custom emails
-        // This would require setting up a custom email service or using Supabase Edge Functions
-        // For now, we'll log that an email should be sent
-        console.log(`[EMAIL] To: ${student.email}, Subject: ${subject}, Message: ${message}`);
-        
-        // TODO: Implement actual email sending via Supabase Edge Function or external service
-      }
-    } catch (emailError) {
-      // Don't fail the review if email fails
-      console.error('Failed to send email notification:', emailError);
-    }
-
     return {
       message: `Document ${dto.decision}d successfully.`,
       document: updated,
@@ -368,7 +322,6 @@ export class AdminService {
 
   /**
    * updateFulltextRequest marks a full-text request as fulfilled or denied.
-   * Sends an email notification to the requester.
    */
   async updateFulltextRequest(
     requestId: string,
@@ -402,27 +355,6 @@ export class AdminService {
 
     if (updateError) {
       throw new InternalServerErrorException('Failed to update full-text request.');
-    }
-
-    // Send email notification to requester
-    try {
-      const subject = status === 'fulfilled' 
-        ? 'Full-Text Request Approved - SPARK Repository'
-        : 'Full-Text Request Denied - SPARK Repository';
-      
-      const message = status === 'fulfilled'
-        ? `Dear ${request.requester_name},\n\nYour request for full-text access has been approved. The document will be sent to you shortly.\n\nThank you for using SPARK Repository.\n\nBest regards,\nSPARK Repository Team`
-        : `Dear ${request.requester_name},\n\nYour request for full-text access has been reviewed and unfortunately cannot be fulfilled at this time.\n\nIf you have questions, please contact the repository administrator.\n\nBest regards,\nSPARK Repository Team`;
-
-      // Note: Supabase doesn't have a built-in way to send custom emails
-      // This would require setting up a custom email service or using Supabase Edge Functions
-      // For now, we'll log that an email should be sent
-      console.log(`[EMAIL] To: ${request.requester_email}, Subject: ${subject}, Message: ${message}`);
-      
-      // TODO: Implement actual email sending via Supabase Edge Function or external service
-    } catch (emailError) {
-      // Don't fail the request if email fails
-      console.error('Failed to send email notification:', emailError);
     }
 
     return {
