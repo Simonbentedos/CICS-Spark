@@ -101,6 +101,10 @@ export default function ThesisItemPage({ params: paramsPromise }: Readonly<Thesi
                 }}
               />
 
+              <p className="mt-3 font-mono text-[11px] text-grey-400">
+                OAI Identifier: oai:spark.cics:{params.thesis}
+              </p>
+
               {ftSuccess && (
                 <div className="mt-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
                   Your full-text request has been submitted. The admin will contact you by email.

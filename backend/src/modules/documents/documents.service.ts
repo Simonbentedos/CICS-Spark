@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   InternalServerErrorException,
 } from '@nestjs/common';
+import { createHash } from 'crypto';
 import { DatabaseService } from '../../database/database.service';
 import { UploadDocumentDto } from '../student/dto/upload-material.dto';
 import { ReviseDocumentDto } from './dto/revise-document.dto';
@@ -22,6 +23,7 @@ export class DocumentsService {
    */
   async uploadDocument(userId: string, file: Express.Multer.File, dto: UploadDocumentDto) {
     const storagePath = `${userId}/${Date.now()}_${file.originalname}`;
+    const checksum = createHash('sha256').update(file.buffer).digest('hex');
 
     const { error: storageError } = await this.databaseService.client.storage
       .from('documents')
@@ -48,6 +50,7 @@ export class DocumentsService {
         pdf_file_path: storagePath,
         uploaded_by: userId,
         status: 'pending',
+        checksum,
       })
       .select()
       .single();
@@ -111,6 +114,8 @@ export class DocumentsService {
 
     let pdf_file_path = existing.pdf_file_path;
 
+    let newChecksum: string | undefined;
+
     if (file) {
       // Remove the old PDF and upload the new one
       await this.databaseService.client.storage
@@ -127,6 +132,7 @@ export class DocumentsService {
       }
 
       pdf_file_path = storagePath;
+      newChecksum = createHash('sha256').update(file.buffer).digest('hex');
     }
 
     // Build the update payload — only include fields explicitly provided
@@ -144,6 +150,7 @@ export class DocumentsService {
     if (dto.adviser !== undefined) updatePayload.adviser = dto.adviser;
     if (dto.keywords !== undefined) updatePayload.keywords = dto.keywords;
     if (pdf_file_path !== existing.pdf_file_path) updatePayload.pdf_file_path = pdf_file_path;
+    if (newChecksum) updatePayload.checksum = newChecksum;
 
     const { data: updated, error: updateError } = await this.databaseService.client
       .from('documents')

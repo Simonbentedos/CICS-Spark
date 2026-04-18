@@ -27,6 +27,9 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 // Email
 import { EmailModule } from './modules/email/email.module';
 
+// OAI-PMH
+import { OaiModule } from './modules/oai/oai.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -60,6 +63,9 @@ import { EmailModule } from './modules/email/email.module';
 
     // Email (nodemailer)
     EmailModule,
+
+    // OAI-PMH metadata harvesting
+    OaiModule,
   ],
   controllers: [AppController],
   providers: [

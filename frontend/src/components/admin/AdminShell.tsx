@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   FileText,
   FolderOpen,
@@ -15,7 +15,7 @@ import {
   Inbox,
 } from 'lucide-react'
 import { ADMIN_NAV_ITEMS, ADMIN_PROFILE, cn, getAdminTopTitle } from '@/lib/utils'
-import { getAdminSession } from '@/lib/admin/session'
+import { clearAdminSession, getAdminSession } from '@/lib/admin/session'
 import { getAdminTheme } from '@/lib/admin/theme'
 import { logout } from '@/lib/api/auth'
 import NotificationBell from '@/components/admin/NotificationBell'
@@ -40,6 +40,7 @@ export default function AdminShell({ children }: Readonly<{ children: React.Reac
   const [departmentCode, setDepartmentCode] = useState<'cs' | 'it' | 'is'>('cs')
   const [showChangePassword, setShowChangePassword] = useState(false)
   const theme = getAdminTheme(departmentCode)
+  const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const session = getAdminSession()
@@ -62,6 +63,30 @@ export default function AdminShell({ children }: Readonly<{ children: React.Reac
       document.body.style.overflow = ''
     }
   }, [router])
+
+  // Auto-logout after 30 minutes of inactivity
+  useEffect(() => {
+    if (!authorized) return
+
+    const TIMEOUT_MS = 30 * 60 * 1000
+
+    function resetTimer() {
+      if (inactivityTimer.current) clearTimeout(inactivityTimer.current)
+      inactivityTimer.current = setTimeout(() => {
+        clearAdminSession()
+        router.push('/login')
+      }, TIMEOUT_MS)
+    }
+
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'] as const
+    events.forEach((e) => window.addEventListener(e, resetTimer, { passive: true }))
+    resetTimer()
+
+    return () => {
+      events.forEach((e) => window.removeEventListener(e, resetTimer))
+      if (inactivityTimer.current) clearTimeout(inactivityTimer.current)
+    }
+  }, [authorized, router])
 
   if (!authorized) {
     return null
