@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import {
   FolderOpen,
+  KeyRound,
   LayoutGrid,
   LogOut,
   Users,
@@ -14,6 +15,7 @@ import { cn } from '@/lib/utils'
 import { clearAdminSession, getAdminSession } from '@/lib/admin/session'
 import { logout } from '@/lib/api/auth'
 import NotificationBell from '@/components/admin/NotificationBell'
+import ChangePasswordModal from '@/components/admin/ChangePasswordModal'
 
 const NAV_ITEMS = [
   { href: '/superadmin/dashboard', label: 'Dashboard', icon: LayoutGrid },
@@ -27,6 +29,7 @@ export default function SuperAdminShell({ children }: Readonly<{ children: React
   const [authorized, setAuthorized] = useState(false)
   const [sessionName, setSessionName] = useState('Super Admin')
   const [sessionEmail, setSessionEmail] = useState('')
+  const [showChangePassword, setShowChangePassword] = useState(false)
 
   useEffect(() => {
     const session = getAdminSession()
@@ -104,8 +107,16 @@ export default function SuperAdminShell({ children }: Readonly<{ children: React
 
             <button
               type="button"
+              onClick={() => setShowChangePassword(true)}
+              className="flex w-full items-center gap-2 rounded-[8px] px-3 py-2 text-sm text-grey-600 hover:bg-grey-50 hover:text-grey-800 focus-visible:outline-none"
+            >
+              <KeyRound className="h-4 w-4" />
+              Change Password
+            </button>
+            <button
+              type="button"
               onClick={handleLogout}
-              className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-red-500 hover:text-red-600 focus-visible:outline-none"
+              className="flex w-full items-center gap-2 rounded-[8px] px-3 py-2 text-sm font-medium text-red-500 hover:bg-red-50 hover:text-red-600 focus-visible:outline-none"
             >
               <LogOut className="h-4 w-4" />
               Logout
@@ -117,6 +128,13 @@ export default function SuperAdminShell({ children }: Readonly<{ children: React
           {children}
         </main>
       </div>
+
+      {showChangePassword && (
+        <ChangePasswordModal
+          accentColor="#800000"
+          onClose={() => setShowChangePassword(false)}
+        />
+      )}
     </div>
   )
 }

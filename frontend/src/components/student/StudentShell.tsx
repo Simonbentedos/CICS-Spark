@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { FilePlus2, KeyRound, LayoutGrid, LogOut } from 'lucide-react'
 import { clearStudentSession, getStudentSession } from '@/lib/student/session'
 import NotificationBell from '@/components/admin/NotificationBell'
@@ -23,6 +23,7 @@ export default function StudentShell({ children }: { children: React.ReactNode }
   const [studentName, setStudentName] = useState('Student User')
   const [studentEmail, setStudentEmail] = useState('')
   const [showChangePassword, setShowChangePassword] = useState(false)
+  const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (isStudentLoginRoute) {
@@ -44,6 +45,30 @@ export default function StudentShell({ children }: { children: React.ReactNode }
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = '' }
   }, [isStudentLoginRoute, router])
+
+  // Auto-logout after 30 minutes of inactivity
+  useEffect(() => {
+    if (!authorized || isStudentLoginRoute) return
+
+    const TIMEOUT_MS = 30 * 60 * 1000
+
+    function resetTimer() {
+      if (inactivityTimer.current) clearTimeout(inactivityTimer.current)
+      inactivityTimer.current = setTimeout(() => {
+        clearStudentSession()
+        router.push('/student/login')
+      }, TIMEOUT_MS)
+    }
+
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'] as const
+    events.forEach((e) => window.addEventListener(e, resetTimer, { passive: true }))
+    resetTimer()
+
+    return () => {
+      events.forEach((e) => window.removeEventListener(e, resetTimer))
+      if (inactivityTimer.current) clearTimeout(inactivityTimer.current)
+    }
+  }, [authorized, isStudentLoginRoute, router])
 
   if (isStudentLoginRoute) return <>{children}</>
   if (!authorized) return null
