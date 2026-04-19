@@ -3,6 +3,8 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { SupabaseGuard } from './supabase.guard';
+import { RolesGuard } from './roles.guard';
+import { Roles } from './roles.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -57,5 +59,18 @@ export class AuthController {
       body.currentPassword,
       body.newPassword,
     );
+  }
+
+  /**
+   * POST /api/auth/password-reset-request
+   * Protected. Student or admin submits a password reset request for super admin approval.
+   * Only one pending request per user is allowed at a time.
+   */
+  @UseGuards(SupabaseGuard, RolesGuard)
+  @Roles('student', 'admin')
+  @Post('password-reset-request')
+  @HttpCode(201)
+  requestPasswordReset(@Request() req: any) {
+    return this.authService.requestPasswordReset(req.user);
   }
 }

@@ -1,4 +1,4 @@
-import { Controller, Post, Put, Patch, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Put, Patch, Get, Param, Body, UseGuards, Query } from '@nestjs/common';
 import { SuperadminService } from './superadmin.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { CreateStudentDto } from './dto/create-student.dto';
@@ -50,5 +50,35 @@ export class SuperadminController {
   @Roles('super_admin')
   createAdmin(@Body() createAdminDto: CreateAdminDto) {
     return this.superadminService.createAdmin(createAdminDto);
+  }
+
+  /**
+   * GET /api/superadmin/password-reset-requests
+   * super_admin only. Lists password reset requests. Filter by status with ?status=pending|approved|declined
+   */
+  @Get('password-reset-requests')
+  @Roles('super_admin')
+  listPasswordResetRequests(@Query('status') status?: string) {
+    return this.superadminService.listPasswordResetRequests(status);
+  }
+
+  /**
+   * POST /api/superadmin/password-reset-requests/:id/approve
+   * super_admin only. Approves the request and emails a Supabase recovery link to the user.
+   */
+  @Post('password-reset-requests/:id/approve')
+  @Roles('super_admin')
+  approvePasswordResetRequest(@Param('id') id: string) {
+    return this.superadminService.approvePasswordResetRequest(id);
+  }
+
+  /**
+   * POST /api/superadmin/password-reset-requests/:id/decline
+   * super_admin only. Declines the request and notifies the user by email.
+   */
+  @Post('password-reset-requests/:id/decline')
+  @Roles('super_admin')
+  declinePasswordResetRequest(@Param('id') id: string) {
+    return this.superadminService.declinePasswordResetRequest(id);
   }
 }

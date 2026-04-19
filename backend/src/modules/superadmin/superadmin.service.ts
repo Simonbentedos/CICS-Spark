@@ -253,4 +253,105 @@ export class SuperadminService {
       admin: user,
     };
   }
+
+  /**
+   * listPasswordResetRequests returns all password reset requests, optionally filtered by status.
+   */
+  async listPasswordResetRequests(status?: string) {
+    const validStatuses = ['pending', 'approved', 'declined'];
+
+    let query = this.databaseService.client
+      .from('password_reset_requests')
+      .select('*')
+      .order('requested_at', { ascending: false });
+
+    if (status && validStatuses.includes(status)) {
+      query = query.eq('status', status);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new InternalServerErrorException('Failed to fetch password reset requests.');
+    }
+
+    return { requests: data };
+  }
+
+  /**
+   * approvePasswordResetRequest marks the request approved and emails the user a Supabase recovery link.
+   */
+  async approvePasswordResetRequest(requestId: string) {
+    const { data: request, error: fetchError } = await this.databaseService.client
+      .from('password_reset_requests')
+      .select('*')
+      .eq('id', requestId)
+      .maybeSingle();
+
+    if (fetchError) throw new InternalServerErrorException(fetchError.message);
+    if (!request) throw new NotFoundException('Password reset request not found.');
+    if (request.status !== 'pending') {
+      throw new ConflictException('This request has already been resolved.');
+    }
+
+    const { data: linkData, error: linkError } =
+      await this.databaseService.client.auth.admin.generateLink({
+        type: 'recovery',
+        email: request.email,
+      });
+
+    if (linkError || !linkData?.properties?.action_link) {
+      throw new InternalServerErrorException('Failed to generate password reset link.');
+    }
+
+    const { error: updateError } = await this.databaseService.client
+      .from('password_reset_requests')
+      .update({ status: 'approved', resolved_at: new Date().toISOString() })
+      .eq('id', requestId);
+
+    if (updateError) throw new InternalServerErrorException(updateError.message);
+
+    this.emailService
+      .sendPasswordResetEmail({
+        to: request.email,
+        name: `${request.first_name} ${request.last_name}`,
+        resetLink: linkData.properties.action_link,
+      })
+      .catch(() => {});
+
+    return { message: 'Password reset request approved. Recovery email sent.' };
+  }
+
+  /**
+   * declinePasswordResetRequest marks the request declined and notifies the user by email.
+   */
+  async declinePasswordResetRequest(requestId: string) {
+    const { data: request, error: fetchError } = await this.databaseService.client
+      .from('password_reset_requests')
+      .select('*')
+      .eq('id', requestId)
+      .maybeSingle();
+
+    if (fetchError) throw new InternalServerErrorException(fetchError.message);
+    if (!request) throw new NotFoundException('Password reset request not found.');
+    if (request.status !== 'pending') {
+      throw new ConflictException('This request has already been resolved.');
+    }
+
+    const { error: updateError } = await this.databaseService.client
+      .from('password_reset_requests')
+      .update({ status: 'declined', resolved_at: new Date().toISOString() })
+      .eq('id', requestId);
+
+    if (updateError) throw new InternalServerErrorException(updateError.message);
+
+    this.emailService
+      .sendPasswordResetDeclinedEmail({
+        to: request.email,
+        name: `${request.first_name} ${request.last_name}`,
+      })
+      .catch(() => {});
+
+    return { message: 'Password reset request declined.' };
+  }
 }
