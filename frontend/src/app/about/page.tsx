@@ -36,7 +36,7 @@ export default function AboutPage() {
       title="About Us"
       description="Overview of the SPARK Repository and its purpose."
       body={[
-        'SPARK (System for Preserving Academic Research and Knowledge) is the official repository for theses and capstone outputs of the SPARK Repository.',
+        'SPARK (System for Preserving Academic Research and Knowledge) is the official repository for theses and capstone outputs of the College of Information and Computing Sciences.',
         'The platform preserves institutional research and improves discoverability through curated metadata, searchable collections, and structured submission workflows.',
       ]}
     />
