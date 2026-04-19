@@ -84,50 +84,6 @@ Protected. Returns the authenticated user's profile as attached by `SupabaseGuar
 
 ## Superadmin
 
-### PUT /superadmin/users/:id
-Protected — requires role `super_admin`. Updates a user's first name, last name, and department.
-
-**Request body** (`application/json`)
-```json
-{
-  "first_name": "Juan",
-  "last_name": "dela Cruz",
-  "department": "CS"
-}
-```
-| Field | Type | Rules |
-|---|---|---|
-| `first_name` | string | Required |
-| `last_name` | string | Required |
-| `department` | string | Required, `IS` \| `IT` \| `CS` |
-
-**Response 200**
-```json
-{
-  "message": "User updated successfully.",
-  "user": {
-    "id": "uuid",
-    "email": "user@example.com",
-    "first_name": "Juan",
-    "last_name": "dela Cruz",
-    "role": "student",
-    "department": "CS",
-    "is_active": true,
-    "created_at": "2024-01-15T10:00:00Z"
-  }
-}
-```
-
-**Errors**
-| Status | Reason |
-|---|---|
-| 401 | Missing/invalid token or inactive account |
-| 403 | Authenticated user is not `super_admin` |
-| 404 | User not found |
-| 500 | Failed to update user record |
-
----
-
 ### POST /superadmin/admins
 Protected — requires role `super_admin`. Creates an admin account and sends an invite email. Account is inactive until the invitee sets their password via the email link.
 
@@ -174,8 +130,10 @@ Protected — requires role `super_admin`. Creates an admin account and sends an
 
 ---
 
-### POST /superadmin/students
-Protected — requires role `super_admin`. Creates a student account and sends an invite email. Account is inactive until the invitee sets their password via the email link.
+## Admin
+
+### POST /admin/students
+Protected — requires role `admin` or `super_admin`. Creates a student account and sends an invite email. Account is inactive until the invitee sets their password via the email link.
 
 **Request body** (`application/json`)
 ```json
@@ -214,13 +172,11 @@ Protected — requires role `super_admin`. Creates a student account and sends a
 | Status | Reason |
 |---|---|
 | 401 | Missing/invalid token or inactive account |
-| 403 | Authenticated user is not `super_admin` |
+| 403 | Authenticated user is not `admin` or `super_admin` |
 | 409 | A student with this email already exists |
 | 500 | Failed to send invitation or create record |
 
 ---
-
-## Admin
 
 ### GET /admin/submissions
 Protected — requires role `admin` or `super_admin`. Lists document submissions sorted newest first. Admins see only their department; `super_admin` sees all.

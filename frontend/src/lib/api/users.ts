@@ -22,7 +22,7 @@ export async function createStudent(payload: {
   department: 'CS' | 'IT' | 'IS'
   password?: string
 }): Promise<{ message: string; student: ApiUser }> {
-  return apiRequest('/api/superadmin/students', {
+  return apiRequest('/api/admin/students', {
     method: 'POST',
     body: payload,
   })

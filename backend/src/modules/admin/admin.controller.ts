@@ -10,6 +10,7 @@ import {
   Request,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
+import { CreateStudentDto } from './dto/create-student.dto';
 import { ReviewSubmissionDto } from './dto/review-submission.dto';
 import { UpdateFulltextRequestDto } from './dto/update-fulltext-request.dto';
 import { SupabaseGuard } from '../auth/supabase.guard';
@@ -20,6 +21,18 @@ import { Roles } from '../auth/roles.decorator';
 @UseGuards(SupabaseGuard, RolesGuard)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
+
+  // ─── M-01: User Provisioning ───────────────────────────────────────────────
+
+  /**
+   * POST /api/admin/students
+   * Admin or super_admin only. Creates a student account and sends an invite email.
+   */
+  @Post('students')
+  @Roles('admin', 'super_admin')
+  createStudent(@Body() createStudentDto: CreateStudentDto) {
+    return this.adminService.createStudent(createStudentDto);
+  }
 
   // ─── User Listing ─────────────────────────────────────────────────────────
 
