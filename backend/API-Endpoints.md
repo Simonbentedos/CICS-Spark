@@ -84,6 +84,36 @@ Protected. Returns the authenticated user's profile as attached by `SupabaseGuar
 
 ## Superadmin
 
+### PATCH /superadmin/users/:id/disable
+Protected — requires role `super_admin`. Disables a user account by setting `is_active=false`. This endpoint is limited to accounts with role `admin` or `student`.
+
+**Response 200**
+```json
+{
+  "message": "User account disabled successfully.",
+  "user": {
+    "id": "uuid",
+    "email": "user@example.com",
+    "first_name": "Juan",
+    "last_name": "dela Cruz",
+    "role": "student",
+    "department": "CS",
+    "is_active": false,
+    "created_at": "2024-01-15T10:00:00Z"
+  }
+}
+```
+
+**Errors**
+| Status | Reason |
+|---|---|
+| 401 | Missing/invalid token or inactive account |
+| 403 | Authenticated user is not `super_admin`, or target role is not `admin`/`student` |
+| 404 | User not found |
+| 500 | Failed to disable user account |
+
+---
+
 ### PUT /superadmin/users/:id
 Protected — requires role `super_admin`. Updates a user's first name, last name, and department.
 

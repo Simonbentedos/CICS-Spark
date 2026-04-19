@@ -1,4 +1,4 @@
-import { Controller, Post, Put, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Put, Patch, Param, Body, UseGuards } from '@nestjs/common';
 import { SuperadminService } from './superadmin.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { CreateStudentDto } from './dto/create-student.dto';
@@ -11,6 +11,16 @@ import { Roles } from '../auth/roles.decorator';
 @UseGuards(SupabaseGuard, RolesGuard)
 export class SuperadminController {
   constructor(private readonly superadminService: SuperadminService) {}
+
+  /**
+   * PATCH /api/superadmin/users/:id/disable
+   * super_admin only. Disables an admin or student account.
+   */
+  @Patch('users/:id/disable')
+  @Roles('super_admin')
+  disableUser(@Param('id') id: string) {
+    return this.superadminService.disableUser(id);
+  }
 
   /**
    * PUT /api/superadmin/users/:id

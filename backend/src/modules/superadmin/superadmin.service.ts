@@ -1,6 +1,7 @@
 import {
   Injectable,
   ConflictException,
+  ForbiddenException,
   NotFoundException,
   InternalServerErrorException,
 } from '@nestjs/common';
@@ -16,6 +17,47 @@ export class SuperadminService {
     private databaseService: DatabaseService,
     private emailService: EmailService,
   ) {}
+
+  /**
+   * disableUser allows super_admin to disable admin/student accounts.
+   */
+  async disableUser(userId: string) {
+    const { data: targetUser, error: fetchError } = await this.databaseService.client
+      .from('users')
+      .select('id, email, first_name, last_name, role, department, is_active, created_at')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (fetchError) {
+      throw new InternalServerErrorException(fetchError.message);
+    }
+
+    if (!targetUser) {
+      throw new NotFoundException('User not found.');
+    }
+
+    if (!['admin', 'student'].includes(targetUser.role)) {
+      throw new ForbiddenException('Only admin and student accounts can be disabled.');
+    }
+
+    const { data: disabledUser, error: updateError } = await this.databaseService.client
+      .from('users')
+      .update({ is_active: false })
+      .eq('id', userId)
+      .select('id, email, first_name, last_name, role, department, is_active, created_at')
+      .single();
+
+    if (updateError || !disabledUser) {
+      throw new InternalServerErrorException(
+        updateError?.message || 'Failed to disable user account.',
+      );
+    }
+
+    return {
+      message: 'User account disabled successfully.',
+      user: disabledUser,
+    };
+  }
 
   /**
    * updateUser allows super_admin to edit user profile details.
