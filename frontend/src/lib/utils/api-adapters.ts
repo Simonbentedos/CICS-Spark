@@ -52,7 +52,7 @@ export function apiDocToEntry(doc: ApiDocument): ThesisEntry {
     documentType: doc.type === 'thesis' ? 'Thesis' : 'Capstone',
     degreeName: doc.degree || 'Not specified',
     subjectCategories: keywords,
-    college: 'SPARK Repository',
+    college: 'College of Information and Computing Sciences',
     departmentUnit: DEPT_NAMES[dept] ?? dept,
     thesisAdvisor: doc.adviser ?? 'Not provided',
     defensePanelChair: 'Not provided',
