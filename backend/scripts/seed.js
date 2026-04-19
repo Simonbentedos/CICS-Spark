@@ -51,7 +51,7 @@ function loadEnv() {
 
 const ACCOUNTS = [
   {
-    email: 'superadmin@spark.test',
+    email: 'cics.spark.superadmin@gmail.com',
     password: 'Password123!',
     first_name: 'Super',
     last_name: 'Admin',
@@ -59,7 +59,7 @@ const ACCOUNTS = [
     department: 'CS',
   },
   {
-    email: 'cs-admin@spark.test',
+    email: 'cics.spark.csadmin@gmail.com',
     password: 'Password123!',
     first_name: 'CS',
     last_name: 'Admin',

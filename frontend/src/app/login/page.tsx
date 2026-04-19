@@ -13,7 +13,7 @@ import { Button, Card, Input, Label } from '@/components/ui'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { login } from '@/lib/api/auth'
-import { SAMPLE_ADMINS } from '@/lib/mock-admin'
+
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -169,16 +169,7 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          <div className="mt-5 rounded-[12px] border border-[#d9d9d9] bg-white/90 p-4">
-            <p className="font-body text-[13px] font-semibold text-[#1A1A2E] mb-2">Dummy Admin Credentials</p>
-            <div className="space-y-2 text-[12px] text-[#5d5d5d]">
-              {SAMPLE_ADMINS.map((account) => (
-                <p key={account.email}>
-                  {account.departmentName}: <span className="font-medium">{account.email}</span> / <span className="font-medium">{account.password}</span>
-                </p>
-              ))}
-            </div>
-          </div>
+
         </section>
       </div>
     </main>
