@@ -79,7 +79,7 @@ export default function Home() {
           
           {/* Description */}
           <p className="font-body text-body-sm text-grey-700 leading-relaxed mb-6">
-            The SPARK Repository (System for Preserving Academic Research and Knowledge) is a digital repository of theses, capstone projects, and scholarly outputs of the faculty, students, and researchers of the University of Santo Tomas SPARK Repository.
+            The SPARK Repository (System for Preserving Academic Research and Knowledge) is a digital repository of theses, capstone projects, and scholarly outputs of the faculty, students, and researchers of the University of Santo Tomas College of Information and Computing Sciences.
           </p>
           
           {/* Section Title */}
