@@ -101,9 +101,10 @@ export default function StudentDashboardPage() {
           <CardTitle className="text-base font-semibold text-navy">My Submissions</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {loading ? (
+          {loading && (
             <p className="px-4 py-8 text-center text-xs text-grey-500">Loading your submissions…</p>
-          ) : docs.length === 0 ? (
+          )}
+          {!loading && docs.length === 0 && (
             <div className="flex flex-col items-center gap-2 py-12 text-center">
               <FileText className="h-8 w-8 text-grey-300" />
               <p className="text-sm text-grey-500">No submissions yet.</p>
@@ -111,17 +112,19 @@ export default function StudentDashboardPage() {
                 Start your first submission →
               </Link>
             </div>
-          ) : (
+          )}
+          {!loading && docs.length > 0 && (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-grey-100 bg-grey-50">
-                    <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-grey-500">Title</th>
-                    <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-grey-500">Type</th>
-                    <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-grey-500">Submitted</th>
-                    <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-grey-500">Status</th>
-                    <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-grey-500">Feedback</th>
-                    <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-grey-500">Action</th>
+                  <tr className="border-b border-grey-200 bg-grey-50">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-grey-700">Title</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-grey-700">Type</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-grey-700">Department</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-grey-700">Submitted</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-grey-700">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-grey-700">Feedback</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-grey-700">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-grey-100">
@@ -131,39 +134,78 @@ export default function StudentDashboardPage() {
                       .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
                       ?.feedback_text ?? null
 
+                    const deptNames: Record<string, string> = {
+                      CS: 'Computer Science',
+                      IT: 'Information Technology',
+                      IS: 'Information Systems',
+                    }
+
                     return (
-                    <tr key={doc.id} className="hover:bg-grey-50">
-                      <td className="max-w-[320px] px-4 py-3">
-                        <p className="line-clamp-2 text-grey-700">{doc.title}</p>
+                    <tr key={doc.id} className="hover:bg-grey-50 transition-colors">
+                      <td className="max-w-[280px] px-4 py-3.5">
+                        <p className="line-clamp-2 text-sm font-medium text-grey-800">{doc.title}</p>
+                        {doc.track_specialization && (
+                          <p className="mt-0.5 text-xs text-grey-500">{doc.track_specialization}</p>
+                        )}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-grey-500 capitalize">{doc.type}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-grey-500">
+                      <td className="whitespace-nowrap px-4 py-3.5">
+                        <span className="inline-flex items-center rounded-md bg-grey-100 px-2 py-1 text-xs font-medium text-grey-700 capitalize">
+                          {doc.type}
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3.5 text-sm text-grey-600">
+                        {deptNames[doc.department] || doc.department}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3.5 text-sm text-grey-600">
                         {new Date(doc.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3">
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLES[doc.status] ?? ''}`}>
+                      <td className="whitespace-nowrap px-4 py-3.5">
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_STYLES[doc.status] ?? ''}`}>
                           {STATUS_LABEL[doc.status] ?? doc.status}
                         </span>
                       </td>
-                      <td className="max-w-[280px] px-4 py-3">
+                      <td className="max-w-[240px] px-4 py-3.5">
                         {latestFeedback ? (
-                          <p className={`line-clamp-2 text-xs italic ${doc.status === 'rejected' ? 'text-red-700' : 'text-violet-700'}`}>
-                            {latestFeedback}
-                          </p>
+                          <div className={`rounded-md px-2 py-1.5 ${doc.status === 'rejected' ? 'bg-red-50' : 'bg-violet-50'}`}>
+                            <p className={`line-clamp-2 text-xs ${doc.status === 'rejected' ? 'text-red-700' : 'text-violet-700'}`}>
+                              {latestFeedback}
+                            </p>
+                          </div>
                         ) : (
-                          <span className="text-xs text-grey-400">—</span>
+                          <span className="text-xs text-grey-400">No feedback</span>
                         )}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3">
-                        {doc.status === 'revision' && (
-                          <Link
-                            href={`/student/submissions/revise/${doc.id}`}
-                            className="inline-flex items-center gap-1 text-xs text-violet-600 hover:text-violet-800 no-underline"
-                          >
-                            <RotateCcw className="h-3.5 w-3.5" />
-                            Revise
-                          </Link>
-                        )}
+                      <td className="whitespace-nowrap px-4 py-3.5">
+                        {(() => {
+                          if (doc.status === 'revision') {
+                            return (
+                              <Link
+                                href={`/student/submissions/revise/${doc.id}`}
+                                className="inline-flex items-center gap-1.5 rounded-md bg-violet-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-700 no-underline transition-colors"
+                              >
+                                <RotateCcw className="h-3.5 w-3.5" />
+                                Revise
+                              </Link>
+                            )
+                          }
+                          if (doc.status === 'approved') {
+                            return (
+                              <span className="inline-flex items-center gap-1 text-xs text-green-600">
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                Published
+                              </span>
+                            )
+                          }
+                          if (doc.status === 'pending') {
+                            return (
+                              <span className="inline-flex items-center gap-1 text-xs text-amber-600">
+                                <Clock className="h-3.5 w-3.5" />
+                                In Review
+                              </span>
+                            )
+                          }
+                          return <span className="text-xs text-grey-400">—</span>
+                        })()}
                       </td>
                     </tr>
                   )})}

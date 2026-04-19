@@ -33,4 +33,14 @@ export class NotificationsController {
   markAsRead(@Param('id') id: string, @Request() req: any) {
     return this.notificationsService.markAsRead(id, req.user.id);
   }
+
+  /**
+   * POST /api/notifications/test
+   * Protected. Creates a test notification for the authenticated user.
+   * This is for testing purposes only.
+   */
+  @Patch('test')
+  async createTestNotification(@Request() req: any) {
+    return this.notificationsService.createTestNotification(req.user.id);
+  }
 }

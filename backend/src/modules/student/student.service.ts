@@ -14,7 +14,7 @@ export class StudentService {
     const { data, error } = await this.databaseService.client
       .from('documents')
       .select(
-        `id, title, authors, abstract, year, department, type, track_specialization, adviser, keywords, status, created_at, updated_at,
+        `id, title, authors, abstract, year, department, type, track_specialization, adviser, degree, keywords, status, created_at, updated_at,
          reviews:reviews(id, decision, feedback_text, reviewed_by, created_at)`,
       )
       .eq('uploaded_by', userId)

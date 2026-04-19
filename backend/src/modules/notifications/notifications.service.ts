@@ -63,4 +63,24 @@ export class NotificationsService {
     if (error) throw new InternalServerErrorException('Failed to mark notifications as read.');
     return { message: 'All notifications marked as read.' };
   }
+
+  /**
+   * createTestNotification creates a test notification for debugging purposes.
+   */
+  async createTestNotification(userId: string) {
+    const { data, error } = await this.databaseService.client
+      .from('notifications')
+      .insert({
+        user_id: userId,
+        type: 'test',
+        message: 'This is a test notification to verify the notification system is working.',
+        is_read: false,
+        reference_id: null,
+      })
+      .select()
+      .single();
+
+    if (error) throw new InternalServerErrorException('Failed to create test notification.');
+    return { message: 'Test notification created successfully.', notification: data };
+  }
 }

@@ -125,7 +125,7 @@ export class AdminService {
     let query = this.databaseService.client
       .from('documents')
       .select(
-        'id, title, authors, abstract, year, department, type, track_specialization, adviser, keywords, pdf_file_path, uploaded_by, status, created_at, updated_at',
+        'id, title, authors, abstract, year, department, type, track_specialization, adviser, degree, keywords, pdf_file_path, uploaded_by, status, created_at, updated_at',
       )
       .order('created_at', { ascending: false });
 
@@ -150,7 +150,7 @@ export class AdminService {
     const { data: document, error } = await this.databaseService.client
       .from('documents')
       .select(
-        'id, title, authors, abstract, year, department, type, track_specialization, adviser, keywords, pdf_file_path, uploaded_by, status, created_at, updated_at',
+        'id, title, authors, abstract, year, department, type, track_specialization, adviser, degree, keywords, pdf_file_path, uploaded_by, status, created_at, updated_at',
       )
       .eq('id', documentId)
       .single();
@@ -278,6 +278,51 @@ export class AdminService {
       is_read: false,
       reference_id: documentId,
     });
+
+    // Send email notification to student (fire-and-forget — never block the response)
+    (async () => {
+      try {
+        // Get student details
+        const { data: student } = await this.databaseService.client
+          .from('users')
+          .select('email, first_name, last_name')
+          .eq('id', document.uploaded_by)
+          .single();
+
+        if (student) {
+          const studentName = `${student.first_name} ${student.last_name}`;
+          const documentType = document.type as 'thesis' | 'capstone';
+
+          if (dto.decision === 'approve') {
+            await this.emailService.sendSubmissionApprovedEmail({
+              to: student.email,
+              studentName,
+              documentTitle: document.title,
+              documentType,
+            });
+          } else if (dto.decision === 'reject') {
+            await this.emailService.sendSubmissionRejectedEmail({
+              to: student.email,
+              studentName,
+              documentTitle: document.title,
+              documentType,
+              feedback: dto.feedback,
+            });
+          } else if (dto.decision === 'revise') {
+            await this.emailService.sendSubmissionRevisionRequestedEmail({
+              to: student.email,
+              studentName,
+              documentTitle: document.title,
+              documentType,
+              feedback: dto.feedback || 'Please revise your submission.',
+            });
+          }
+        }
+      } catch (err) {
+        // Log error but don't fail the request
+        console.error('Failed to send submission email notification:', err);
+      }
+    })();
 
     return {
       message: `Document ${dto.decision}d successfully.`,

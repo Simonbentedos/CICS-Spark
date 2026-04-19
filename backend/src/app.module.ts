@@ -27,6 +27,9 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 // Email
 import { EmailModule } from './modules/email/email.module';
 
+// Analytics
+import { AnalyticsModule } from './modules/analytics/analytics.module';
+
 // OAI-PMH
 import { OaiModule } from './modules/oai/oai.module';
 
@@ -63,6 +66,9 @@ import { OaiModule } from './modules/oai/oai.module';
 
     // Email (nodemailer)
     EmailModule,
+
+    // Analytics & Usage Metrics
+    AnalyticsModule,
 
     // OAI-PMH metadata harvesting
     OaiModule,

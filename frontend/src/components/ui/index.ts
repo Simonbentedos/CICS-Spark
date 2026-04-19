@@ -4,6 +4,7 @@ export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }
 export { Label } from './label'
 export { Separator } from './separator'
 export { DatePicker } from './date-picker'
+export { Dialog } from './dialog'
 export {
 	Select,
 	SelectGroup,

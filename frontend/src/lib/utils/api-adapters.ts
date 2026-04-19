@@ -50,7 +50,7 @@ export function apiDocToEntry(doc: ApiDocument): ThesisEntry {
   const detail: ThesisDetail = {
     publicationDate: year,
     documentType: doc.type === 'thesis' ? 'Thesis' : 'Capstone',
-    degreeName: '—',
+    degreeName: doc.degree || 'Not specified',
     subjectCategories: keywords,
     college: 'College of Information and Computing Sciences',
     departmentUnit: DEPT_NAMES[dept] ?? dept,

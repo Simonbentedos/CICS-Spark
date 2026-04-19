@@ -133,14 +133,26 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="degree" className="text-sm font-medium text-grey-700">Degree Name</Label>
-          <Input
-            id="degree"
-            placeholder="e.g., Bachelor of Science in Computer Science"
-            className="h-11 border-grey-200"
+          <Label htmlFor="degree" className="text-sm font-medium text-grey-700">Degree Name *</Label>
+          <Select
             value={draft.degree}
-            onChange={(event) => onDraftChange({ degree: event.target.value })}
-          />
+            onValueChange={(value) => onDraftChange({ degree: value })}
+          >
+            <SelectTrigger className="h-11 border-grey-200 focus:ring-cics-maroon">
+              <SelectValue placeholder="Select your degree..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Bachelor of Science in Computer Science (BSCS)">
+                Bachelor of Science in Computer Science (BSCS)
+              </SelectItem>
+              <SelectItem value="Bachelor of Science in Information Technology (BSIT)">
+                Bachelor of Science in Information Technology (BSIT)
+              </SelectItem>
+              <SelectItem value="Bachelor of Science in Information Systems (BSIS)">
+                Bachelor of Science in Information Systems (BSIS)
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </>
     )
@@ -278,6 +290,10 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
         <div className="rounded-md border border-grey-200 bg-white p-3 md:col-span-2">
           <p className="text-xs uppercase tracking-wide text-grey-500">Specialization Track</p>
           <p className="mt-1 font-medium text-grey-700">{draft.trackSpecialization || '—'}</p>
+        </div>
+        <div className="rounded-md border border-grey-200 bg-white p-3 md:col-span-2">
+          <p className="text-xs uppercase tracking-wide text-grey-500">Degree Name</p>
+          <p className="mt-1 font-medium text-grey-700">{draft.degree || '—'}</p>
         </div>
         <div className="rounded-md border border-grey-200 bg-white p-3">
           <p className="text-xs uppercase tracking-wide text-grey-500">Thesis Advisor</p>

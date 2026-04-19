@@ -79,7 +79,7 @@ export default function ThesisDetailView({ collectionTitle, entry, documentId, o
             <a
               href={downloadAbstractUrl(documentId)}
               download
-              className="inline-flex w-[260px] min-h-[48px] items-center justify-center gap-2.5 rounded-full border-2 border-cics-maroon text-cics-maroon hover:bg-cics-maroon hover:text-white font-body text-[15px] font-semibold no-underline transition-colors duration-200"
+              className="inline-flex w-[260px] min-h-[48px] items-center justify-center gap-2.5 rounded-full border-2 border-gray-600 text-gray-600 hover:bg-gray-600 hover:text-white font-body text-[15px] font-semibold no-underline transition-colors duration-200"
             >
               <Download className="h-[18px] w-[18px]" />
               Download Abstract
@@ -87,7 +87,7 @@ export default function ThesisDetailView({ collectionTitle, entry, documentId, o
           ) : (
             <Button
               variant="outline"
-              className="w-[260px] min-h-[48px] rounded-full border-2 border-cics-maroon text-cics-maroon hover:bg-cics-maroon hover:text-white font-body text-[15px] font-semibold transition-colors duration-200"
+              className="w-[260px] min-h-[48px] rounded-full border-2 border-gray-600 text-gray-600 hover:bg-gray-600 hover:text-white font-body text-[15px] font-semibold transition-colors duration-200"
             >
               <Download className="h-[18px] w-[18px] mr-2.5" />
               Download Abstract
@@ -95,7 +95,7 @@ export default function ThesisDetailView({ collectionTitle, entry, documentId, o
           )}
 
           <Button
-            className="w-[260px] min-h-[48px] rounded-full bg-cics-maroon border-2 border-cics-maroon hover:bg-cics-maroon-600 hover:border-cics-maroon-600 text-white font-body text-[15px] font-semibold transition-colors duration-200"
+            className="w-[260px] min-h-[48px] rounded-full bg-gray-600 border-2 border-gray-600 hover:bg-gray-700 hover:border-gray-700 text-white font-body text-[15px] font-semibold transition-colors duration-200"
             onClick={onRequestFulltext}
           >
             <Mail className="h-[18px] w-[18px] mr-2.5" />

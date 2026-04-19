@@ -84,9 +84,11 @@ export default function SuperAdminUsersPage() {
       {
         id: 'role',
         header: 'Role',
-        renderCell: (u: ApiUser) => (
-          <AdminBadge label={u.role.replace('_', ' ')} tone={ROLE_TONE[u.role] ?? 'default'} />
-        ),
+        renderCell: (u: ApiUser) => {
+          const roleLabel = u.role.replace('_', ' ')
+          const capitalizedRole = roleLabel.charAt(0).toUpperCase() + roleLabel.slice(1)
+          return <AdminBadge label={capitalizedRole} tone={ROLE_TONE[u.role] ?? 'default'} />
+        },
       },
       {
         id: 'department',

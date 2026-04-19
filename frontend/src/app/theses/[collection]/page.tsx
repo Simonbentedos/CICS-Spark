@@ -1,10 +1,10 @@
 'use client'
 
+import { use, useEffect, useState } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { CICSHeader, CICSFooter, SecondaryNav, Sidebar } from '@/components/layout'
 import { getThesisTracksByCollection, thesisCollections } from '@/lib/utils/theses-data'
-import { useEffect, useState } from 'react'
 import { getDocumentCounts } from '@/lib/api/documents'
 
 type TrackWithCount = {
@@ -18,35 +18,28 @@ interface CollectionPageProps {
   params: Promise<{ collection: string }>
 }
 
-export default function CollectionPage({ params }: Readonly<CollectionPageProps>) {
-  const [collectionSlug, setCollectionSlug] = useState<string | null>(null)
+export default function CollectionPage({ params: paramsPromise }: Readonly<CollectionPageProps>) {
+  const params = use(paramsPromise)
+  const collectionSlug = params.collection
   const [tracks, setTracks] = useState<TrackWithCount[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    params.then(({ collection }) => {
-      setCollectionSlug(collection)
-    })
-  }, [params])
+  const collection = thesisCollections.find((item) => item.slug === collectionSlug)
+  
+  if (!collection) {
+    notFound()
+  }
 
   useEffect(() => {
-    if (!collectionSlug) return
-
-    const collection = thesisCollections.find((item) => item.slug === collectionSlug)
-    if (!collection) {
-      notFound()
-      return
-    }
-
     async function fetchTrackCounts() {
       try {
-        const baseTracks = getThesisTracksByCollection(collectionSlug!)
+        const baseTracks = getThesisTracksByCollection(collectionSlug)
         
         // Map collection slug to department code
         const departmentMap: Record<string, string> = {
           'department-of-computer-science': 'CS',
         }
-        const department = departmentMap[collectionSlug!]
+        const department = departmentMap[collectionSlug]
 
         if (!department) {
           setTracks(baseTracks.map(t => ({ ...t, count: 0 })))
@@ -72,7 +65,7 @@ export default function CollectionPage({ params }: Readonly<CollectionPageProps>
         setTracks(tracksWithCounts)
       } catch (error) {
         console.error('Failed to fetch track counts:', error)
-        setTracks(getThesisTracksByCollection(collectionSlug!).map(t => ({ ...t, count: 0 })))
+        setTracks(getThesisTracksByCollection(collectionSlug).map(t => ({ ...t, count: 0 })))
       } finally {
         setLoading(false)
       }
@@ -80,15 +73,6 @@ export default function CollectionPage({ params }: Readonly<CollectionPageProps>
 
     fetchTrackCounts()
   }, [collectionSlug])
-
-  if (!collectionSlug) {
-    return null
-  }
-
-  const collection = thesisCollections.find((item) => item.slug === collectionSlug)
-  if (!collection) {
-    notFound()
-  }
 
   return (
     <div className="min-h-screen bg-bg-grey flex flex-col">

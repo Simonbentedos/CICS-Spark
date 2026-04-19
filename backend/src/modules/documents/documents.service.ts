@@ -46,6 +46,7 @@ export class DocumentsService {
         type: dto.type,
         track_specialization: dto.track_specialization ?? null,
         adviser: dto.adviser ?? null,
+        degree: dto.degree ?? null,
         keywords: dto.keywords ?? null,
         pdf_file_path: storagePath,
         uploaded_by: userId,
@@ -175,7 +176,7 @@ export class DocumentsService {
     let query = this.databaseService.client
       .from('documents')
       .select(
-        'id, title, authors, abstract, year, department, type, track_specialization, adviser, keywords, uploaded_by, created_at',
+        'id, title, authors, abstract, year, department, type, track_specialization, adviser, degree, keywords, uploaded_by, created_at',
         { count: 'exact' },
       )
       .eq('status', 'approved')
@@ -215,7 +216,7 @@ export class DocumentsService {
     const { data, error } = await this.databaseService.client
       .from('documents')
       .select(
-        'id, title, authors, abstract, year, department, type, track_specialization, adviser, keywords, uploaded_by, created_at',
+        'id, title, authors, abstract, year, department, type, track_specialization, adviser, degree, keywords, uploaded_by, created_at',
       )
       .eq('status', 'approved');
 
@@ -248,7 +249,7 @@ export class DocumentsService {
     const { data: document, error } = await this.databaseService.client
       .from('documents')
       .select(
-        'id, title, authors, abstract, year, department, type, track_specialization, adviser, keywords, uploaded_by, created_at, updated_at',
+        'id, title, authors, abstract, year, department, type, track_specialization, adviser, degree, keywords, uploaded_by, created_at, updated_at',
       )
       .eq('id', documentId)
       .eq('status', 'approved')
@@ -305,7 +306,7 @@ export class DocumentsService {
   async getAbstractContent(documentId: string) {
     const { data: document, error } = await this.databaseService.client
       .from('documents')
-      .select('id, title, authors, abstract, year, department, type, adviser')
+      .select('id, title, authors, abstract, year, department, type, adviser, degree')
       .eq('id', documentId)
       .eq('status', 'approved')
       .single();

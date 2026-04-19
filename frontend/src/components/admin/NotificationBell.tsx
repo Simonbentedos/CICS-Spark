@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Bell } from 'lucide-react'
-import { getNotifications, markAllRead, markOneRead, type ApiNotification } from '@/lib/api/notifications'
+import { getNotifications, markAllRead, markOneRead, createTestNotification, type ApiNotification } from '@/lib/api/notifications'
 
 type Props = {
   /** Accent color for the badge and mark-all button */
@@ -17,6 +17,26 @@ export default function NotificationBell({ accentColor = '#800000' }: Props) {
 
   const unreadCount = notifications.filter((n) => !n.is_read).length
 
+  // Fetch notifications on mount and refresh every 30 seconds
+  useEffect(() => {
+    async function fetchNotifications() {
+      try {
+        const data = await getNotifications()
+        setNotifications(data)
+      } catch {
+        setNotifications([])
+      }
+    }
+
+    // Initial fetch
+    fetchNotifications()
+
+    // Poll every 30 seconds for new notifications
+    const interval = setInterval(fetchNotifications, 30000)
+
+    return () => clearInterval(interval)
+  }, [])
+
   // Close on click outside
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -28,7 +48,7 @@ export default function NotificationBell({ accentColor = '#800000' }: Props) {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [open])
 
-  // Fetch on open
+  // Refresh when opening the panel
   useEffect(() => {
     if (!open) return
     setLoading(true)
@@ -50,6 +70,17 @@ export default function NotificationBell({ accentColor = '#800000' }: Props) {
       await markOneRead(id)
       setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, is_read: true } : n))
     } catch { /* ignore */ }
+  }
+
+  async function handleCreateTest() {
+    try {
+      await createTestNotification()
+      // Refresh notifications
+      const updated = await getNotifications()
+      setNotifications(updated)
+    } catch (err) {
+      console.error('Failed to create test notification:', err)
+    }
   }
 
   function formatTime(iso: string) {
@@ -90,16 +121,26 @@ export default function NotificationBell({ accentColor = '#800000' }: Props) {
           {/* Header */}
           <div className="flex items-center justify-between border-b border-grey-100 px-4 py-3">
             <p className="text-sm font-semibold text-grey-700">Notifications</p>
-            {unreadCount > 0 && (
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={handleMarkAllRead}
-                className="text-xs font-medium hover:underline"
-                style={{ color: accentColor }}
+                onClick={handleCreateTest}
+                className="text-xs font-medium hover:underline text-blue-600"
+                title="Create test notification"
               >
-                Mark all as read
+                Test
               </button>
-            )}
+              {unreadCount > 0 && (
+                <button
+                  type="button"
+                  onClick={handleMarkAllRead}
+                  className="text-xs font-medium hover:underline"
+                  style={{ color: accentColor }}
+                >
+                  Mark all as read
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Body */}

@@ -12,6 +12,7 @@ export type ApiDocument = {
   type: 'thesis' | 'capstone'
   track_specialization: string | null
   adviser: string | null
+  degree: string | null
   keywords: string[]
   pdf_file_path: string | null
   uploaded_by: string | null

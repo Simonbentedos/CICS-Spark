@@ -20,3 +20,7 @@ export async function markAllRead(): Promise<{ message: string }> {
 export async function markOneRead(id: string): Promise<ApiNotification> {
   return apiRequest<ApiNotification>(`/api/notifications/${id}/read`, { method: 'PATCH' })
 }
+
+export async function createTestNotification(): Promise<{ message: string; notification: ApiNotification }> {
+  return apiRequest('/api/notifications/test', { method: 'PATCH' })
+}

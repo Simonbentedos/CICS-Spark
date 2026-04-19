@@ -64,6 +64,10 @@ export class UploadDocumentDto {
   @IsString()
   adviser?: string;
 
+  @IsOptional()
+  @IsString()
+  degree?: string;
+
   /** Accepts a JSON-serialised string array: '["keyword1","keyword2"]' */
   @IsOptional()
   @Transform(({ value }) => {

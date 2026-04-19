@@ -58,7 +58,7 @@ ON CONFLICT (id) DO UPDATE SET
 
 INSERT INTO public.documents (
   title, authors, abstract, year, department, type, track_specialization,
-  adviser, keywords, pdf_file_path, uploaded_by, status
+  adviser, degree, keywords, pdf_file_path, uploaded_by, status
 )
 VALUES
   -- CS — Core Computer Science (3 theses)
@@ -67,7 +67,7 @@ VALUES
     '["Arielle Mendoza", "Joshua P. Santos"]',
     'This study proposes a dynamic routing strategy for congested campus networks using graph optimization and traffic-aware path selection. The approach improved end-to-end latency and reduced packet loss under peak student usage.',
     2025, 'CS', 'thesis', 'Core Computer Science',
-    'Dr. Reyes', '["routing algorithms", "network optimization", "graph theory"]',
+    'Dr. Reyes', 'Master of Science in Computer Science', '["routing algorithms", "network optimization", "graph theory"]',
     NULL, 'REPLACE_WITH_CS_STUDENT_UUID', 'approved'
   ),
   (
@@ -75,7 +75,7 @@ VALUES
     '["Bea C. Tolentino", "Karl M. Reyes"]',
     'The paper evaluates static analysis and symbolic execution methods for detecting vulnerabilities in educational blockchain applications. Findings show improved defect detection before production deployment.',
     2025, 'CS', 'thesis', 'Core Computer Science',
-    'Dr. Santos', '["formal methods", "smart contracts", "static analysis"]',
+    'Dr. Santos', 'Master of Science in Computer Science', '["formal methods", "smart contracts", "static analysis"]',
     NULL, 'REPLACE_WITH_CS_STUDENT_UUID', 'approved'
   ),
   (
@@ -83,7 +83,7 @@ VALUES
     '["Carlos M. Javier", "Dominique O. Villanueva"]',
     'This thesis benchmarks instruction-level and memory-level optimizations for low-power edge deployments. The resulting toolchain reduced runtime and improved energy efficiency across test workloads.',
     2025, 'CS', 'thesis', 'Core Computer Science',
-    'Dr. Cruz', '["compilers", "edge computing", "low-power systems"]',
+    'Dr. Cruz', 'Master of Science in Computer Science', '["compilers", "edge computing", "low-power systems"]',
     NULL, 'REPLACE_WITH_CS_STUDENT_UUID', 'approved'
   ),
   -- CS — Game Development (2 theses)
@@ -92,7 +92,7 @@ VALUES
     '["Danica T. Lopez", "Ethan N. Co"]',
     'A procedural generation framework was developed to produce balanced quest maps and enemy progression in mobile RPGs. User testing indicated improved replayability without sacrificing difficulty consistency.',
     2025, 'CS', 'thesis', 'Game Development',
-    'Dr. Lim', '["procedural generation", "game design", "mobile rpg"]',
+    'Dr. Lim', 'Master of Science in Computer Science', '["procedural generation", "game design", "mobile rpg"]',
     NULL, 'REPLACE_WITH_CS_STUDENT_UUID', 'approved'
   ),
   (
@@ -100,7 +100,7 @@ VALUES
     '["Franco B. Ong", "Giselle M. Cabrera"]',
     'This research introduces an interactive VR environment where programming concepts are taught through spatial and gesture-based tasks. Experimental sections showed higher engagement and retention rates.',
     2025, 'CS', 'thesis', 'Game Development',
-    'Dr. Aquino', '["virtual reality", "educational games", "human-computer interaction"]',
+    'Dr. Aquino', 'Master of Science in Computer Science', '["virtual reality", "educational games", "human-computer interaction"]',
     NULL, 'REPLACE_WITH_CS_STUDENT_UUID', 'approved'
   ),
   -- CS — Data Science (2 theses)
@@ -109,7 +109,7 @@ VALUES
     '["Hannah P. Valdez", "Ian L. Cruz"]',
     'Using institutional datasets, this thesis compares ensemble models for identifying retention risk factors. The best-performing model achieved consistent precision across multiple program cohorts.',
     2025, 'CS', 'thesis', 'Data Science',
-    'Dr. Bautista', '["machine learning", "retention analytics", "predictive modeling"]',
+    'Dr. Bautista', 'Master of Science in Computer Science', '["machine learning", "retention analytics", "predictive modeling"]',
     NULL, 'REPLACE_WITH_CS_STUDENT_UUID', 'approved'
   ),
   (
@@ -117,7 +117,7 @@ VALUES
     '["Jillian D. Mercado", "Kean A. Ramos"]',
     'This study builds a multilingual NLP pipeline for extracting themes in policy archives. The pipeline improved retrieval and category consistency for policy research workflows.',
     2025, 'CS', 'thesis', 'Data Science',
-    'Dr. Garcia', '["natural language processing", "topic modeling", "text analytics"]',
+    'Dr. Garcia', 'Master of Science in Computer Science', '["natural language processing", "topic modeling", "text analytics"]',
     NULL, 'REPLACE_WITH_CS_STUDENT_UUID', 'approved'
   ),
   -- IT — Network and Security (2 capstones)
@@ -126,7 +126,7 @@ VALUES
     '["Lance R. De Guzman", "Mia S. Ricarte"]',
     'A lightweight security monitoring platform was deployed to collect, correlate, and alert suspicious activity in campus labs. The implementation improved incident response visibility for administrators.',
     2025, 'IT', 'capstone', 'Network and Security',
-    'Dr. Navarro', '["siem", "intrusion detection", "network security"]',
+    'Dr. Navarro', 'Bachelor of Science in Information Technology', '["siem", "intrusion detection", "network security"]',
     NULL, 'REPLACE_WITH_IT_STUDENT_UUID', 'approved'
   ),
   (
@@ -134,7 +134,7 @@ VALUES
     '["Nico A. Villarta", "Olivia T. Manuel"]',
     'This capstone introduces identity-aware controls and segmented access policies for shared academic services. Pilot implementation reduced lateral movement risks in controlled simulations.',
     2025, 'IT', 'capstone', 'Network and Security',
-    'Dr. Torres', '["zero trust", "identity access management", "segmentation"]',
+    'Dr. Torres', 'Bachelor of Science in Information Technology', '["zero trust", "identity access management", "segmentation"]',
     NULL, 'REPLACE_WITH_IT_STUDENT_UUID', 'approved'
   ),
   -- IT — Web and Mobile App Development (2 capstones)
@@ -143,7 +143,7 @@ VALUES
     '["Paula M. Cordero", "Quincy J. Flores"]',
     'A mobile-first queueing and patient follow-up system was developed for partner community clinics. Deployment lowered waiting-time bottlenecks and improved follow-up compliance.',
     2025, 'IT', 'capstone', 'Web and Mobile App Development',
-    'Dr. Pascual', '["mobile development", "patient workflow", "scheduling"]',
+    'Dr. Pascual', 'Bachelor of Science in Information Technology', '["mobile development", "patient workflow", "scheduling"]',
     NULL, 'REPLACE_WITH_IT_STUDENT_UUID', 'approved'
   ),
   (
@@ -151,7 +151,7 @@ VALUES
     '["Rafael K. Sy", "Sofia M. Villareal"]',
     'The team rebuilt an alumni portal with role-based dashboards, event registration, and mentoring workflows. Usability testing showed faster task completion for alumni officers.',
     2025, 'IT', 'capstone', 'Web and Mobile App Development',
-    'Dr. Reyes', '["web portal", "ux", "role-based access"]',
+    'Dr. Reyes', 'Bachelor of Science in Information Technology', '["web portal", "ux", "role-based access"]',
     NULL, 'REPLACE_WITH_IT_STUDENT_UUID', 'approved'
   ),
   -- IT — IT Automation (2 capstones)
@@ -160,7 +160,7 @@ VALUES
     '["Trisha P. Natividad", "Ulysses B. Santos"]',
     'This project automated courseware packaging, deployment, and rollback procedures across lab machines. The pipeline reduced manual setup time and improved release consistency.',
     2025, 'IT', 'capstone', 'IT Automation Track',
-    'Dr. Mendoza', '["devops", "automation", "ci-cd"]',
+    'Dr. Mendoza', 'Bachelor of Science in Information Technology', '["devops", "automation", "ci-cd"]',
     NULL, 'REPLACE_WITH_IT_STUDENT_UUID', 'approved'
   ),
   (
@@ -168,7 +168,7 @@ VALUES
     '["Vince T. Colet", "Wynne A. Ibarra"]',
     'The capstone delivers an automation bot that reconciles procurement records with warehouse logs and flags discrepancies. The solution shortened month-end reconciliation cycles.',
     2025, 'IT', 'capstone', 'IT Automation Track',
-    'Dr. Santos', '["process automation", "rpa", "inventory systems"]',
+    'Dr. Santos', 'Bachelor of Science in Information Technology', '["process automation", "rpa", "inventory systems"]',
     NULL, 'REPLACE_WITH_IT_STUDENT_UUID', 'approved'
   ),
   -- IS — Business Analytics (2 capstones)
@@ -177,7 +177,7 @@ VALUES
     '["Xyra F. Legaspi", "Yven M. Abad"]',
     'A centralized analytics dashboard was built to monitor enrollment trends, retention indicators, and sectioning demand. Department staff used the tool for evidence-based planning.',
     2025, 'IS', 'capstone', 'Business Analytics',
-    'Dr. Luna', '["business intelligence", "dashboards", "enrollment analytics"]',
+    'Dr. Luna', 'Bachelor of Science in Information Systems', '["business intelligence", "dashboards", "enrollment analytics"]',
     NULL, 'REPLACE_WITH_IS_STUDENT_UUID', 'approved'
   ),
   (
@@ -185,7 +185,7 @@ VALUES
     '["Zack B. Ferrer", "Alya R. Domingo"]',
     'The project develops forecasting models to estimate service demand peaks in registrar transactions. The model output supports staffing and appointment planning decisions.',
     2025, 'IS', 'capstone', 'Business Analytics',
-    'Dr. Reyes', '["forecasting", "operations analytics", "service demand"]',
+    'Dr. Reyes', 'Bachelor of Science in Information Systems', '["forecasting", "operations analytics", "service demand"]',
     NULL, 'REPLACE_WITH_IS_STUDENT_UUID', 'approved'
   ),
   -- IS — Service Management (2 capstones)
@@ -194,7 +194,7 @@ VALUES
     '["Brenna J. Torres", "Caleb P. Sarmiento"]',
     'A service desk platform aligned with ITIL processes was developed to standardize incident, request, and change workflows. The rollout improved SLA tracking and escalation visibility.',
     2025, 'IS', 'capstone', 'Service Management',
-    'Dr. Castillo', '["itil", "service desk", "incident management"]',
+    'Dr. Castillo', 'Bachelor of Science in Information Systems', '["itil", "service desk", "incident management"]',
     NULL, 'REPLACE_WITH_IS_STUDENT_UUID', 'approved'
   ),
   (
@@ -202,6 +202,6 @@ VALUES
     '["Daphne N. Ramos", "Emil G. Mercado"]',
     'This capstone delivers a governance portal that defines service ownership, catalog standards, and escalation pathways. Stakeholders reported better transparency in service accountability.',
     2025, 'IS', 'capstone', 'Service Management',
-    'Dr. Flores', '["service governance", "catalog management", "workflow policy"]',
+    'Dr. Flores', 'Bachelor of Science in Information Systems', '["service governance", "catalog management", "workflow policy"]',
     NULL, 'REPLACE_WITH_IS_STUDENT_UUID', 'approved'
   );

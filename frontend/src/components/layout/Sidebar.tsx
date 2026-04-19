@@ -45,7 +45,7 @@ export default function Sidebar() {
               Search
             </button>
           </form>
-          <Link href="/search" className="font-body text-[12px] text-cics-maroon hover:underline transition-colors">
+          <Link href="/search" className="font-body text-[12px] text-gray-600 hover:underline transition-colors">
             Advanced Search
           </Link>
         </div>

@@ -22,6 +22,7 @@ import { getSubmissionStatuses } from '@/lib/utils'
 import { getAdminSession } from '@/lib/admin/session'
 import { getAdminSubmissions, type ApiDocument } from '@/lib/api/documents'
 import { getAdminUsers, type ApiUser } from '@/lib/api/users'
+import { getUsageMetrics, type UsageMetrics } from '@/lib/api/analytics'
 import type {
   DepartmentReportRow,
   ReportDateRange,
@@ -87,6 +88,12 @@ export default function AdminReportsPage() {
 
   const [submissions, setSubmissions] = useState<ApiDocument[]>([])
   const [users, setUsers] = useState<ApiUser[]>([])
+  const [usageMetrics, setUsageMetrics] = useState<UsageMetrics>({
+    repositoryViews: 0,
+    uniqueVisitors: 0,
+    searches: 0,
+    downloads: 0,
+  })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -101,10 +108,12 @@ export default function AdminReportsPage() {
     Promise.all([
       getAdminSubmissions().catch(() => []),
       getAdminUsers().catch(() => []),
+      getUsageMetrics().catch(() => ({ repositoryViews: 0, uniqueVisitors: 0, searches: 0, downloads: 0 })),
     ])
-      .then(([subData, userData]) => {
+      .then(([subData, userData, metricsData]) => {
         setSubmissions(subData)
         setUsers(userData)
+        setUsageMetrics(metricsData)
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
@@ -205,13 +214,8 @@ export default function AdminReportsPage() {
       return { label: m.label, newUsers }
     })
     
-    // 7. Usage data (zeroed-out permanently unless tracked)
-    const usage = {
-      repositoryViews: 0,
-      uniqueVisitors: 0,
-      searches: 0,
-      downloads: 0,
-    }
+    // 7. Usage data from backend API
+    const usage = usageMetrics
 
     // 8. Dynamic Audit logs
     type PseudoAudit = { id: string, at: string, actor: string, action: string, target: string, details: string, ts: number }
@@ -266,7 +270,7 @@ export default function AdminReportsPage() {
       usage,
       auditLogs: recentAudits,
     } as ReportSnapshot
-  }, [submissions, users, filters])
+  }, [submissions, users, filters, usageMetrics])
 
 
   const departments = useMemo(
@@ -299,24 +303,76 @@ export default function AdminReportsPage() {
     if (selectedFormat === 'json') {
       content = JSON.stringify(report, null, 2)
       mimeType = 'application/json'
-      fileName = `report-${selectedPreset}-${Date.now()}.json`
+      fileName = `spark-report-${selectedPreset}-${new Date().toISOString().split('T')[0]}.json`
     } else {
-      // CSV format snippet
-      const rows = ['Metric,Value']
+      // CSV format with comprehensive data
+      const rows = ['# SPARK Repository Report']
+      rows.push(`# Generated: ${new Date().toLocaleString()}`)
+      rows.push(`# Preset: ${selectedPreset}`)
+      rows.push(`# Filters: ${filters.range} | ${filters.department} | ${filters.status}`)
+      rows.push('')
+      
+      // KPI Summary
+      rows.push('## Key Performance Indicators')
+      rows.push('Metric,Value')
       report.kpiCards.forEach(card => {
         rows.push(`${card.label},${card.value}`)
       })
-      rows.push('', 'Status,Count')
+      
+      // Status Breakdown
+      rows.push('')
+      rows.push('## Status Breakdown')
+      rows.push('Status,Count,Percentage')
       report.statusBreakdown.forEach(st => {
-        rows.push(`${st.status},${st.count}`)
+        rows.push(`${st.status},${st.count},${st.percentage}%`)
       })
-      rows.push('', 'Department,Total,Approved,Rejected')
+      
+      // Department Performance
+      rows.push('')
+      rows.push('## Department Performance')
+      rows.push('Department,Total Submissions,Approved,Rejected,Approval Rate')
       report.departmentBreakdown.forEach(d => {
-        rows.push(`${d.department},${d.total},${d.approved},${d.rejected}`)
+        rows.push(`${d.department},${d.total},${d.approved},${d.rejected},${d.approvalRate}%`)
       })
+      
+      // Submission Trend
+      rows.push('')
+      rows.push('## Submission Volume Trend (Last 6 Months)')
+      rows.push('Month,Submissions')
+      report.trend.forEach(t => {
+        rows.push(`${t.label},${t.submitted}`)
+      })
+      
+      // User Growth
+      rows.push('')
+      rows.push('## User Growth (Last 6 Months)')
+      rows.push('Month,New Users')
+      report.userGrowth.forEach(u => {
+        rows.push(`${u.label},${u.newUsers}`)
+      })
+      
+      // Usage Metrics
+      rows.push('')
+      rows.push('## Usage Metrics')
+      rows.push('Metric,Value')
+      rows.push(`Repository Views,${report.usage.repositoryViews}`)
+      rows.push(`Unique Visitors,${report.usage.uniqueVisitors}`)
+      rows.push(`Searches,${report.usage.searches}`)
+      rows.push(`Downloads,${report.usage.downloads}`)
+      
+      // Audit Logs (top 20)
+      rows.push('')
+      rows.push('## Recent Audit Logs (Top 20)')
+      rows.push('Time,Actor,Action,Target,Details')
+      report.auditLogs.slice(0, 20).forEach(log => {
+        const details = (log.details || '').replace(/,/g, ';') // Escape commas
+        const target = log.target.replace(/,/g, ';')
+        rows.push(`"${log.at}","${log.actor}","${log.action}","${target}","${details}"`)
+      })
+      
       content = rows.join('\n')
-      mimeType = 'text/csv'
-      fileName = `report-${selectedPreset}-${Date.now()}.csv`
+      mimeType = 'text/csv;charset=utf-8;'
+      fileName = `spark-report-${selectedPreset}-${new Date().toISOString().split('T')[0]}.csv`
     }
 
     const blob = new Blob([content], { type: mimeType })
@@ -434,19 +490,32 @@ export default function AdminReportsPage() {
 
           <section className="grid gap-4 xl:grid-cols-2">
             <Card className="border border-grey-200 shadow-none">
-              <CardHeader className="pb-2">
+              <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-navy">Submission Volume Trend</CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-6 gap-2">
-                {report.trend.map((point) => (
-                  <div key={point.label} className="space-y-2 text-center">
-                    <div className="flex h-[120px] items-end justify-center rounded-md bg-grey-50 p-1">
-                      <div className="w-8 rounded-sm bg-cics-maroon" style={{ height: `${Math.max(8, (point.submitted / maxTrend) * 100)}%` }} />
+              <CardContent className="px-6 pb-6">
+                <div className="flex items-end justify-between gap-3 h-[180px]">
+                  {report.trend.map((point) => (
+                    <div key={point.label} className="flex flex-col items-center flex-1 h-full">
+                      <div className="flex-1 w-full flex items-end justify-center pb-2">
+                        <div 
+                          className="w-full max-w-[48px] rounded-t-md bg-gradient-to-t from-blue-600 to-blue-400 transition-all hover:opacity-80 relative group"
+                          style={{ height: `${Math.max(12, (point.submitted / maxTrend) * 100)}%` }}
+                        >
+                          <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span className="text-xs font-semibold text-navy bg-white px-2 py-1 rounded shadow-sm whitespace-nowrap">
+                              {point.submitted} submission{point.submitted !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="pt-2 border-t border-grey-200 w-full text-center">
+                        <p className="text-[11px] font-medium text-grey-600">{point.label}</p>
+                        <p className="text-xs font-semibold text-grey-700 mt-0.5">{point.submitted}</p>
+                      </div>
                     </div>
-                    <p className="text-[10px] text-grey-500">{point.label}</p>
-                    <p className="text-[11px] font-medium text-grey-700">{point.submitted}</p>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </CardContent>
             </Card>
 
@@ -512,13 +581,12 @@ export default function AdminReportsPage() {
                 <div className="rounded-md border border-grey-200 bg-grey-50 p-3 text-xs text-grey-600">
                   <p className="inline-flex items-center gap-1 font-medium text-grey-700">
                     <Search className="h-3.5 w-3.5 text-grey-500" />
-                    Access & Usage Metrics
+                    Repository Usage Metrics
                   </p>
-                  <p className="mt-1 text-grey-500 italic">No usage tracking available. Defaulting to 0.</p>
-                  <p className="mt-1">Views: <span className="font-medium text-grey-700">{report.usage.repositoryViews.toLocaleString()}</span></p>
-                  <p>Visitors: <span className="font-medium text-grey-700">{report.usage.uniqueVisitors.toLocaleString()}</span></p>
-                  <p>Searches: <span className="font-medium text-grey-700">{report.usage.searches.toLocaleString()}</span></p>
-                  <p>Downloads: <span className="font-medium text-grey-700">{report.usage.downloads.toLocaleString()}</span></p>
+                  <p className="mt-2">Approved Documents: <span className="font-medium text-grey-700">{report.usage.repositoryViews.toLocaleString()}</span></p>
+                  <p>Active Users: <span className="font-medium text-grey-700">{report.usage.uniqueVisitors.toLocaleString()}</span></p>
+                  <p>Full-Text Requests: <span className="font-medium text-grey-700">{report.usage.searches.toLocaleString()}</span></p>
+                  <p>Fulfilled Requests: <span className="font-medium text-grey-700">{report.usage.downloads.toLocaleString()}</span></p>
                 </div>
               </CardContent>
             </Card>

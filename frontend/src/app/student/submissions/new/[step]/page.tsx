@@ -222,6 +222,7 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
       formData.append('department', deptCode)
       formData.append('type', docType)
       if (draft.trackSpecialization) formData.append('track_specialization', draft.trackSpecialization)
+      if (draft.degree) formData.append('degree', draft.degree)
       if (draft.abstract) formData.append('abstract', draft.abstract)
       if (year) formData.append('year', String(year))
       if (draft.thesisAdvisor) formData.append('adviser', draft.thesisAdvisor)
