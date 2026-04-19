@@ -5,7 +5,7 @@ export default function CICSFooter() {
     <footer className="bg-[#0f0f0f] w-full py-5 mt-auto border-t-4 border-cics-maroon">
       <div className="flex items-center justify-between px-8 lg:px-[280px]">
         <p className="font-body text-[#aaa] text-[13px]">
-          Copyright © 2025-2026 | College of Infromation and Computing Sciences, University of Santo Tomas
+          Copyright © 2025-2026 | College of Information and Computing Sciences, University of Santo Tomas
         </p>
         <div className="flex items-center font-body text-[#aaa] text-[13px] gap-1">
           <Link href="/acceptable-use-policy" className="hover:text-white transition-colors">
