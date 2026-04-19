@@ -263,6 +263,83 @@ export class EmailService {
     }
   }
 
+  async sendPasswordResetEmail(params: {
+    to: string
+    name: string
+    resetLink: string
+  }) {
+    const { to, name, resetLink } = params;
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a;">
+        <div style="background:#800000;padding:24px 32px;">
+          <h1 style="color:#fff;margin:0;font-size:20px;">SPARK Academic Repository</h1>
+          <p style="color:#f8d7da;margin:4px 0 0;font-size:13px;">University of Santo Tomas — CICS</p>
+        </div>
+        <div style="padding:32px;">
+          <p>Hi <strong>${name}</strong>,</p>
+          <p>Your password reset request has been <strong style="color:#16a34a;">approved</strong>. Click the button below to set a new password:</p>
+          <div style="text-align:center;margin:32px 0;">
+            <a href="${resetLink}"
+               style="background:#800000;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:15px;">
+              Reset My Password
+            </a>
+          </div>
+          <p style="font-size:12px;color:#e55;">⚠️ This link expires in 24 hours. If you did not request a password reset, please contact your administrator immediately.</p>
+        </div>
+        <div style="background:#f5f5f5;padding:16px 32px;font-size:11px;color:#888;">
+          SPARK — College of Information and Computing Sciences, University of Santo Tomas
+        </div>
+      </div>`;
+
+    try {
+      await this.transporter.sendMail({
+        from: this.from,
+        to,
+        subject: 'Password Reset Approved — SPARK',
+        html,
+      });
+      this.logger.log(`Password reset email sent to ${to}`);
+    } catch (err) {
+      this.logger.error(`Failed to send password reset email to ${to}: ${err}`);
+    }
+  }
+
+  async sendPasswordResetDeclinedEmail(params: {
+    to: string
+    name: string
+  }) {
+    const { to, name } = params;
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a;">
+        <div style="background:#800000;padding:24px 32px;">
+          <h1 style="color:#fff;margin:0;font-size:20px;">SPARK Academic Repository</h1>
+          <p style="color:#f8d7da;margin:4px 0 0;font-size:13px;">University of Santo Tomas — CICS</p>
+        </div>
+        <div style="padding:32px;">
+          <p>Hi <strong>${name}</strong>,</p>
+          <p>Your password reset request has been <strong style="color:#dc2626;">declined</strong>.</p>
+          <p>If you believe this is an error or still need assistance with your account, please contact us at <a href="mailto:cics.sparkrepository@gmail.com">cics.sparkrepository@gmail.com</a>.</p>
+        </div>
+        <div style="background:#f5f5f5;padding:16px 32px;font-size:11px;color:#888;">
+          SPARK — College of Information and Computing Sciences, University of Santo Tomas
+        </div>
+      </div>`;
+
+    try {
+      await this.transporter.sendMail({
+        from: this.from,
+        to,
+        subject: 'Password Reset Request Update — SPARK',
+        html,
+      });
+      this.logger.log(`Password reset declined email sent to ${to}`);
+    } catch (err) {
+      this.logger.error(`Failed to send password reset declined email to ${to}: ${err}`);
+    }
+  }
+
   async sendSubmissionRevisionRequestedEmail(params: {
     to: string
     studentName: string

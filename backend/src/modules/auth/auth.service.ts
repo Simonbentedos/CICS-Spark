@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ForbiddenException, BadRequestException, ConflictException, InternalServerErrorException } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import { LoginDto } from './dto/login.dto';
 
@@ -78,6 +78,51 @@ export class AuthService {
     }
 
     return { message: 'Password changed successfully.' };
+  }
+
+  /**
+   * requestPasswordReset creates a pending password reset request for super admin review.
+   * Only one pending request per user is allowed at a time.
+   */
+  async requestPasswordReset(user: {
+    id: string;
+    email: string;
+    role: string;
+    first_name: string;
+    last_name: string;
+  }) {
+    const { data: existing } = await this.databaseService.client
+      .from('password_reset_requests')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('status', 'pending')
+      .maybeSingle();
+
+    if (existing) {
+      throw new ConflictException('You already have a pending password reset request.');
+    }
+
+    const { data, error } = await this.databaseService.client
+      .from('password_reset_requests')
+      .insert({
+        user_id: user.id,
+        email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        role: user.role,
+        status: 'pending',
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw new InternalServerErrorException('Failed to submit password reset request.');
+    }
+
+    return {
+      message: 'Password reset request submitted. A super admin will review it shortly.',
+      request: data,
+    };
   }
 
   /**
