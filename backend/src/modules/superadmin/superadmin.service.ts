@@ -373,10 +373,14 @@ export class SuperadminService {
       throw new ConflictException('This request has already been resolved.');
     }
 
+    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
     const { data: linkData, error: linkError } =
       await this.databaseService.client.auth.admin.generateLink({
         type: 'recovery',
         email: request.email,
+        options: {
+          redirectTo: `${frontendUrl}/reset-password`,
+        },
       });
 
     if (linkError || !linkData?.properties?.action_link) {
