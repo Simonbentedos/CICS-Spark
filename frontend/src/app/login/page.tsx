@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import {
   ArrowLeft,
+  CheckCircle,
   Eye,
   EyeOff,
   Lock,
@@ -12,13 +13,16 @@ import {
 import { Button, Card, Input, Label } from '@/components/ui'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { login } from '@/lib/api/auth'
+import { login, forgotPassword } from '@/lib/api/auth'
 
+type Mode = 'login' | 'forgot' | 'forgot-success'
 
 export default function LoginPage() {
+  const [mode, setMode] = useState<Mode>('login')
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [forgotEmail, setForgotEmail] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -42,11 +46,30 @@ export default function LoginPage() {
         router.push('/admin/dashboard')
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Login failed'
-      setError(msg)
+      setError(err instanceof Error ? err.message : 'Login failed')
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handleForgot(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+    try {
+      await forgotPassword(forgotEmail.trim())
+      setMode('forgot-success')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to submit request')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function backToLogin() {
+    setMode('login')
+    setError(null)
+    setForgotEmail('')
   }
 
   return (
@@ -64,11 +87,7 @@ export default function LoginPage() {
 
         <section className="mx-auto mt-8 max-w-[448px]">
           <div className="flex flex-col items-center text-center">
-            <img
-              src="/images/CICS SEAL.png"
-              alt="UST CICS Seal"
-              className="h-32 w-32 object-contain"
-            />
+            <img src="/images/CICS SEAL.png" alt="UST CICS Seal" className="h-32 w-32 object-contain" />
             <h1 className="mt-2 font-heading text-[36px] leading-[36px] font-semibold text-[#1A1A2E]">
               Admin Portal
             </h1>
@@ -84,68 +103,145 @@ export default function LoginPage() {
                   <Lock className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="font-body text-[24px] leading-[28px] font-semibold text-white">Welcome Back</h2>
-                  <p className="font-body text-[14px] leading-[20px] text-white/90">Sign in to continue</p>
+                  <h2 className="font-body text-[24px] leading-[28px] font-semibold text-white">
+                    {mode === 'login' ? 'Welcome Back' : 'Forgot Password'}
+                  </h2>
+                  <p className="font-body text-[14px] leading-[20px] text-white/90">
+                    {mode === 'login' ? 'Sign in to continue' : 'Request a password reset'}
+                  </p>
                 </div>
               </div>
             </div>
 
             <div className="bg-[#f6f6f6] px-[33px] py-8">
-              <form className="space-y-5" onSubmit={handleSubmit}>
-                <div>
-                  <Label htmlFor="email" className="mb-2 block text-[14px] font-medium text-[#1A1A2E]">
-                    Email Address
-                  </Label>
-                  <div className="relative">
-                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#a7a7a7]" />
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(ev) => setEmail(ev.target.value)}
-                      placeholder="Enter email"
-                      required
-                      maxLength={255}
-                      className="h-[46px] rounded-[8px] border-[#d9d9d9] bg-white pl-10 pr-3 text-[14px] text-[#444] placeholder:text-[#a7a7a7] focus:ring-1"
-                    />
+              {mode === 'login' && (
+                <form className="space-y-5" onSubmit={handleSubmit}>
+                  <div>
+                    <Label htmlFor="email" className="mb-2 block text-[14px] font-medium text-[#1A1A2E]">
+                      Email Address
+                    </Label>
+                    <div className="relative">
+                      <Mail className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#a7a7a7]" />
+                      <Input
+                        id="email"
+                        type="email"
+                        value={email}
+                        onChange={(ev) => setEmail(ev.target.value)}
+                        placeholder="Enter email"
+                        required
+                        maxLength={255}
+                        className="h-[46px] rounded-[8px] border-[#d9d9d9] bg-white pl-10 pr-3 text-[14px] text-[#444] placeholder:text-[#a7a7a7] focus:ring-1"
+                      />
+                    </div>
                   </div>
-                </div>
 
-                <div>
-                  <Label htmlFor="password" className="mb-2 block text-[14px] font-medium text-[#1A1A2E]">
-                    Password
-                  </Label>
-                  <div className="relative">
-                    <Lock className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#a7a7a7]" />
-                    <Input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(ev) => setPassword(ev.target.value)}
-                      placeholder="Enter your password"
-                      required
-                      className="h-[46px] rounded-[8px] border-[#d9d9d9] bg-white pl-10 pr-10 text-[14px] text-[#444] placeholder:text-[#a7a7a7] focus:ring-1"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((current) => !current)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8f8f8f] hover:text-cics-maroon transition-colors"
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
+                  <div>
+                    <Label htmlFor="password" className="mb-2 block text-[14px] font-medium text-[#1A1A2E]">
+                      Password
+                    </Label>
+                    <div className="relative">
+                      <Lock className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#a7a7a7]" />
+                      <Input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(ev) => setPassword(ev.target.value)}
+                        placeholder="Enter your password"
+                        required
+                        className="h-[46px] rounded-[8px] border-[#d9d9d9] bg-white pl-10 pr-10 text-[14px] text-[#444] placeholder:text-[#a7a7a7] focus:ring-1"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8f8f8f] hover:text-cics-maroon transition-colors"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
+                    </div>
                   </div>
+
+                  {error && <p className="text-sm text-red-600">{error}</p>}
+
+                  <Button
+                    className="h-[48px] w-full rounded-[8px] bg-cics-maroon text-[16px] font-medium text-white hover:bg-cics-maroon disabled:opacity-60"
+                    disabled={loading}
+                  >
+                    {loading ? 'Signing in…' : 'Sign In'}
+                  </Button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setMode('forgot'); setError(null) }}
+                    className="w-full text-center text-[13px] text-[#888] hover:text-cics-maroon transition-colors"
+                  >
+                    Forgot password?
+                  </button>
+                </form>
+              )}
+
+              {mode === 'forgot' && (
+                <form className="space-y-5" onSubmit={handleForgot}>
+                  <p className="text-[13px] text-[#666]">
+                    Enter your account email. A super admin will review your request and send you a reset link.
+                  </p>
+
+                  <div>
+                    <Label htmlFor="forgot-email" className="mb-2 block text-[14px] font-medium text-[#1A1A2E]">
+                      Email Address
+                    </Label>
+                    <div className="relative">
+                      <Mail className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#a7a7a7]" />
+                      <Input
+                        id="forgot-email"
+                        type="email"
+                        value={forgotEmail}
+                        onChange={(ev) => setForgotEmail(ev.target.value)}
+                        placeholder="Enter your email"
+                        required
+                        maxLength={255}
+                        className="h-[46px] rounded-[8px] border-[#d9d9d9] bg-white pl-10 pr-3 text-[14px] text-[#444] placeholder:text-[#a7a7a7] focus:ring-1"
+                      />
+                    </div>
+                  </div>
+
+                  {error && <p className="text-sm text-red-600">{error}</p>}
+
+                  <Button
+                    className="h-[48px] w-full rounded-[8px] bg-cics-maroon text-[16px] font-medium text-white hover:bg-cics-maroon disabled:opacity-60"
+                    disabled={loading}
+                  >
+                    {loading ? 'Submitting…' : 'Send Reset Request'}
+                  </Button>
+
+                  <button
+                    type="button"
+                    onClick={backToLogin}
+                    className="w-full text-center text-[13px] text-[#888] hover:text-cics-maroon transition-colors"
+                  >
+                    Back to Sign In
+                  </button>
+                </form>
+              )}
+
+              {mode === 'forgot-success' && (
+                <div className="space-y-5 text-center">
+                  <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
+                  <div>
+                    <p className="text-[15px] font-medium text-[#1A1A2E]">Request Submitted</p>
+                    <p className="mt-1 text-[13px] text-[#666]">
+                      If an account exists for that email, a super admin will review your request and send a reset link shortly.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={backToLogin}
+                    className="w-full text-center text-[13px] text-[#888] hover:text-cics-maroon transition-colors"
+                  >
+                    Back to Sign In
+                  </button>
                 </div>
-
-                {error && <p className="text-sm text-red-600">{error}</p>}
-
-                <Button
-                  className="h-[48px] w-full rounded-[8px] bg-cics-maroon text-[16px] font-medium text-white hover:bg-cics-maroon disabled:opacity-60"
-                  disabled={loading}
-                >
-                  {loading ? 'Signing in…' : 'Sign In'}
-                </Button>
-              </form>
+              )}
             </div>
           </Card>
 
@@ -168,8 +264,6 @@ export default function LoginPage() {
               Open Student Portal Login
             </Link>
           </div>
-
-
         </section>
       </div>
     </main>

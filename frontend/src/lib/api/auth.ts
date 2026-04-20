@@ -65,6 +65,14 @@ export async function setPassword(accessToken: string, password: string): Promis
   })
 }
 
+export async function forgotPassword(email: string): Promise<{ message: string }> {
+  return apiRequest('/api/auth/forgot-password', {
+    method: 'POST',
+    body: { email },
+    token: null,
+  })
+}
+
 // ── Superadmin: password reset requests ──────────────────────────────────────
 
 export type PasswordResetRequest = {
