@@ -40,7 +40,8 @@ export type ThesisDetail = {
   format: string
   keywords: string
   recommendedCitation: string
-  embargoPeriod: string
+  /** Structured parts for rendering the title in italics per APA style */
+  citationParts?: { pre: string; title: string; post: string }
 }
 
 export function resolveThesisDetail(entry: ThesisEntry): ThesisDetail {
@@ -63,7 +64,6 @@ export function resolveThesisDetail(entry: ThesisEntry): ThesisDetail {
     format: 'Electronic',
     keywords: entry.tags,
     recommendedCitation: `${entry.authors}. ${entry.title}`,
-    embargoPeriod: 'None',
   }
 }
 

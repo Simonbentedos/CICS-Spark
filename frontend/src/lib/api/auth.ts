@@ -54,6 +54,54 @@ export async function login(email: string, password: string): Promise<LoginRespo
 }
 
 /**
+ * Complete a password recovery flow. The access_token comes from the
+ * Supabase recovery link hash (#access_token=...&type=recovery).
+ */
+export async function setPassword(accessToken: string, password: string): Promise<void> {
+  await apiRequest('/api/auth/set-password', {
+    method: 'POST',
+    body: { access_token: accessToken, password },
+    token: null,
+  })
+}
+
+export async function forgotPassword(email: string): Promise<{ message: string }> {
+  return apiRequest('/api/auth/forgot-password', {
+    method: 'POST',
+    body: { email },
+    token: null,
+  })
+}
+
+// ── Superadmin: password reset requests ──────────────────────────────────────
+
+export type PasswordResetRequest = {
+  id: string
+  email: string
+  first_name: string
+  last_name: string
+  status: 'pending' | 'approved' | 'declined'
+  requested_at: string
+  resolved_at: string | null
+}
+
+export async function getPasswordResetRequests(status?: string): Promise<PasswordResetRequest[]> {
+  const qs = status ? `?status=${status}` : ''
+  const data = await apiRequest<{ requests: PasswordResetRequest[] }>(
+    `/api/superadmin/password-reset-requests${qs}`,
+  )
+  return data.requests
+}
+
+export async function approvePasswordResetRequest(id: string): Promise<{ message: string }> {
+  return apiRequest(`/api/superadmin/password-reset-requests/${id}/approve`, { method: 'POST' })
+}
+
+export async function declinePasswordResetRequest(id: string): Promise<{ message: string }> {
+  return apiRequest(`/api/superadmin/password-reset-requests/${id}/decline`, { method: 'POST' })
+}
+
+/**
  * Call the logout endpoint and wipe the local session.
  */
 export async function logout(role: 'admin' | 'super_admin' | 'student' = 'admin'): Promise<void> {

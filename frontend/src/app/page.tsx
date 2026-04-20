@@ -84,7 +84,7 @@ export default function Home() {
           
           {/* Section Title */}
           <h2 className="font-heading text-h2 text-navy mb-8">
-            Browse Research and Scholarship
+            Browse Repository
           </h2>
           
           {/* Action Cards Grid */}

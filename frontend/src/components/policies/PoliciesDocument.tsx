@@ -79,6 +79,7 @@ const policySections: PolicySection[] = [
   },
   {
     title: 'Corrections, Takedown, and Review',
+    title: 'Take-Down Policy',
     paragraphs: [
       'Requests for metadata updates, access modifications, or removal of materials are evaluated individually, taking into account institutional policies, legal obligations, and records management requirements.',
       'The SPARK Repository retains the authority to limit, revise, or remove access to any content that is found to be unauthorized, inaccurate, unlawful, or non-compliant with repository policies.',
@@ -99,6 +100,10 @@ const etPolicySections: PolicySection[] = [
     paragraphs: [
       'Contributors are encouraged to include unique author identifiers, such as ORCID, to enhance proper attribution and improve interoperability across research systems.',
       'All rights declarations and licensing options must accurately reflect the permissions granted by both the author and the institution at the time of submission.',
+    title: 'Access',
+    paragraphs: [
+      'ETs may be open access or restricted to University members depending on approvals and policy requirements.',
+      'Metadata remains visible even when full text access is restricted unless otherwise required by policy.',
     ],
   },
   {

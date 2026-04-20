@@ -139,6 +139,14 @@ export function DatePicker({
     setIsOpen(false)
   }
 
+  function handleMonthChange(newMonth: Date) {
+    setMonth(newMonth)
+    // Auto-set the date to the 1st of the navigated month/year so the input reflects the selection
+    const first = new Date(newMonth.getFullYear(), newMonth.getMonth(), 1)
+    setDate(first)
+    onChange(format(first, DATE_PATTERN))
+  }
+
   return (
     <div className={cn('relative w-[154px]', className)}>
       <Input
@@ -170,7 +178,7 @@ export function DatePicker({
             captionLayout="dropdown"
             hideNavigation
             month={month}
-            onMonthChange={setMonth}
+            onMonthChange={handleMonthChange}
             selected={date}
             onSelect={handleDateSelect}
             components={{

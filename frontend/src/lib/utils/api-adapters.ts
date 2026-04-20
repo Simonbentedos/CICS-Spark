@@ -30,6 +30,32 @@ function joinArray(value: unknown): string {
   return String(value ?? '')
 }
 
+/** Converts a full name to APA last-name-first format: "Patrick Miguel V. Razon" → "Razon, P. M. V." */
+function toApaAuthor(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/)
+  if (parts.length === 0) return fullName
+  if (parts.length === 1) return fullName
+  const lastName = parts[parts.length - 1]
+  const given = parts.slice(0, -1)
+  const initials = given.map((p) => (p.endsWith('.') ? p : `${p[0]}.`)).join(' ')
+  return `${lastName}, ${initials}`
+}
+
+/** Formats an authors array into APA 7th edition author list */
+function buildApaAuthors(rawAuthors: unknown): string {
+  const list: string[] = Array.isArray(rawAuthors)
+    ? rawAuthors
+    : typeof rawAuthors === 'string'
+      ? (() => { try { const p = JSON.parse(rawAuthors); return Array.isArray(p) ? p : [rawAuthors] } catch { return [rawAuthors] } })()
+      : []
+
+  const formatted = list.filter(Boolean).map(toApaAuthor)
+  if (formatted.length === 0) return '—'
+  if (formatted.length === 1) return formatted[0]
+  if (formatted.length === 2) return `${formatted[0]}, & ${formatted[1]}`
+  return `${formatted.slice(0, -1).join(', ')}, & ${formatted[formatted.length - 1]}`
+}
+
 function docYear(doc: ApiDocument): string {
   return doc.year ? String(doc.year) : new Date(doc.created_at).getFullYear().toString()
 }
@@ -47,6 +73,11 @@ export function apiDocToEntry(doc: ApiDocument): ThesisEntry {
   const authors = joinArray(doc.authors)
   const keywords = joinArray(doc.keywords)
 
+  const apaAuthors = buildApaAuthors(doc.authors)
+  const docTypeLabel = doc.type === 'thesis' ? 'Thesis' : 'Capstone Project'
+  const citationPre = `${apaAuthors} (${year}). `
+  const citationPost = ` [${docTypeLabel}, University of Santo Tomas].`
+
   const detail: ThesisDetail = {
     publicationDate: year,
     documentType: doc.type === 'thesis' ? 'Thesis' : 'Capstone',
@@ -61,8 +92,8 @@ export function apiDocToEntry(doc: ApiDocument): ThesisEntry {
     language: 'English',
     format: 'Electronic (PDF)',
     keywords: keywords || 'None',
-    recommendedCitation: `${authors}. (${year}). ${doc.title}.`,
-    embargoPeriod: 'None',
+    recommendedCitation: `${citationPre}${doc.title}${citationPost}`,
+    citationParts: { pre: citationPre, title: doc.title, post: citationPost },
   }
 
   return {

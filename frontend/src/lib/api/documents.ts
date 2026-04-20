@@ -193,3 +193,9 @@ export async function updateFulltextRequest(
     body: { status },
   })
 }
+
+// ── Superadmin endpoints ──────────────────────────────────────────────────────
+
+export async function deleteSubmission(id: string): Promise<{ message: string }> {
+  return apiRequest(`/api/superadmin/submissions/${id}`, { method: 'DELETE' })
+}

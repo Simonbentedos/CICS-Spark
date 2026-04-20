@@ -24,6 +24,18 @@ function emptyDraft(): SubmissionDraft {
     firstName: '',
     middleName: '',
     lastName: '',
+    author2FirstName: '',
+    author2MiddleName: '',
+    author2LastName: '',
+    author3FirstName: '',
+    author3MiddleName: '',
+    author3LastName: '',
+    author4FirstName: '',
+    author4MiddleName: '',
+    author4LastName: '',
+    author5FirstName: '',
+    author5MiddleName: '',
+    author5LastName: '',
     publishedOn: '',
     department: '',
     documentType: 'Thesis',
@@ -133,7 +145,7 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
       const session = getStudentSession()
       if (session?.department) {
         base.department = session.department
-        base.degree = DEGREE_BY_DEPT[session.department] ?? base.degree
+        base.degree = DEGREE_BY_DEPT[getDeptCode(session.department)] ?? base.degree
       }
     }
     return base
@@ -218,7 +230,15 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
       // Doc type is always determined by department — CS = thesis, IT/IS = capstone
       const docType: 'thesis' | 'capstone' = deptCode === 'CS' ? 'thesis' : 'capstone'
       const year = extractYear(draft.publishedOn)
-      const authorName = [draft.firstName, draft.middleName, draft.lastName].filter(Boolean).join(' ')
+      const buildAuthorName = (first: string, middle: string, last: string) =>
+        [first, middle, last].filter(Boolean).join(' ')
+      const authors = [
+        buildAuthorName(draft.firstName, draft.middleName, draft.lastName),
+        buildAuthorName(draft.author2FirstName, draft.author2MiddleName, draft.author2LastName),
+        buildAuthorName(draft.author3FirstName, draft.author3MiddleName, draft.author3LastName),
+        buildAuthorName(draft.author4FirstName, draft.author4MiddleName, draft.author4LastName),
+        buildAuthorName(draft.author5FirstName, draft.author5MiddleName, draft.author5LastName),
+      ].filter(Boolean)
       const keywords = draft.keywords
         .split(',')
         .map((k) => k.trim())
@@ -227,7 +247,7 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
       const formData = new FormData()
       formData.append('file', pdfFile)
       formData.append('title', draft.title)
-      formData.append('authors', JSON.stringify([authorName]))
+      formData.append('authors', JSON.stringify(authors))
       formData.append('department', deptCode)
       formData.append('type', docType)
       if (draft.trackSpecialization) formData.append('track_specialization', draft.trackSpecialization)
@@ -264,11 +284,13 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
 
   const isVerifyStep = step.key === 'verify-details'
   const missingFile = isVerifyStep && pdfFile === null
+  const pageTitle = getDeptCode(draft.department) === 'CS' ? 'Submit New Thesis' : 'Submit New Capstone'
 
   return (
     <SubmissionStepLayout
       step={step.index}
       sectionTitle={step.sectionTitle}
+      pageTitle={pageTitle}
       footer={
         <div className="space-y-2">
           {submitError && (
@@ -296,7 +318,12 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
                 onClick={goNext}
                 disabled={!canProceed || submitting}
               >
-                {submitting ? 'Submitting…' : step.nextLabel}
+                {submitting ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+                    Uploading…
+                  </span>
+                ) : step.nextLabel}
               </Button>
             ) : null}
           </div>

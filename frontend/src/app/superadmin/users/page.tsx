@@ -1,15 +1,17 @@
 "use client"
 
 import { useEffect, useMemo, useState } from 'react'
-import { Mail, Plus } from 'lucide-react'
+import { Ban, CircleCheck, Mail, Pencil, Plus } from 'lucide-react'
 import { Button, Card, CardContent } from '@/components/ui'
 import AdminBadge from '@/components/admin/AdminBadge'
 import AdminDataTable from '@/components/admin/AdminDataTable'
 import AdminFilterBar from '@/components/admin/AdminFilterBar'
 import AdminPagination from '@/components/admin/AdminPagination'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
+import AdminModal from '@/components/admin/AdminModal'
 import AdminUserDialog from '@/components/admin/AdminUserDialog'
-import { getAdminUsers, createAdmin, createStudent, type ApiUser } from '@/lib/api/users'
+import EditUserDialog from '@/components/admin/EditUserDialog'
+import { getAdminUsers, createAdmin, createStudent, updateUser, disableUser, enableUser, type ApiUser } from '@/lib/api/users'
 
 const PAGE_SIZE = 10
 
@@ -28,8 +30,16 @@ export default function SuperAdminUsersPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(1)
   const [dialogMode, setDialogMode] = useState<DialogMode>(null)
-  const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [editingUser, setEditingUser] = useState<ApiUser | null>(null)
+  const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+  const [disableTarget, setDisableTarget] = useState<ApiUser | null>(null)
+  const [disableSaving, setDisableSaving] = useState(false)
+  const [disableError, setDisableError] = useState<string | null>(null)
+  const [enableTarget, setEnableTarget] = useState<ApiUser | null>(null)
+  const [enableSaving, setEnableSaving] = useState(false)
+  const [enableError, setEnableError] = useState<string | null>(null)
 
   function fetchUsers() {
     setLoading(true)
@@ -108,12 +118,91 @@ export default function SuperAdminUsersPage() {
         renderCell: (u: ApiUser) =>
           new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       },
+      {
+        id: 'actions',
+        header: '',
+        renderCell: (u: ApiUser) => (
+          <span className="inline-flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              className="h-7 rounded-md px-2.5 text-xs border-grey-200 text-grey-600 hover:border-cics-maroon hover:text-cics-maroon"
+              onClick={() => { setEditingUser(u); setEditError(null) }}
+            >
+              <Pencil className="mr-1 h-3 w-3" />
+              Edit
+            </Button>
+            {u.is_active ? (
+              <Button
+                variant="outline"
+                className="h-7 rounded-md px-2.5 text-xs border-grey-200 text-grey-600 hover:border-red-500 hover:text-red-600"
+                onClick={() => { setDisableTarget(u); setDisableError(null) }}
+              >
+                <Ban className="mr-1 h-3 w-3" />
+                Disable
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                className="h-7 rounded-md px-2.5 text-xs border-grey-200 text-grey-600 hover:border-green-600 hover:text-green-700"
+                onClick={() => { setEnableTarget(u); setEnableError(null) }}
+              >
+                <CircleCheck className="mr-1 h-3 w-3" />
+                Enable
+              </Button>
+            )}
+          </span>
+        ),
+      },
     ],
     [],
   )
 
+  async function handleDisable() {
+    if (!disableTarget) return
+    setDisableSaving(true)
+    setDisableError(null)
+    try {
+      await disableUser(disableTarget.id)
+      setDisableTarget(null)
+      fetchUsers()
+    } catch (err: unknown) {
+      setDisableError(err instanceof Error ? err.message : 'Failed to disable account')
+    } finally {
+      setDisableSaving(false)
+    }
+  }
+
+  async function handleEnable() {
+    if (!enableTarget) return
+    setEnableSaving(true)
+    setEnableError(null)
+    try {
+      await enableUser(enableTarget.id)
+      setEnableTarget(null)
+      fetchUsers()
+    } catch (err: unknown) {
+      setEnableError(err instanceof Error ? err.message : 'Failed to enable account')
+    } finally {
+      setEnableSaving(false)
+    }
+  }
+
+  async function handleEdit(payload: { first_name: string; last_name: string; department: 'CS' | 'IT' | 'IS' }) {
+    if (!editingUser) return
+    setEditSaving(true)
+    setEditError(null)
+    try {
+      await updateUser(editingUser.id, payload)
+      setEditingUser(null)
+      fetchUsers()
+    } catch (err: unknown) {
+      setEditError(err instanceof Error ? err.message : 'Failed to update user')
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
   async function handleAdd(payload: { name: string; email: string; role: string; department?: string; status?: string; password?: string }) {
-    setSaving(true)
     setSaveError(null)
     const nameParts = payload.name.trim().split(' ')
     const first_name = nameParts[0] ?? ''
@@ -130,8 +219,6 @@ export default function SuperAdminUsersPage() {
       fetchUsers()
     } catch (err: unknown) {
       setSaveError(err instanceof Error ? err.message : 'Failed to create account')
-    } finally {
-      setSaving(false)
     }
   }
 
@@ -204,6 +291,62 @@ export default function SuperAdminUsersPage() {
           onClose={() => { setDialogMode(null); setSaveError(null) }}
           onSubmit={handleAdd}
         />
+      ) : null}
+
+      {editingUser ? (
+        <EditUserDialog
+          user={editingUser}
+          onClose={() => { setEditingUser(null); setEditError(null) }}
+          onSubmit={handleEdit}
+          saving={editSaving}
+          error={editError}
+        />
+      ) : null}
+
+      {disableTarget ? (
+        <AdminModal
+          title="Disable Account"
+          subtitle={`${disableTarget.first_name} ${disableTarget.last_name} will no longer be able to log in.`}
+          onClose={() => { setDisableTarget(null); setDisableError(null) }}
+          widthClassName="max-w-[420px]"
+        >
+          {disableError ? (
+            <p className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700" role="alert">
+              {disableError}
+            </p>
+          ) : null}
+          <div className="flex items-center justify-end gap-2 border-t border-grey-200 pt-3">
+            <Button variant="outline" className="h-10 px-6" onClick={() => { setDisableTarget(null); setDisableError(null) }} disabled={disableSaving}>
+              Cancel
+            </Button>
+            <Button className="h-10 px-6 bg-red-600 hover:bg-red-700" onClick={handleDisable} disabled={disableSaving}>
+              {disableSaving ? 'Disabling…' : 'Disable Account'}
+            </Button>
+          </div>
+        </AdminModal>
+      ) : null}
+
+      {enableTarget ? (
+        <AdminModal
+          title="Enable Account"
+          subtitle={`${enableTarget.first_name} ${enableTarget.last_name} will be able to log in again.`}
+          onClose={() => { setEnableTarget(null); setEnableError(null) }}
+          widthClassName="max-w-[420px]"
+        >
+          {enableError ? (
+            <p className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700" role="alert">
+              {enableError}
+            </p>
+          ) : null}
+          <div className="flex items-center justify-end gap-2 border-t border-grey-200 pt-3">
+            <Button variant="outline" className="h-10 px-6" onClick={() => { setEnableTarget(null); setEnableError(null) }} disabled={enableSaving}>
+              Cancel
+            </Button>
+            <Button className="h-10 px-6 bg-green-600 hover:bg-green-700" onClick={handleEnable} disabled={enableSaving}>
+              {enableSaving ? 'Enabling…' : 'Enable Account'}
+            </Button>
+          </div>
+        </AdminModal>
       ) : null}
 
       {saveError && (

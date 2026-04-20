@@ -40,3 +40,21 @@ export async function createAdmin(payload: {
     body: payload,
   })
 }
+
+export async function disableUser(id: string): Promise<{ message: string }> {
+  return apiRequest(`/api/superadmin/users/${id}/disable`, { method: 'PATCH' })
+}
+
+export async function enableUser(id: string): Promise<{ message: string }> {
+  return apiRequest(`/api/superadmin/users/${id}/enable`, { method: 'PATCH' })
+}
+
+export async function updateUser(
+  id: string,
+  payload: { first_name: string; last_name: string; department: 'CS' | 'IT' | 'IS' },
+): Promise<{ message: string; user: ApiUser }> {
+  return apiRequest(`/api/superadmin/users/${id}`, {
+    method: 'PUT',
+    body: payload,
+  })
+}
