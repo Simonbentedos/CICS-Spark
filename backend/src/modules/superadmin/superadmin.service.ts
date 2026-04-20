@@ -60,6 +60,47 @@ export class SuperadminService {
   }
 
   /**
+   * enableUser allows super_admin to re-activate a disabled admin/student account.
+   */
+  async enableUser(userId: string) {
+    const { data: targetUser, error: fetchError } = await this.databaseService.client
+      .from('users')
+      .select('id, email, first_name, last_name, role, department, is_active, created_at')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (fetchError) {
+      throw new InternalServerErrorException(fetchError.message);
+    }
+
+    if (!targetUser) {
+      throw new NotFoundException('User not found.');
+    }
+
+    if (!['admin', 'student'].includes(targetUser.role)) {
+      throw new ForbiddenException('Only admin and student accounts can be enabled.');
+    }
+
+    const { data: enabledUser, error: updateError } = await this.databaseService.client
+      .from('users')
+      .update({ is_active: true })
+      .eq('id', userId)
+      .select('id, email, first_name, last_name, role, department, is_active, created_at')
+      .single();
+
+    if (updateError || !enabledUser) {
+      throw new InternalServerErrorException(
+        updateError?.message || 'Failed to enable user account.',
+      );
+    }
+
+    return {
+      message: 'User account enabled successfully.',
+      user: enabledUser,
+    };
+  }
+
+  /**
    * updateUser allows super_admin to edit user profile details.
    */
   async updateUser(userId: string, dto: UpdateUserDto) {
@@ -252,6 +293,44 @@ export class SuperadminService {
       message: 'Admin account created successfully.',
       admin: user,
     };
+  }
+
+  /**
+   * deleteSubmission permanently removes a submission and its PDF from storage.
+   */
+  async deleteSubmission(documentId: string) {
+    const { data: doc, error: fetchError } = await this.databaseService.client
+      .from('documents')
+      .select('id, pdf_file_path')
+      .eq('id', documentId)
+      .maybeSingle();
+
+    if (fetchError) {
+      throw new InternalServerErrorException(fetchError.message);
+    }
+
+    if (!doc) {
+      throw new NotFoundException('Submission not found.');
+    }
+
+    const { error: storageError } = await this.databaseService.client.storage
+      .from('documents')
+      .remove([doc.pdf_file_path]);
+
+    if (storageError) {
+      console.warn(`Storage delete failed for doc ${doc.id}: ${storageError.message}`);
+    }
+
+    const { error: dbError } = await this.databaseService.client
+      .from('documents')
+      .delete()
+      .eq('id', documentId);
+
+    if (dbError) {
+      throw new InternalServerErrorException(dbError.message || 'Failed to delete submission.');
+    }
+
+    return { message: 'Submission deleted.' };
   }
 
   /**

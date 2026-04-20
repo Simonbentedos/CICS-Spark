@@ -10,6 +10,7 @@ import {
   KeyRound,
   LayoutGrid,
   LogOut,
+  ShieldAlert,
   Users,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { href: '/superadmin/dashboard', label: 'Dashboard', icon: LayoutGrid },
   { href: '/superadmin/users', label: 'User Management', icon: Users },
   { href: '/superadmin/submissions', label: 'All Submissions', icon: FolderOpen },
+  { href: '/superadmin/password-reset-requests', label: 'Password Requests', icon: ShieldAlert },
   { href: '/superadmin/reports', label: 'Reports', icon: BarChart2 },
 ] as const
 
