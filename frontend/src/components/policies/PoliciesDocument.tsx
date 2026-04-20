@@ -100,6 +100,9 @@ const etPolicySections: PolicySection[] = [
     paragraphs: [
       'Contributors are encouraged to include unique author identifiers, such as ORCID, to enhance proper attribution and improve interoperability across research systems.',
       'All rights declarations and licensing options must accurately reflect the permissions granted by both the author and the institution at the time of submission.',
+      ],
+    },
+    {
     title: 'Access',
     paragraphs: [
       'ETs may be open access or restricted to University members depending on approvals and policy requirements.',
