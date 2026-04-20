@@ -98,33 +98,6 @@ const faqCategories: FaqCategory[] = [
     ],
   },
   {
-    key: 'embargo',
-    label: 'Embargo (5)',
-    heading: 'Embargo',
-    items: [
-      {
-        question: 'What is an embargo?',
-        answer: 'An embargo temporarily restricts full-text access while allowing metadata visibility in the repository.',
-      },
-      {
-        question: 'How long can an embargo last?',
-        answer: 'Embargo duration follows approved institutional policy and may be renewable when justified.',
-      },
-      {
-        question: 'Who approves embargo requests?',
-        answer: 'Embargo approvals are processed by the authorized academic and repository offices.',
-      },
-      {
-        question: 'Can I lift an embargo early?',
-        answer: 'Early lifting may be requested and is subject to institutional review and approval.',
-      },
-      {
-        question: 'What is visible during embargo?',
-        answer: 'Typically, bibliographic metadata stays visible while full text remains restricted.',
-      },
-    ],
-  },
-  {
     key: 'search',
     label: 'Searching SPARK@USTCICS (3)',
     heading: 'Searching SPARK@USTCICS',

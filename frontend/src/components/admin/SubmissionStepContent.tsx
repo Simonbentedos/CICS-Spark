@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { Upload } from 'lucide-react'
 import { Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui'
 import { FILE_REQUIREMENTS } from '@/lib/utils'
@@ -43,10 +44,52 @@ type SubmissionStepContentProps = {
   onTitleBlur?: () => void
 }
 
-export default function SubmissionStepContent({ step, draft, onDraftChange, pdfFile, onFileChange, duplicateWarning, onTitleBlur }: Readonly<SubmissionStepContentProps>) {
-  if (step.key === 'basic-info') {
+type BasicInfoStepProps = {
+  draft: SubmissionDraft
+  onDraftChange: (patch: Partial<SubmissionDraft>) => void
+  duplicateWarning?: string | null
+  onTitleBlur?: () => void
+}
+
+function BasicInfoStep({ draft, onDraftChange, duplicateWarning, onTitleBlur }: Readonly<BasicInfoStepProps>) {
     const trackOptions = TRACKS_BY_DEPT[draft.department] ?? []
     const autoDocType = draft.department ? getDocTypeForDept(draft.department) : draft.documentType
+
+    const [showAuthor2, setShowAuthor2] = useState(() => Boolean(draft.author2FirstName || draft.author2LastName))
+    const [showAuthor3, setShowAuthor3] = useState(() => Boolean(draft.author3FirstName || draft.author3LastName))
+    const [showAuthor4, setShowAuthor4] = useState(() => Boolean(draft.author4FirstName || draft.author4LastName))
+    const [showAuthor5, setShowAuthor5] = useState(() => Boolean(draft.author5FirstName || draft.author5LastName))
+
+    const canAddMore = !showAuthor2 || !showAuthor3 || !showAuthor4 || !showAuthor5
+
+    function addNextAuthor() {
+      if (!showAuthor2) { setShowAuthor2(true); return }
+      if (!showAuthor3) { setShowAuthor3(true); return }
+      if (!showAuthor4) { setShowAuthor4(true); return }
+      if (!showAuthor5) { setShowAuthor5(true) }
+    }
+
+    function removeAuthor(n: 2 | 3 | 4 | 5) {
+      const slots = [
+        { first: draft.author2FirstName, mid: draft.author2MiddleName, last: draft.author2LastName, shown: showAuthor2 },
+        { first: draft.author3FirstName, mid: draft.author3MiddleName, last: draft.author3LastName, shown: showAuthor3 },
+        { first: draft.author4FirstName, mid: draft.author4MiddleName, last: draft.author4LastName, shown: showAuthor4 },
+        { first: draft.author5FirstName, mid: draft.author5MiddleName, last: draft.author5LastName, shown: showAuthor5 },
+      ]
+      const removeIdx = n - 2
+      const remaining = slots.filter((_, i) => i !== removeIdx && slots[i].shown)
+      const [s2, s3, s4, s5] = [remaining[0], remaining[1], remaining[2], remaining[3]]
+      onDraftChange({
+        author2FirstName: s2?.first ?? '', author2MiddleName: s2?.mid ?? '', author2LastName: s2?.last ?? '',
+        author3FirstName: s3?.first ?? '', author3MiddleName: s3?.mid ?? '', author3LastName: s3?.last ?? '',
+        author4FirstName: s4?.first ?? '', author4MiddleName: s4?.mid ?? '', author4LastName: s4?.last ?? '',
+        author5FirstName: s5?.first ?? '', author5MiddleName: s5?.mid ?? '', author5LastName: s5?.last ?? '',
+      })
+      setShowAuthor2(remaining.length >= 1)
+      setShowAuthor3(remaining.length >= 2)
+      setShowAuthor4(remaining.length >= 3)
+      setShowAuthor5(remaining.length >= 4)
+    }
 
     return (
       <>
@@ -65,19 +108,130 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
           ) : null}
         </div>
 
-        <div className="grid gap-3 md:grid-cols-3">
-          <div className="space-y-2">
-            <Label htmlFor="firstName" className="text-sm font-medium text-grey-700">First Name *</Label>
-            <Input id="firstName" className="h-11 border-grey-200" value={draft.firstName} onChange={(event) => onDraftChange({ firstName: event.target.value })} />
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium text-grey-700">Authors *</Label>
+            {canAddMore && (
+              <button type="button" onClick={addNextAuthor} className="text-xs text-[#0f766e] hover:underline focus-visible:outline-none">
+                + Add Author
+              </button>
+            )}
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="middleName" className="text-sm font-medium text-grey-700">Middle Name</Label>
-            <Input id="middleName" className="h-11 border-grey-200" value={draft.middleName} onChange={(event) => onDraftChange({ middleName: event.target.value })} />
+
+          {/* Author 1 */}
+          <div className="space-y-1">
+            <p className="text-xs text-grey-500">Author 1</p>
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="space-y-1">
+                <Label htmlFor="firstName" className="text-xs text-grey-600">First Name *</Label>
+                <Input id="firstName" className="h-10 border-grey-200" value={draft.firstName} onChange={(event) => onDraftChange({ firstName: event.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="middleName" className="text-xs text-grey-600">Middle Name</Label>
+                <Input id="middleName" className="h-10 border-grey-200" value={draft.middleName} onChange={(event) => onDraftChange({ middleName: event.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="lastName" className="text-xs text-grey-600">Last Name *</Label>
+                <Input id="lastName" className="h-10 border-grey-200" value={draft.lastName} onChange={(event) => onDraftChange({ lastName: event.target.value })} />
+              </div>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="lastName" className="text-sm font-medium text-grey-700">Last Name *</Label>
-            <Input id="lastName" className="h-11 border-grey-200" value={draft.lastName} onChange={(event) => onDraftChange({ lastName: event.target.value })} />
-          </div>
+
+          {/* Author 2 */}
+          {showAuthor2 && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-grey-500">Author 2</p>
+                <button type="button" onClick={() => removeAuthor(2)} className="text-xs text-red-400 hover:text-red-600 focus-visible:outline-none">Remove</button>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-grey-600">First Name</Label>
+                  <Input className="h-10 border-grey-200" value={draft.author2FirstName} onChange={(e) => onDraftChange({ author2FirstName: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-grey-600">Middle Name</Label>
+                  <Input className="h-10 border-grey-200" value={draft.author2MiddleName} onChange={(e) => onDraftChange({ author2MiddleName: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-grey-600">Last Name</Label>
+                  <Input className="h-10 border-grey-200" value={draft.author2LastName} onChange={(e) => onDraftChange({ author2LastName: e.target.value })} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Author 3 */}
+          {showAuthor3 && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-grey-500">Author 3</p>
+                <button type="button" onClick={() => removeAuthor(3)} className="text-xs text-red-400 hover:text-red-600 focus-visible:outline-none">Remove</button>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-grey-600">First Name</Label>
+                  <Input className="h-10 border-grey-200" value={draft.author3FirstName} onChange={(e) => onDraftChange({ author3FirstName: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-grey-600">Middle Name</Label>
+                  <Input className="h-10 border-grey-200" value={draft.author3MiddleName} onChange={(e) => onDraftChange({ author3MiddleName: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-grey-600">Last Name</Label>
+                  <Input className="h-10 border-grey-200" value={draft.author3LastName} onChange={(e) => onDraftChange({ author3LastName: e.target.value })} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Author 4 */}
+          {showAuthor4 && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-grey-500">Author 4</p>
+                <button type="button" onClick={() => removeAuthor(4)} className="text-xs text-red-400 hover:text-red-600 focus-visible:outline-none">Remove</button>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-grey-600">First Name</Label>
+                  <Input className="h-10 border-grey-200" value={draft.author4FirstName} onChange={(e) => onDraftChange({ author4FirstName: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-grey-600">Middle Name</Label>
+                  <Input className="h-10 border-grey-200" value={draft.author4MiddleName} onChange={(e) => onDraftChange({ author4MiddleName: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-grey-600">Last Name</Label>
+                  <Input className="h-10 border-grey-200" value={draft.author4LastName} onChange={(e) => onDraftChange({ author4LastName: e.target.value })} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Author 5 */}
+          {showAuthor5 && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-grey-500">Author 5</p>
+                <button type="button" onClick={() => removeAuthor(5)} className="text-xs text-red-400 hover:text-red-600 focus-visible:outline-none">Remove</button>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-grey-600">First Name</Label>
+                  <Input className="h-10 border-grey-200" value={draft.author5FirstName} onChange={(e) => onDraftChange({ author5FirstName: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-grey-600">Middle Name</Label>
+                  <Input className="h-10 border-grey-200" value={draft.author5MiddleName} onChange={(e) => onDraftChange({ author5MiddleName: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-grey-600">Last Name</Label>
+                  <Input className="h-10 border-grey-200" value={draft.author5LastName} onChange={(e) => onDraftChange({ author5LastName: e.target.value })} />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -140,6 +294,11 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
         </div>
       </>
     )
+}
+
+export default function SubmissionStepContent({ step, draft, onDraftChange, pdfFile, onFileChange, duplicateWarning, onTitleBlur }: Readonly<SubmissionStepContentProps>) {
+  if (step.key === 'basic-info') {
+    return <BasicInfoStep draft={draft} onDraftChange={onDraftChange} duplicateWarning={duplicateWarning} onTitleBlur={onTitleBlur} />
   }
 
   if (step.key === 'academic-details') {
@@ -246,7 +405,14 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
     )
   }
 
-  const authorName = [draft.firstName, draft.middleName, draft.lastName].filter(Boolean).join(' ')
+  const buildName = (first: string, mid: string, last: string) => [first, mid, last].filter(Boolean).join(' ')
+  const allAuthors = [
+    buildName(draft.firstName, draft.middleName, draft.lastName),
+    buildName(draft.author2FirstName, draft.author2MiddleName, draft.author2LastName),
+    buildName(draft.author3FirstName, draft.author3MiddleName, draft.author3LastName),
+    buildName(draft.author4FirstName, draft.author4MiddleName, draft.author4LastName),
+    buildName(draft.author5FirstName, draft.author5MiddleName, draft.author5LastName),
+  ].filter(Boolean)
 
   return (
     <>
@@ -255,9 +421,17 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
           <p className="text-xs uppercase tracking-wide text-grey-500">Title</p>
           <p className="mt-1 font-medium text-grey-700">{draft.title || '—'}</p>
         </div>
-        <div className="rounded-md border border-grey-200 bg-white p-3">
-          <p className="text-xs uppercase tracking-wide text-grey-500">Author</p>
-          <p className="mt-1 font-medium text-grey-700">{authorName || '—'}</p>
+        <div className="rounded-md border border-grey-200 bg-white p-3 md:col-span-2">
+          <p className="text-xs uppercase tracking-wide text-grey-500">Authors</p>
+          {allAuthors.length > 0 ? (
+            <ul className="mt-1 space-y-0.5">
+              {allAuthors.map((name, i) => (
+                <li key={i} className="font-medium text-grey-700">{name}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-1 font-medium text-grey-700">—</p>
+          )}
         </div>
         <div className="rounded-md border border-grey-200 bg-white p-3">
           <p className="text-xs uppercase tracking-wide text-grey-500">Date of Publication</p>
@@ -300,7 +474,7 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
           className="mt-1 rounded border-grey-300 accent-cics-maroon focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cics-maroon focus-visible:ring-offset-1"
           defaultChecked
         />
-        <span>I confirm that all details are accurate and I have permission to submit this thesis document.</span>
+        <span>I confirm that all details are accurate and I have permission to submit this {getDocTypeForDept(draft.department).toLowerCase()} document.</span>
       </label>
     </>
   )

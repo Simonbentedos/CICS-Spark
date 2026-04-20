@@ -31,6 +31,18 @@ export interface SubmissionDraft {
   firstName: string
   middleName: string
   lastName: string
+  author2FirstName: string
+  author2MiddleName: string
+  author2LastName: string
+  author3FirstName: string
+  author3MiddleName: string
+  author3LastName: string
+  author4FirstName: string
+  author4MiddleName: string
+  author4LastName: string
+  author5FirstName: string
+  author5MiddleName: string
+  author5LastName: string
   publishedOn: string
   department: string
   documentType: string

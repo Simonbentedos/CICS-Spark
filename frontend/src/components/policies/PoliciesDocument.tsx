@@ -172,12 +172,6 @@ const policySections: PolicySection[] = [
     ],
   },
   {
-    title: 'Embargoes',
-    paragraphs: [
-      'The University supports the application of embargoes on certain works. Under embargo, works do not appear in DA@UPD except metadata for one year, renewable annually.',
-    ],
-  },
-  {
     title: 'Take-Down Policy',
     paragraphs: [
       'DA@UPD reserves the right to remove submissions and materials subject to proper procedures and valid requests processed case-by-case.',
@@ -230,9 +224,9 @@ const etPolicySections: PolicySection[] = [
     ],
   },
   {
-    title: 'Access and Embargo',
+    title: 'Access',
     paragraphs: [
-      'ETs may be open access, restricted to University members, or embargoed depending on approvals and policy requirements. Embargo duration and renewal terms follow institutional procedures.',
+      'ETs may be open access or restricted to University members depending on approvals and policy requirements.',
       'Metadata remains visible even when full text access is restricted unless otherwise required by policy.',
     ],
   },
