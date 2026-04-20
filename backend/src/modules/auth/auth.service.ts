@@ -126,6 +126,45 @@ export class AuthService {
   }
 
   /**
+   * forgotPassword creates a password reset request by email without requiring a session.
+   * Always returns success to avoid leaking whether an account exists.
+   */
+  async forgotPassword(email: string) {
+    const { data: user } = await this.databaseService.client
+      .from('users')
+      .select('id, email, first_name, last_name, role, is_active')
+      .eq('email', email.toLowerCase().trim())
+      .maybeSingle();
+
+    // Silently succeed if user not found, inactive, or already has a pending request
+    if (!user || !user.is_active || !['student', 'admin'].includes(user.role)) {
+      return { message: 'If an account exists for that email, your request has been submitted.' };
+    }
+
+    const { data: existing } = await this.databaseService.client
+      .from('password_reset_requests')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('status', 'pending')
+      .maybeSingle();
+
+    if (!existing) {
+      await this.databaseService.client
+        .from('password_reset_requests')
+        .insert({
+          user_id: user.id,
+          email: user.email,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          role: user.role,
+          status: 'pending',
+        });
+    }
+
+    return { message: 'If an account exists for that email, your request has been submitted.' };
+  }
+
+  /**
    * setPassword sets a new password for a user.
    * The caller must be pre-validated by RecoveryTokenGuard, which
    * resolves the userId from the recovery token before this runs.

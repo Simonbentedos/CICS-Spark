@@ -87,4 +87,16 @@ export class AuthController {
   requestPasswordReset(@Request() req: any) {
     return this.authService.requestPasswordReset(req.user);
   }
+
+  /**
+   * POST /api/auth/forgot-password
+   * Public. Accepts an email and creates a password reset request if the account exists.
+   * Always returns a generic success message to avoid leaking account existence.
+   */
+  @Post('forgot-password')
+  @HttpCode(200)
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
+  forgotPassword(@Body() body: { email: string }) {
+    return this.authService.forgotPassword(body.email ?? '');
+  }
 }
