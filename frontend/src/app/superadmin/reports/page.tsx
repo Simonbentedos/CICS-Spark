@@ -120,10 +120,11 @@ export default function SuperAdminReportsPage() {
     }))
   }, [filtered])
 
-  // User breakdown per role and department
+  // User breakdown per role and department (super_admin excluded — they're system-level, not dept-scoped)
   const userBreakdown = useMemo(() => {
     const map = new Map<string, { admins: number; students: number; total: number; active: number }>()
     for (const u of users) {
+      if (u.role === 'super_admin') continue
       const dept = u.department ?? 'All'
       const existing = map.get(dept) ?? { admins: 0, students: 0, total: 0, active: 0 }
       existing.total++
@@ -154,6 +155,7 @@ export default function SuperAdminReportsPage() {
   })), [submissions, months])
 
   const maxTrend = Math.max(1, ...trend.map((t) => t.CS + t.IT + t.IS))
+  const [hoveredMonth, setHoveredMonth] = useState<string | null>(null)
 
   // System audit log built from submissions + reviews
   const auditLogs = useMemo(() => {
@@ -314,15 +316,59 @@ export default function SuperAdminReportsPage() {
               </CardHeader>
               <CardContent className="px-6 pb-6">
                 <div className="flex items-end justify-between gap-3 h-[180px]">
-                  {trend.map((point) => {
+                  {trend.map((point, idx) => {
                     const total = point.CS + point.IT + point.IS
+                    const isHovered = hoveredMonth === point.label
+                    const currentMonth = trend[trend.length - 1]
+                    const currentTotal = currentMonth.CS + currentMonth.IT + currentMonth.IS
+                    const isCurrentMonth = idx === trend.length - 1
+
+                    function diffLabel(diff: number) {
+                      if (diff === 0) return <span className="text-grey-400">—</span>
+                      return (
+                        <span className={diff > 0 ? 'text-green-600' : 'text-red-500'}>
+                          {diff > 0 ? '+' : ''}{diff}
+                        </span>
+                      )
+                    }
+
                     return (
-                      <div key={point.label} className="flex flex-col items-center flex-1 h-full">
+                      <div
+                        key={point.label}
+                        className="relative flex flex-col items-center flex-1 h-full"
+                        onMouseEnter={() => setHoveredMonth(point.label)}
+                        onMouseLeave={() => setHoveredMonth(null)}
+                      >
+                        {isHovered && (
+                          <div className="absolute bottom-full mb-2 z-10 min-w-[120px] rounded-lg border border-grey-200 bg-white px-3 py-2 shadow-md text-xs left-1/2 -translate-x-1/2">
+                            <p className="font-semibold text-grey-700 mb-1 border-b border-grey-100 pb-1">
+                              {point.label}{isCurrentMonth && <span className="ml-1 text-[10px] font-normal text-grey-400">(current)</span>}
+                            </p>
+                            {(['CS', 'IT', 'IS'] as const).map((dept) => (
+                              <div key={dept} className="flex items-center justify-between gap-3">
+                                <span className="inline-flex items-center gap-1 text-grey-500">
+                                  <span className={`h-2 w-2 rounded-sm ${DEPT_COLORS[dept]}`} />
+                                  {dept}
+                                </span>
+                                <span className="inline-flex items-center gap-2">
+                                  <span className="font-medium text-grey-700">{point[dept]}</span>
+                                  {!isCurrentMonth && <span className="w-6 text-right">{diffLabel(point[dept] - currentMonth[dept])}</span>}
+                                </span>
+                              </div>
+                            ))}
+                            <div className="flex items-center justify-between gap-3 border-t border-grey-100 mt-1 pt-1">
+                              <span className="text-grey-500">Total</span>
+                              <span className="inline-flex items-center gap-2">
+                                <span className="font-semibold text-grey-800">{total}</span>
+                                {!isCurrentMonth && <span className="w-6 text-right">{diffLabel(total - currentTotal)}</span>}
+                              </span>
+                            </div>
+                          </div>
+                        )}
                         <div className="flex-1 w-full flex items-end justify-center pb-2 gap-0.5">
                           {(['CS', 'IT', 'IS'] as const).map((dept) => (
                             <div
                               key={dept}
-                              title={`${dept}: ${point[dept]}`}
                               className={`flex-1 rounded-t-sm ${DEPT_COLORS[dept]} transition-all`}
                               style={{ height: `${Math.max(point[dept] > 0 ? 8 : 0, (point[dept] / maxTrend) * 100)}%` }}
                             />
@@ -422,12 +468,24 @@ export default function SuperAdminReportsPage() {
             <CardContent className="overflow-x-auto p-0 px-2 sm:px-6">
               <AdminDataTable
                 columns={[
-                  { id: 'at', header: 'Time', renderCell: (r) => <span className="whitespace-nowrap">{r.at}</span> },
+                  { id: 'at', header: 'Time', renderCell: (r) => <span className="whitespace-nowrap text-grey-600">{r.at}</span> },
                   { id: 'actor', header: 'Actor', className: 'whitespace-nowrap', renderCell: (r) => r.actor },
-                  { id: 'action', header: 'Action', className: 'whitespace-nowrap font-medium', renderCell: (r) => r.action },
-                  { id: 'department', header: 'Dept', className: 'whitespace-nowrap', renderCell: (r) => r.department },
+                  { id: 'action', header: 'Action', renderCell: (r) => {
+                    const tone: Record<string, string> = {
+                      Submitted: 'bg-blue-50 text-blue-700 border-blue-200',
+                      Approved: 'bg-green-50 text-green-700 border-green-200',
+                      Rejected: 'bg-red-50 text-red-700 border-red-200',
+                      'Revision Requested': 'bg-amber-50 text-amber-700 border-amber-200',
+                    }
+                    return (
+                      <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium ${tone[r.action] ?? 'bg-grey-50 text-grey-600 border-grey-200'}`}>
+                        {r.action}
+                      </span>
+                    )
+                  }},
+                  { id: 'department', header: 'Dept', className: 'whitespace-nowrap text-grey-600', renderCell: (r) => r.department },
                   { id: 'target', header: 'Target', className: 'max-w-[300px]', renderCell: (r) => <span className="line-clamp-2">{r.target}</span> },
-                  { id: 'details', header: 'Details', className: 'max-w-[260px]', renderCell: (r) => <span className="line-clamp-2 text-grey-600">{r.details}</span> },
+                  { id: 'details', header: 'Details', className: 'max-w-[260px]', renderCell: (r) => <span className="line-clamp-2 text-grey-500 text-xs">{r.details}</span> },
                 ]}
                 rows={auditLogs}
                 rowKey={(r) => r.id}

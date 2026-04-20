@@ -126,6 +126,28 @@ export class AuthService {
   }
 
   /**
+   * setPassword sets a new password for a user.
+   * The caller must be pre-validated by RecoveryTokenGuard, which
+   * resolves the userId from the recovery token before this runs.
+   */
+  async setPassword(userId: string, password: string) {
+    if (password.length < 8) {
+      throw new BadRequestException('Password must be at least 8 characters.');
+    }
+
+    const { error } = await this.databaseService.client.auth.admin.updateUserById(
+      userId,
+      { password },
+    );
+
+    if (error) {
+      throw new BadRequestException(error.message || 'Failed to set password.');
+    }
+
+    return { message: 'Password set successfully.' };
+  }
+
+  /**
    * logout invalidates the Supabase session server-side.
    */
   async logout() {
