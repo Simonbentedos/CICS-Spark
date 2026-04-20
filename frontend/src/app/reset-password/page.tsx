@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { setPassword } from '@/lib/api/auth'
 import { Button, Input, Label } from '@/components/ui'
 import Image from 'next/image'
 
@@ -11,24 +11,22 @@ type Stage = 'loading' | 'form' | 'success' | 'error'
 export default function ResetPasswordPage() {
   const router = useRouter()
   const [stage, setStage] = useState<Stage>('loading')
-  const [password, setPassword] = useState('')
+  const [accessToken, setAccessToken] = useState('')
+  const [password, setPasswordValue] = useState('')
   const [confirm, setConfirm] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     // Supabase puts the access_token in the URL hash after redirecting
-    const hash = window.location.hash
-    if (hash.includes('access_token') && hash.includes('type=recovery')) {
-      // Supabase client automatically picks up the session from the URL hash
-      const supabase = createClient()
-      supabase.auth.getSession().then(({ data }) => {
-        if (data.session) {
-          setStage('form')
-        } else {
-          setStage('error')
-        }
-      })
+    const hash = window.location.hash.slice(1)
+    const params = new URLSearchParams(hash)
+    const token = params.get('access_token')
+    const type = params.get('type')
+
+    if (token && type === 'recovery') {
+      setAccessToken(token)
+      setStage('form')
     } else {
       setStage('error')
     }
@@ -41,14 +39,12 @@ export default function ResetPasswordPage() {
 
     setSubmitting(true)
     setError(null)
-    const supabase = createClient()
-    const { error: updateError } = await supabase.auth.updateUser({ password })
-
-    if (updateError) {
-      setError(updateError.message)
-      setSubmitting(false)
-    } else {
+    try {
+      await setPassword(accessToken, password)
       setStage('success')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to set password.')
+      setSubmitting(false)
     }
   }
 
@@ -87,7 +83,7 @@ export default function ResetPasswordPage() {
                 id="password"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => setPasswordValue(e.target.value)}
                 placeholder="Minimum 8 characters"
                 className="h-11"
               />

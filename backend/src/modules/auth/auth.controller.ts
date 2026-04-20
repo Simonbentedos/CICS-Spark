@@ -5,6 +5,7 @@ import { LoginDto } from './dto/login.dto';
 import { SupabaseGuard } from './supabase.guard';
 import { RolesGuard } from './roles.guard';
 import { Roles } from './roles.decorator';
+import { RecoveryTokenGuard } from './recovery-token.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -59,6 +60,19 @@ export class AuthController {
       body.currentPassword,
       body.newPassword,
     );
+  }
+
+  /**
+   * POST /api/auth/set-password
+   * Recovery-token protected. RecoveryTokenGuard validates the access_token
+   * from the request body and attaches req.recovery_user before this runs.
+   * Called from the /reset-password page after a recovery email link is clicked.
+   */
+  @Post('set-password')
+  @UseGuards(RecoveryTokenGuard)
+  @HttpCode(200)
+  setPassword(@Request() req: any, @Body() body: { password: string }) {
+    return this.authService.setPassword(req.recovery_user.id, body.password);
   }
 
   /**

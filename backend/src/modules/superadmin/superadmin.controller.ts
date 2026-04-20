@@ -1,4 +1,4 @@
-import { Controller, Post, Put, Patch, Get, Param, Body, UseGuards, Query } from '@nestjs/common';
+import { Controller, Post, Put, Patch, Delete, Get, Param, Body, UseGuards, Query } from '@nestjs/common';
 import { SuperadminService } from './superadmin.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { CreateStudentDto } from './dto/create-student.dto';
@@ -20,6 +20,16 @@ export class SuperadminController {
   @Roles('super_admin')
   disableUser(@Param('id') id: string) {
     return this.superadminService.disableUser(id);
+  }
+
+  /**
+   * PATCH /api/superadmin/users/:id/enable
+   * super_admin only. Re-activates a disabled admin or student account.
+   */
+  @Patch('users/:id/enable')
+  @Roles('super_admin')
+  enableUser(@Param('id') id: string) {
+    return this.superadminService.enableUser(id);
   }
 
   /**
@@ -50,6 +60,16 @@ export class SuperadminController {
   @Roles('super_admin')
   createAdmin(@Body() createAdminDto: CreateAdminDto) {
     return this.superadminService.createAdmin(createAdminDto);
+  }
+
+  /**
+   * DELETE /api/superadmin/submissions/:id
+   * super_admin only. Permanently deletes a submission and its PDF.
+   */
+  @Delete('submissions/:id')
+  @Roles('super_admin')
+  deleteSubmission(@Param('id') id: string) {
+    return this.superadminService.deleteSubmission(id);
   }
 
   /**

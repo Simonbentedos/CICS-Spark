@@ -24,7 +24,7 @@ export default function AdminDataTable<RowT>({
   minWidthClassName = 'min-w-[920px]',
 }: Readonly<AdminDataTableProps<RowT>>) {
   return (
-    <div className="overflow-x-auto rounded-md border border-grey-200">
+    <div className="overflow-x-auto rounded-md border border-grey-200 pb-px">
       <table className={cn('w-full border-collapse text-xs text-grey-700', minWidthClassName)}>
         <caption className="sr-only">Administrative records table</caption>
         <thead className="bg-grey-50 text-[11px] uppercase tracking-wide text-grey-500">
