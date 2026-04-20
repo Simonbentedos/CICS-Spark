@@ -78,7 +78,6 @@ const policySections: PolicySection[] = [
     ],
   },
   {
-    title: 'Corrections, Takedown, and Review',
     title: 'Take-Down Policy',
     paragraphs: [
       'Requests for metadata updates, access modifications, or removal of materials are evaluated individually, taking into account institutional policies, legal obligations, and records management requirements.',

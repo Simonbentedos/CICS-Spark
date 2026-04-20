@@ -57,7 +57,7 @@ const privacyPolicySections = [
       'The repository also utilizes the following external services for communications and interoperability:',
     ],
     bullets: [
-      'Gmail SMTP: Handles welcome emails, temporary passwords, full-text notifications, and denial emails.',
+      'SMTP: Handles email services.',
       'OAI-PMH Harvesters: Enables external platforms such as Google Scholar, library catalogs, and academic aggregators to discover and index repository metadata via standard protocols.',
     ],
     postParagraphs: [
@@ -80,7 +80,7 @@ const privacyPolicySections = [
   {
     title: '8. Contact Information',
     paragraphs: [
-      'For questions or concerns regarding this Privacy Policy, please contact the College of Information and Computing Sciences Administrators and Staffs, Saint Pier Giorgio Frassati, O.P. Building, University of Santo Tomas, Espana Boulevard, Sampaloc, Manila.',
+      'For questions or concerns regarding this Privacy Policy, please contact the College of Information and Computing Sciences Administrators and Staffs. The CICS Office is located at the 2nd floor of the Saint Pier Giorgio Frassati, O.P. Building, University of Santo Tomas, Espana Boulevard, Sampaloc, Manila.',
     ],
   },
 ]
@@ -169,4 +169,4 @@ export default function PrivacyPolicyPage() {
     </div>
   )
 }
-
+
