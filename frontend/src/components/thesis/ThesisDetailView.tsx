@@ -62,8 +62,6 @@ export default function ThesisDetailView({ collectionTitle, entry, documentId, o
             <DetailRow label="College" value={detail.college} />
             <DetailRow label="Department/Unit" value={detail.departmentUnit} />
             <DetailRow label="Thesis Advisor" value={detail.thesisAdvisor} />
-            <DetailRow label="Defense Panel Chair" value={detail.defensePanelChair} />
-            <DetailRow label="Defense Panel Member" value={detail.defensePanelMembers} />
             <DetailRow label="Abstract/Summary" value={detail.abstractSummary} />
             <DetailRow label="Language" value={detail.language} />
             <DetailRow label="Format" value={detail.format} />

@@ -42,8 +42,6 @@ function emptyDraft(): SubmissionDraft {
     trackSpecialization: '',
     degree: '',
     thesisAdvisor: '',
-    panelChair: '',
-    panelMembers: '',
     keywords: '',
     abstract: '',
     fileName: '',
@@ -138,8 +136,7 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
   const step = isSubmissionStepKey(params.step) ? STUDENT_STEPS[params.step] : undefined
 
   const [draft, setDraft] = useState<SubmissionDraft>(() => {
-    // Step 1 always starts fresh — never pre-fill from a previous submission
-    const base = params.step === 'basic-info' ? emptyDraft() : loadDraft()
+    const base = loadDraft()
     // Department and degree come from the student's account (read-only in the form)
     if (!base.department) {
       const session = getStudentSession()

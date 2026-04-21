@@ -41,7 +41,7 @@ export default function AdminSubmissionFilters({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all-departments">All Departments</SelectItem>
-          {departments.map((item) => (
+          {departments.filter((item) => item !== 'all-departments').map((item) => (
             <SelectItem key={item} value={item}>{item}</SelectItem>
           ))}
         </SelectContent>

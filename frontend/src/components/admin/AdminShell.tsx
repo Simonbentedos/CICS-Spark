@@ -38,6 +38,7 @@ export default function AdminShell({ children }: Readonly<{ children: React.Reac
   const [sessionName, setSessionName] = useState(ADMIN_PROFILE.name)
   const [sessionEmail, setSessionEmail] = useState(ADMIN_PROFILE.email)
   const [departmentCode, setDepartmentCode] = useState<'cs' | 'it' | 'is'>('cs')
+  const [role, setRole] = useState<'admin' | 'super_admin'>('admin')
   const [showChangePassword, setShowChangePassword] = useState(false)
   const theme = getAdminTheme(departmentCode)
   const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -53,6 +54,7 @@ export default function AdminShell({ children }: Readonly<{ children: React.Reac
     setSessionName(session.name)
     setSessionEmail(session.email)
     setDepartmentCode(session.departmentCode)
+    setRole(session.role)
     setAuthorized(true)
 
     // Prevent double scrollbar by locking the main document body.
@@ -63,6 +65,32 @@ export default function AdminShell({ children }: Readonly<{ children: React.Reac
       document.body.style.overflow = ''
     }
   }, [router])
+
+  // Silently refresh the Supabase token every 50 minutes
+  useEffect(() => {
+    if (!authorized) return
+
+    async function refresh() {
+      const session = getAdminSession()
+      if (!session?.refreshToken) return
+      try {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:5000'
+        const res = await fetch(`${backendUrl}/api/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: session.refreshToken }),
+        })
+        if (!res.ok) return
+        const data = await res.json()
+        setAdminSession({ ...session, token: data.access_token, refreshToken: data.refresh_token })
+      } catch {
+        // silent — next real API call will handle expiry
+      }
+    }
+
+    const interval = setInterval(refresh, 50 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [authorized])
 
   // Auto-logout after 30 minutes of inactivity
   useEffect(() => {
@@ -126,7 +154,7 @@ export default function AdminShell({ children }: Readonly<{ children: React.Reac
         <aside className="flex w-[255px] min-h-0 shrink-0 flex-col border-r border-grey-200 bg-white" aria-label="Admin sidebar">
           <nav className="flex-1 overflow-y-auto px-4 py-4" aria-label="Admin primary navigation">
             <div className="space-y-1">
-              {ADMIN_NAV_ITEMS.map((item) => {
+              {ADMIN_NAV_ITEMS.filter((item) => item.icon !== 'settings' || role === 'super_admin').map((item) => {
               const Icon = iconMap[item.icon]
               const active = pathname === item.href ||
                 (item.href === '/admin/submissions' && pathname.startsWith('/admin/submissions/')) ||

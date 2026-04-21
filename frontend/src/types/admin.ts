@@ -49,8 +49,6 @@ export interface SubmissionDraft {
   trackSpecialization: string
   degree: string
   thesisAdvisor: string
-  panelChair: string
-  panelMembers: string
   keywords: string
   abstract: string
   fileName: string
@@ -114,6 +112,7 @@ export interface AdminSession {
   departmentName: string
   role: 'admin' | 'super_admin'
   token: string
+  refreshToken?: string
   loginAt: string
 }
 
