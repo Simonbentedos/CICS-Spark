@@ -91,20 +91,6 @@ NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
 
 ---
 
-## Test Accounts
-
-These accounts are already in the database. Use them to log in and test the system.
-
-| Role | Email | Password | Department |
-|---|---|---|---|
-| Super Admin | `superadmin@spark.test` | `Password123!` | All departments |
-| Admin | `cs-admin@spark.test` | `Password123!` | Computer Science |
-| Admin | `it-admin@spark.test` | `Password123!` | Information Technology |
-| Admin | `is-admin@spark.test` | `Password123!` | Information Systems |
-| Student | `student.cs@spark.test` | `Password123!` | Computer Science |
-| Student | `student.it@spark.test` | `Password123!` | Information Technology |
-| Student | `student.is@spark.test` | `Password123!` | Information Systems |
-
 **Where to log in:**
 - Super Admin and Admin → `http://localhost:3000/login`
 - Student → `http://localhost:3000/student/login`
