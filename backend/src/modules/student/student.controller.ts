@@ -18,7 +18,7 @@ import { SupabaseGuard } from '../auth/supabase.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
 
 @Controller('student')
 @UseGuards(SupabaseGuard, RolesGuard)

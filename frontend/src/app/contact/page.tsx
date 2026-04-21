@@ -12,8 +12,8 @@ export default function ContactPage() {
           <h1 className="font-heading text-[30px] text-[#555] mb-3">Contact Repository Support</h1>
           <p className="font-body text-[14px] text-[#555] mb-5">For account, submission, and metadata concerns, use the channels below.</p>
           <div className="space-y-2 font-body text-[14px] text-[#555]">
-            <p>Email: spark-support@ust.edu.ph</p>
-            <p>Office: CICS Research and Repository Unit</p>
+            <p>Email: cics.sparkrepository@gmail.com</p>
+            <p>Office: 2/F Saint Pier Giorgio Frassati, O.P. Building</p>
             <p>Hours: Monday to Friday, 8:00 AM - 5:00 PM</p>
           </div>
         </main>

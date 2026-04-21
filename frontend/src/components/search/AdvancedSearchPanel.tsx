@@ -105,8 +105,13 @@ export default function AdvancedSearchPanel({
     if (!parsedFromDate && !parsedToDate) return true
     const entryDate = parseEntryYear(entry)
     if (!entryDate) return false
-    if (parsedFromDate && entryDate < startOfDay(parsedFromDate)) return false
-    if (parsedToDate && entryDate > endOfDay(parsedToDate)) return false
+    // If the entry date is year-only (stored as Jan 1), treat it as spanning the full year
+    // so a 2021 document matches any date range that overlaps 2021
+    const isYearOnly = /^\d{4}$/.test(entry.date.trim())
+    const entryStart = isYearOnly ? new Date(entryDate.getFullYear(), 0, 1) : entryDate
+    const entryEnd = isYearOnly ? new Date(entryDate.getFullYear(), 11, 31) : entryDate
+    if (parsedFromDate && entryEnd < startOfDay(parsedFromDate)) return false
+    if (parsedToDate && entryStart > endOfDay(parsedToDate)) return false
     return true
   })
 

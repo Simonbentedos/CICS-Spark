@@ -3,6 +3,9 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { SupabaseGuard } from './supabase.guard';
+import { RolesGuard } from './roles.guard';
+import { Roles } from './roles.decorator';
+import { RecoveryTokenGuard } from './recovery-token.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -57,5 +60,53 @@ export class AuthController {
       body.currentPassword,
       body.newPassword,
     );
+  }
+
+  /**
+   * POST /api/auth/refresh
+   * Public. Exchanges a refresh_token for a new access_token + refresh_token pair.
+   */
+  @Post('refresh')
+  @HttpCode(200)
+  refreshSession(@Body() body: { refresh_token: string }) {
+    return this.authService.refreshSession(body.refresh_token ?? '');
+  }
+
+  /**
+   * POST /api/auth/set-password
+   * Recovery-token protected. RecoveryTokenGuard validates the access_token
+   * from the request body and attaches req.recovery_user before this runs.
+   * Called from the /reset-password page after a recovery email link is clicked.
+   */
+  @Post('set-password')
+  @UseGuards(RecoveryTokenGuard)
+  @HttpCode(200)
+  setPassword(@Request() req: any, @Body() body: { password: string }) {
+    return this.authService.setPassword(req.recovery_user.id, body.password);
+  }
+
+  /**
+   * POST /api/auth/password-reset-request
+   * Protected. Student or admin submits a password reset request for super admin approval.
+   * Only one pending request per user is allowed at a time.
+   */
+  @UseGuards(SupabaseGuard, RolesGuard)
+  @Roles('student', 'admin')
+  @Post('password-reset-request')
+  @HttpCode(201)
+  requestPasswordReset(@Request() req: any) {
+    return this.authService.requestPasswordReset(req.user);
+  }
+
+  /**
+   * POST /api/auth/forgot-password
+   * Public. Accepts an email and creates a password reset request if the account exists.
+   * Always returns a generic success message to avoid leaking account existence.
+   */
+  @Post('forgot-password')
+  @HttpCode(200)
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
+  forgotPassword(@Body() body: { email: string }) {
+    return this.authService.forgotPassword(body.email ?? '');
   }
 }

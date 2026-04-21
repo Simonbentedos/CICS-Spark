@@ -59,18 +59,23 @@ export default function ThesisDetailView({ collectionTitle, entry, documentId, o
             <DetailRow label="Date of Publication" value={detail.publicationDate} />
             <DetailRow label="Document Type" value={detail.documentType} />
             <DetailRow label="Degree Name" value={detail.degreeName} />
-            <DetailRow label="Subject Categories" value={detail.subjectCategories} />
             <DetailRow label="College" value={detail.college} />
             <DetailRow label="Department/Unit" value={detail.departmentUnit} />
             <DetailRow label="Thesis Advisor" value={detail.thesisAdvisor} />
-            <DetailRow label="Defense Panel Chair" value={detail.defensePanelChair} />
-            <DetailRow label="Defense Panel Member" value={detail.defensePanelMembers} />
             <DetailRow label="Abstract/Summary" value={detail.abstractSummary} />
             <DetailRow label="Language" value={detail.language} />
             <DetailRow label="Format" value={detail.format} />
             <DetailRow label="Keywords" value={detail.keywords} />
-            <DetailRow label="Recommended Citation" value={detail.recommendedCitation} />
-            <DetailRow label="Embargo Period" value={detail.embargoPeriod} />
+            {detail.citationParts ? (
+              <section className="space-y-1">
+                <h3 className="font-body text-[14px] leading-[12px] font-semibold text-navy">Recommended Citation</h3>
+                <p className="text-[12px] leading-[18px] text-[#888888]">
+                  {detail.citationParts.pre}<em>{detail.citationParts.title}</em>{detail.citationParts.post}
+                </p>
+              </section>
+            ) : (
+              <DetailRow label="Recommended Citation" value={detail.recommendedCitation} />
+            )}
           </div>
         </div>
 

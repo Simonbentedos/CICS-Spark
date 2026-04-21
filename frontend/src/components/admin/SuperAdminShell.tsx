@@ -5,10 +5,12 @@ import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import {
+  BarChart2,
   FolderOpen,
   KeyRound,
   LayoutGrid,
   LogOut,
+  ShieldAlert,
   Settings,
   Users,
 } from 'lucide-react'
@@ -22,6 +24,8 @@ const NAV_ITEMS = [
   { href: '/superadmin/dashboard', label: 'Dashboard', icon: LayoutGrid },
   { href: '/superadmin/users', label: 'User Management', icon: Users },
   { href: '/superadmin/submissions', label: 'All Submissions', icon: FolderOpen },
+  { href: '/superadmin/password-reset-requests', label: 'Password Requests', icon: ShieldAlert },
+  { href: '/superadmin/reports', label: 'Reports', icon: BarChart2 },
   { href: '/superadmin/settings', label: 'Settings', icon: Settings },
 ] as const
 
@@ -42,6 +46,9 @@ export default function SuperAdminShell({ children }: Readonly<{ children: React
     setSessionName(session.name)
     setSessionEmail(session.email)
     setAuthorized(true)
+
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
   }, [router])
 
   if (!authorized) return null
@@ -53,7 +60,7 @@ export default function SuperAdminShell({ children }: Readonly<{ children: React
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-bg-grey">
+    <div className="flex fixed inset-0 flex-col overflow-hidden bg-bg-grey">
       <div className="h-3 bg-cics-maroon" />
 
       <header className="border-b border-grey-200 bg-white px-6 py-3" aria-label="Super Admin context bar">

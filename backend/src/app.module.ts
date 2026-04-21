@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
+import { CleanupModule } from './modules/cleanup/cleanup.module';
 
 // Auth & RBAC
 import { AuthModule } from './modules/auth/auth.module';
@@ -43,6 +45,8 @@ import { OaiModule } from './modules/oai/oai.module';
     // Global rate limiting: 100 req / 60 s per IP
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
 
+    ScheduleModule.forRoot(),
+
     DatabaseModule,
 
     // Auth + RBAC (login, logout, /me, guards)
@@ -78,6 +82,9 @@ import { OaiModule } from './modules/oai/oai.module';
 
     // OAI-PMH metadata harvesting
     OaiModule,
+
+    // Nightly cleanup of stale rejected submissions
+    CleanupModule,
   ],
   controllers: [AppController],
   providers: [

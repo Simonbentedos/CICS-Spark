@@ -143,7 +143,7 @@ export default function StudentDashboardPage() {
                     return (
                     <tr key={doc.id} className="hover:bg-grey-50 transition-colors">
                       <td className="max-w-[280px] px-4 py-3.5">
-                        <p className="line-clamp-2 text-sm font-medium text-grey-800">{doc.title}</p>
+                        <p className="text-sm font-medium text-grey-800">{doc.title}</p>
                         {doc.track_specialization && (
                           <p className="mt-0.5 text-xs text-grey-500">{doc.track_specialization}</p>
                         )}
@@ -167,7 +167,7 @@ export default function StudentDashboardPage() {
                       <td className="max-w-[240px] px-4 py-3.5">
                         {latestFeedback ? (
                           <div className={`rounded-md px-2 py-1.5 ${doc.status === 'rejected' ? 'bg-red-50' : 'bg-violet-50'}`}>
-                            <p className={`line-clamp-2 text-xs ${doc.status === 'rejected' ? 'text-red-700' : 'text-violet-700'}`}>
+                            <p className={`text-xs ${doc.status === 'rejected' ? 'text-red-700' : 'text-violet-700'}`}>
                               {latestFeedback}
                             </p>
                           </div>

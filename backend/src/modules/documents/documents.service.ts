@@ -107,9 +107,9 @@ export class DocumentsService {
       throw new NotFoundException('Document not found or access denied.');
     }
 
-    if (existing.status !== 'revision') {
+    if (existing.status !== 'revision' && existing.status !== 'rejected') {
       throw new ForbiddenException(
-        `Only documents with status 'revision' can be re-submitted. Current status: '${existing.status}'.`,
+        `Only documents with status 'revision' or 'rejected' can be re-submitted. Current status: '${existing.status}'.`,
       );
     }
 

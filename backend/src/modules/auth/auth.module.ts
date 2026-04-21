@@ -5,11 +5,12 @@ import { DatabaseModule } from '../../database/database.module';
 import { SupabaseGuard } from './supabase.guard';
 import { RolesGuard } from './roles.guard';
 import { DepartmentGuard } from './department.guard';
+import { RecoveryTokenGuard } from './recovery-token.guard';
 
 @Module({
   imports: [DatabaseModule],
-  providers: [AuthService, SupabaseGuard, RolesGuard, DepartmentGuard],
+  providers: [AuthService, SupabaseGuard, RolesGuard, DepartmentGuard, RecoveryTokenGuard],
   controllers: [AuthController],
-  exports: [SupabaseGuard, RolesGuard, DepartmentGuard],
+  exports: [SupabaseGuard, RolesGuard, DepartmentGuard, RecoveryTokenGuard],
 })
 export class AuthModule {}

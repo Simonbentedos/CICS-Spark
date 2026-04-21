@@ -78,13 +78,13 @@ export default function Home() {
           </div>
           
           {/* Description */}
-          <p className="font-body text-body-sm text-grey-700 leading-relaxed mb-6">
-            The SPARK Repository (System for Preserving Academic Research and Knowledge) is a digital repository of theses, capstone projects, and scholarly outputs of the faculty, students, and researchers of the University of Santo Tomas College of Information and Computing Sciences.
+          <p className="font-body text-body-sm text-grey-700 leading-relaxed mb-6 text-justify">
+            The SPARK Repository (System for Preserving Academic Research and Knowledge) is a digital repository of theses, capstone projects, and scholarly outputs of the students and researchers of the College of Information and Computing Sciences, University of Santo Tomas.
           </p>
           
           {/* Section Title */}
           <h2 className="font-heading text-h2 text-navy mb-8">
-            Browse Research and Scholarship
+            Browse Repository
           </h2>
           
           {/* Action Cards Grid */}

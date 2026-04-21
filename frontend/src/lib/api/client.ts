@@ -7,17 +7,20 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:500
 
 function getStoredToken(): string | null {
   if (typeof window === 'undefined') return null
-  // Try admin session first, then student session
+  const isStudentPath = window.location.pathname.startsWith('/student')
   try {
-    const admin = localStorage.getItem('spark_admin_session')
-    if (admin) {
-      const parsed = JSON.parse(admin)
-      if (parsed?.token) return parsed.token
-    }
-    const student = localStorage.getItem('spark_student_session')
-    if (student) {
-      const parsed = JSON.parse(student)
-      if (parsed?.token) return parsed.token
+    if (isStudentPath) {
+      const student = localStorage.getItem('spark_student_session')
+      if (student) {
+        const parsed = JSON.parse(student)
+        if (parsed?.token) return parsed.token
+      }
+    } else {
+      const admin = localStorage.getItem('spark_admin_session')
+      if (admin) {
+        const parsed = JSON.parse(admin)
+        if (parsed?.token) return parsed.token
+      }
     }
   } catch {
     return null
@@ -59,6 +62,15 @@ export async function apiRequest<T = unknown>(
   })
 
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== 'undefined') {
+      // Token expired — clear session and redirect to the appropriate login page
+      localStorage.removeItem('spark_admin_session')
+      localStorage.removeItem('spark_student_session')
+      const isStudentPath = window.location.pathname.startsWith('/student')
+      window.location.href = isStudentPath ? '/student/login' : '/login'
+      throw new ApiError('Session expired. Redirecting to login…', 401)
+    }
+
     let message = `Request failed: ${res.status} ${res.statusText}`
     try {
       const err = await res.json()

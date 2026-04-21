@@ -38,15 +38,15 @@ const faqCategories: FaqCategory[] = [
     heading: 'Basics',
     items: [
       {
-        question: 'What is an Institutional Repository?',
-        answer: 'An Institutional Repository is a digital archive that preserves and provides access to the scholarly and institutional output of the college.',
+        question: 'What is a Digital Repository?',
+        answer: 'A Digital Repository is a digital archive that preserves and provides access to the scholarly and institutional output of the college.',
       },
       {
-        question: 'What is SPARK @USTCICS?',
-        answer: 'SPARK @USTCICS is the College of Information and Computing Sciences Repository platform for storing and sharing approved academic outputs.',
+        question: 'What is SPARK?',
+        answer: "SPARK is the College of Information and Computing Sciences' platform for storing and sharing approved academic outputs.",
       },
       {
-        question: 'Why should I submit my work to SPARK @USTCICS?',
+        question: 'Why should I submit my work to SPARK?',
         answer: 'Submitting your work improves discoverability, supports long-term preservation, and contributes to institutional knowledge.',
       },
     ],
@@ -98,36 +98,9 @@ const faqCategories: FaqCategory[] = [
     ],
   },
   {
-    key: 'embargo',
-    label: 'Embargo (5)',
-    heading: 'Embargo',
-    items: [
-      {
-        question: 'What is an embargo?',
-        answer: 'An embargo temporarily restricts full-text access while allowing metadata visibility in the repository.',
-      },
-      {
-        question: 'How long can an embargo last?',
-        answer: 'Embargo duration follows approved institutional policy and may be renewable when justified.',
-      },
-      {
-        question: 'Who approves embargo requests?',
-        answer: 'Embargo approvals are processed by the authorized academic and repository offices.',
-      },
-      {
-        question: 'Can I lift an embargo early?',
-        answer: 'Early lifting may be requested and is subject to institutional review and approval.',
-      },
-      {
-        question: 'What is visible during embargo?',
-        answer: 'Typically, bibliographic metadata stays visible while full text remains restricted.',
-      },
-    ],
-  },
-  {
     key: 'search',
-    label: 'Searching SPARK@USTCICS (3)',
-    heading: 'Searching SPARK@USTCICS',
+    label: 'Searching SPARK Repository (3)',
+    heading: 'Searching SPARK Repository',
     items: [
       {
         question: 'How do I search by keyword?',
@@ -187,8 +160,8 @@ function FaqSection({ heading, items }: Readonly<{ heading: string; items: FaqIt
 
           return (
             <AccordionItem key={item.question} value={value} className="border-b border-[#888888]">
-              <AccordionTrigger className="w-full min-h-[34px] px-[10px] py-[6px] hover:no-underline">
-                <span className={`inline-flex items-center gap-[10px] font-body text-[12px] leading-[18px] transition-colors duration-200 ${isOpen ? 'text-cics-maroon' : 'text-[#888888] hover:text-cics-maroon'}`}>
+              <AccordionTrigger className="w-full min-h-[40px] px-[12px] py-[8px] hover:no-underline">
+                <span className={`inline-flex items-center gap-[12px] font-body text-[14px] leading-[20px] transition-colors duration-200 ${isOpen ? 'text-cics-maroon' : 'text-[#888888] hover:text-cics-maroon'}`}>
                   <BookOpen className="h-4 w-4 transition-colors duration-200" strokeWidth={1.5} />
                   {item.question}
                 </span>
@@ -196,7 +169,7 @@ function FaqSection({ heading, items }: Readonly<{ heading: string; items: FaqIt
               </AccordionTrigger>
 
               <AccordionContent>
-                <TypographyP className="px-[10px] py-[8px] text-[12px] leading-[20px] text-[#888888]">
+                <TypographyP className="px-[12px] py-[10px] text-[14px] leading-[22px] text-[#888888]">
                   {item.answer}
                 </TypographyP>
               </AccordionContent>
@@ -232,11 +205,11 @@ export default function FaqContent() {
               key={category.key}
               type="button"
               onClick={() => setActiveCategoryKey(category.key)}
-              className="w-full h-[30px] inline-flex items-center gap-[6px] text-left transition-colors duration-200"
+              className="w-full min-h-[36px] py-1.5 inline-flex items-start gap-[8px] text-left transition-colors duration-200"
             >
-              <ChevronRight className={`h-3.5 w-3.5 transition-colors duration-200 ${activeCategoryKey === category.key ? 'text-cics-maroon' : 'text-[#888888]'}`} strokeWidth={1.5} />
+              <ChevronRight className={`h-4 w-4 mt-[2px] shrink-0 transition-colors duration-200 ${activeCategoryKey === category.key ? 'text-cics-maroon' : 'text-[#888888]'}`} strokeWidth={1.5} />
               <span
-                className={`font-body text-[12px] leading-[30px] transition-colors duration-200 ${
+                className={`font-body text-[14px] leading-[20px] transition-colors duration-200 ${
                   activeCategoryKey === category.key ? 'text-cics-maroon' : 'text-[#888888] hover:text-cics-maroon'
                 }`}
               >

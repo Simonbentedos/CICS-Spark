@@ -33,14 +33,13 @@ export type ThesisDetail = {
   college: string
   departmentUnit: string
   thesisAdvisor: string
-  defensePanelChair: string
-  defensePanelMembers: string[]
   abstractSummary: string[]
   language: string
   format: string
   keywords: string
   recommendedCitation: string
-  embargoPeriod: string
+  /** Structured parts for rendering the title in italics per APA style */
+  citationParts?: { pre: string; title: string; post: string }
 }
 
 export function resolveThesisDetail(entry: ThesisEntry): ThesisDetail {
@@ -56,14 +55,11 @@ export function resolveThesisDetail(entry: ThesisEntry): ThesisDetail {
     college: 'College of Information and Computing Sciences',
     departmentUnit: 'Department of Computer Science',
     thesisAdvisor: 'Not provided',
-    defensePanelChair: 'Not provided',
-    defensePanelMembers: ['Not provided'],
     abstractSummary: [entry.abstract],
     language: 'English',
     format: 'Electronic',
     keywords: entry.tags,
     recommendedCitation: `${entry.authors}. ${entry.title}`,
-    embargoPeriod: 'None',
   }
 }
 

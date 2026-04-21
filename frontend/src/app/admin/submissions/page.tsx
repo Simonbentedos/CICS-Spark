@@ -101,18 +101,20 @@ export default function AdminSubmissionsPage() {
       {
         id: 'authors',
         header: 'Authors',
+        className: 'max-w-[260px]',
         renderCell: (doc: ApiDocument) => {
-          let authors = doc.authors
-          if (typeof authors === 'string') { try { authors = JSON.parse(authors) } catch { authors = [authors] } }
-          return (Array.isArray(authors) ? authors : []).slice(0, 2).join(', ') || '—'
+          const raw: unknown = doc.authors
+          const list = Array.isArray(raw) ? raw : typeof raw === 'string' ? (() => { try { return JSON.parse(raw) } catch { return [raw] } })() : []
+          return (list as string[]).join(', ') || '—'
         },
       },
-      { id: 'department', header: 'Dept', renderCell: (doc: ApiDocument) => doc.department },
+      { id: 'department', header: 'Dept', className: 'whitespace-nowrap', renderCell: (doc: ApiDocument) => doc.department },
       {
         id: 'date',
         header: 'Submitted',
+        className: 'whitespace-nowrap',
         renderCell: (doc: ApiDocument) => (
-          <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center gap-1 whitespace-nowrap">
             <CalendarDays className="h-3.5 w-3.5 text-grey-500" />
             {new Date(doc.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </span>
@@ -121,6 +123,7 @@ export default function AdminSubmissionsPage() {
       {
         id: 'status',
         header: 'Status',
+        className: 'whitespace-nowrap',
         renderCell: (doc: ApiDocument) => {
           const label = STATUS_LABEL[doc.status] ?? doc.status
           return <AdminBadge label={label} tone={getSubmissionStatusTone(label as any)} />

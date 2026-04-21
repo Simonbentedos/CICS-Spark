@@ -2,9 +2,14 @@
   "name": "cics-spark",
   "version": "1.0.0",
   "description": "",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
   "main": "index.js",
   "scripts": {
-    "dev": "concurrently \"npm run start:dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "dev": "concurrently --names \"Backend,Frontend\" --prefix \"[{name}]\" --prefix-colors \"blue,cyan\" \"npm run start:dev --prefix backend\" \"npm run dev --prefix frontend\"",
     "seed": "node backend/scripts/seed.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

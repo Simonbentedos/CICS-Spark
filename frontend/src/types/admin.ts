@@ -31,14 +31,24 @@ export interface SubmissionDraft {
   firstName: string
   middleName: string
   lastName: string
+  author2FirstName: string
+  author2MiddleName: string
+  author2LastName: string
+  author3FirstName: string
+  author3MiddleName: string
+  author3LastName: string
+  author4FirstName: string
+  author4MiddleName: string
+  author4LastName: string
+  author5FirstName: string
+  author5MiddleName: string
+  author5LastName: string
   publishedOn: string
   department: string
   documentType: string
   trackSpecialization: string
   degree: string
   thesisAdvisor: string
-  panelChair: string
-  panelMembers: string
   keywords: string
   abstract: string
   fileName: string
@@ -102,6 +112,7 @@ export interface AdminSession {
   departmentName: string
   role: 'admin' | 'super_admin'
   token: string
+  refreshToken?: string
   loginAt: string
 }
 
