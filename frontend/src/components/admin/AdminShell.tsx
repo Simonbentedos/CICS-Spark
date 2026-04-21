@@ -15,7 +15,7 @@ import {
   Inbox,
 } from 'lucide-react'
 import { ADMIN_NAV_ITEMS, ADMIN_PROFILE, cn, getAdminTopTitle } from '@/lib/utils'
-import { clearAdminSession, getAdminSession } from '@/lib/admin/session'
+import { clearAdminSession, getAdminSession, setAdminSession } from '@/lib/admin/session'
 import { getAdminTheme } from '@/lib/admin/theme'
 import { logout } from '@/lib/api/auth'
 import { getMyPermissions, type Permission } from '@/lib/api/permissions'
@@ -197,7 +197,7 @@ export default function AdminShell({ children }: Readonly<{ children: React.Reac
         <aside className="flex w-[255px] min-h-0 shrink-0 flex-col border-r border-grey-200 bg-white" aria-label="Admin sidebar">
           <nav className="flex-1 overflow-y-auto px-4 py-4" aria-label="Admin primary navigation">
             <div className="space-y-1">
-              {ADMIN_NAV_ITEMS.filter((item) => item.icon !== 'settings' || role === 'super_admin').map((item) => {
+              {visibleNavItems.map((item) => {
               const Icon = iconMap[item.icon]
               const active = pathname === item.href ||
                 (item.href === '/admin/submissions' && pathname.startsWith('/admin/submissions/')) ||

@@ -6,7 +6,6 @@ export type Permission =
   | 'submissions.delete'
   | 'users.view'
   | 'users.create'
-  | 'users.edit'
   | 'reports.view'
   | 'reports.export'
   | 'fulltext.manage'

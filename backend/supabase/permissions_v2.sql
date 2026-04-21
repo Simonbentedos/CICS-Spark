@@ -22,7 +22,6 @@ CREATE TABLE admin_permissions (
   -- User Management Permissions
   users_view BOOLEAN DEFAULT true,
   users_create BOOLEAN DEFAULT true,
-  users_edit BOOLEAN DEFAULT false,
   
   -- Reports & Analytics Permissions
   reports_view BOOLEAN DEFAULT true,
@@ -52,7 +51,7 @@ CREATE POLICY "Super admins can manage all permissions"
   USING (
     EXISTS (
       SELECT 1 FROM users
-      WHERE users.id = (SELECT id FROM users WHERE id = auth.uid())
+      WHERE users.id = auth.uid()
       AND users.role = 'super_admin'
     )
   );
@@ -61,9 +60,7 @@ CREATE POLICY "Super admins can manage all permissions"
 CREATE POLICY "Admins can view their own permissions"
   ON admin_permissions
   FOR SELECT
-  USING (
-    user_id = (SELECT id FROM users WHERE id = auth.uid())
-  );
+  USING (user_id = auth.uid());
 
 -- ============================================================================
 -- HELPER FUNCTIONS
@@ -94,8 +91,6 @@ BEGIN
       SELECT users_view INTO result FROM admin_permissions WHERE user_id = check_user_id;
     WHEN 'users.create' THEN
       SELECT users_create INTO result FROM admin_permissions WHERE user_id = check_user_id;
-    WHEN 'users.edit' THEN
-      SELECT users_edit INTO result FROM admin_permissions WHERE user_id = check_user_id;
     WHEN 'reports.view' THEN
       SELECT reports_view INTO result FROM admin_permissions WHERE user_id = check_user_id;
     WHEN 'reports.export' THEN
@@ -126,7 +121,6 @@ BEGIN
       submissions_delete,
       users_view,
       users_create,
-      users_edit,
       reports_view,
       reports_export,
       fulltext_manage
@@ -138,7 +132,6 @@ BEGIN
       false,  -- submissions_delete
       true,   -- users_view
       false,  -- users_create
-      false,  -- users_edit
       true,   -- reports_view
       true,   -- reports_export
       true    -- fulltext_manage
@@ -170,7 +163,6 @@ INSERT INTO admin_permissions (
   submissions_delete,
   users_view,
   users_create,
-  users_edit,
   reports_view,
   reports_export,
   fulltext_manage
@@ -182,7 +174,6 @@ SELECT
   false,  -- submissions_delete
   true,   -- users_view
   false,  -- users_create
-  false,  -- users_edit
   true,   -- reports_view
   true,   -- reports_export
   true    -- fulltext_manage

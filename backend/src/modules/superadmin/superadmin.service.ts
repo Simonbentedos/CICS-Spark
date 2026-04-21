@@ -14,8 +14,8 @@ import { UpdateUserDto } from './dto/update-user.dto';
 @Injectable()
 export class SuperadminService {
   constructor(
-    private databaseService: DatabaseService,
-    private emailService: EmailService,
+    private readonly databaseService: DatabaseService,
+    private readonly emailService: EmailService,
   ) {}
 
   /**

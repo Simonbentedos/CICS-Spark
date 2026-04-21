@@ -11,7 +11,6 @@ export type Permission =
   | 'submissions.delete'
   | 'users.view'
   | 'users.create'
-  | 'users.edit'
   | 'reports.view'
   | 'reports.export'
   | 'fulltext.manage';
@@ -28,7 +27,6 @@ const PERMISSION_COLUMN_MAP: Record<Permission, string> = {
   'submissions.delete': 'submissions_delete',
   'users.view': 'users_view',
   'users.create': 'users_create',
-  'users.edit': 'users_edit',
   'reports.view': 'reports_view',
   'reports.export': 'reports_export',
   'fulltext.manage': 'fulltext_manage',
@@ -41,7 +39,6 @@ const ALL_PERMISSIONS: Permission[] = [
   'submissions.delete',
   'users.view',
   'users.create',
-  'users.edit',
   'reports.view',
   'reports.export',
   'fulltext.manage',
@@ -166,10 +163,23 @@ export class PermissionsService {
     adminPermissions: AdminPermissions[],
     currentUser: any,
   ): Promise<void> {
+    // TEMPORARY DEBUG - Log everything to find the issue
+    console.log('=== PERMISSION UPDATE DEBUG ===');
+    console.log('Department:', department);
+    console.log('Current User:', currentUser);
+    console.log('Current User Role:', currentUser?.role);
+    console.log('Role type:', typeof currentUser?.role);
+    console.log('Role === "super_admin":', currentUser?.role === 'super_admin');
+    console.log('Admin Permissions:', adminPermissions);
+    console.log('===============================');
+    
     // Only super_admin can update permissions
     if (currentUser.role !== 'super_admin') {
-      throw new ForbiddenException('Only Super Admins can manage permissions');
+      console.log('PERMISSION DENIED - Role check failed');
+      throw new ForbiddenException(`Permission denied. Role: "${currentUser?.role}" (expected: "super_admin")`);
     }
+    
+    console.log('PERMISSION CHECK PASSED - Proceeding with update');
 
     // Verify all users are admins in the specified department
     const userIds = adminPermissions.map(ap => ap.userId);
@@ -211,10 +221,11 @@ export class PermissionsService {
       // Upsert (insert or update) the permissions row
       const { error: upsertError } = await this.databaseService.client
         .from('admin_permissions')
-        .upsert(updateData, { onConflict: 'user_id' });
+        .upsert(updateData);
 
       if (upsertError) {
-        throw new InternalServerErrorException('Failed to update permissions');
+        console.error('Upsert error:', upsertError);
+        throw new InternalServerErrorException(`Failed to update permissions: ${upsertError.message}`);
       }
     }
   }

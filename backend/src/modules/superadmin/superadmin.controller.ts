@@ -77,6 +77,7 @@ export class SuperadminController {
    * super_admin only. Lists password reset requests. Filter by status with ?status=pending|approved|declined
    */
   @Get('password-reset-requests')
+  @UseGuards(SupabaseGuard, RolesGuard)
   @Roles('super_admin')
   listPasswordResetRequests(@Query('status') status?: string) {
     return this.superadminService.listPasswordResetRequests(status);
@@ -87,6 +88,7 @@ export class SuperadminController {
    * super_admin only. Approves the request and emails a Supabase recovery link to the user.
    */
   @Post('password-reset-requests/:id/approve')
+  @UseGuards(SupabaseGuard, RolesGuard)
   @Roles('super_admin')
   approvePasswordResetRequest(@Param('id') id: string) {
     return this.superadminService.approvePasswordResetRequest(id);
@@ -97,6 +99,7 @@ export class SuperadminController {
    * super_admin only. Declines the request and notifies the user by email.
    */
   @Post('password-reset-requests/:id/decline')
+  @UseGuards(SupabaseGuard, RolesGuard)
   @Roles('super_admin')
   declinePasswordResetRequest(@Param('id') id: string) {
     return this.superadminService.declinePasswordResetRequest(id);

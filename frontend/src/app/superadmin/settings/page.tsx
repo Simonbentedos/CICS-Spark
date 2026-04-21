@@ -35,7 +35,6 @@ const AVAILABLE_PERMISSIONS: Permission[] = [
   // Users
   { id: 'users.view', name: 'View Users', description: 'Can view users in their department', category: 'users' },
   { id: 'users.create', name: 'Create Users', description: 'Can create new student accounts', category: 'users' },
-  { id: 'users.edit', name: 'Edit Users', description: 'Can edit user information (limited to students)', category: 'users' },
   
   // Reports
   { id: 'reports.view', name: 'View Reports', description: 'Can access analytics and reports', category: 'reports' },
