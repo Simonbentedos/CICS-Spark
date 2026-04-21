@@ -63,6 +63,16 @@ export class AuthController {
   }
 
   /**
+   * POST /api/auth/refresh
+   * Public. Exchanges a refresh_token for a new access_token + refresh_token pair.
+   */
+  @Post('refresh')
+  @HttpCode(200)
+  refreshSession(@Body() body: { refresh_token: string }) {
+    return this.authService.refreshSession(body.refresh_token ?? '');
+  }
+
+  /**
    * POST /api/auth/set-password
    * Recovery-token protected. RecoveryTokenGuard validates the access_token
    * from the request body and attaches req.recovery_user before this runs.

@@ -4,6 +4,7 @@ import { setStudentSession, clearStudentSession } from '@/lib/student/session'
 
 export type LoginResponse = {
   access_token: string
+  refresh_token: string
   role: 'student' | 'admin' | 'super_admin'
   department: 'CS' | 'IT' | 'IS' | null
   first_name: string
@@ -33,6 +34,7 @@ export async function login(email: string, password: string): Promise<LoginRespo
       name: `${data.first_name} ${data.last_name}`,
       email,
       token: data.access_token,
+      refreshToken: data.refresh_token,
       studentId: '',  // populated by /me if needed
       department: deptName[deptCode] ?? data.department,
       loginAt: new Date().toISOString(),
@@ -46,6 +48,7 @@ export async function login(email: string, password: string): Promise<LoginRespo
       departmentName: deptName[deptCode] ?? data.department,
       role: data.role,
       token: data.access_token,
+      refreshToken: data.refresh_token,
       loginAt: new Date().toISOString(),
     })
   }

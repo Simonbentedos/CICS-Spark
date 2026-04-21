@@ -431,8 +431,6 @@ function defaultSubmissionDraft(): SubmissionDraft {
     trackSpecialization: '',
     degree: '',
     thesisAdvisor: '',
-    panelChair: '',
-    panelMembers: '',
     keywords: '',
     abstract: '',
     fileName: '',

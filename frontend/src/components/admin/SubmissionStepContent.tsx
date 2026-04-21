@@ -310,23 +310,6 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="chair" className="text-sm font-medium text-grey-700">Defense Panel Chair</Label>
-          <Input id="chair" placeholder="Enter panel chair name..." className="h-11 border-grey-200" value={draft.panelChair} onChange={(event) => onDraftChange({ panelChair: event.target.value })} />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="panelMembers" className="text-sm font-medium text-grey-700">Defense Panel Members</Label>
-          <textarea
-            id="panelMembers"
-            value={draft.panelMembers}
-            onChange={(event) => onDraftChange({ panelMembers: event.target.value })}
-            placeholder="Enter panel members (one per line)..."
-            className="min-h-[110px] w-full rounded-md border border-grey-200 px-3 py-2 text-sm text-grey-700 outline-none focus-visible:ring-2 focus-visible:ring-cics-maroon"
-          />
-          <p className="text-[11px] text-grey-500">Enter each panel member&apos;s name on a new line</p>
-        </div>
-
-        <div className="space-y-2">
           <Label htmlFor="keywords" className="text-sm font-medium text-grey-700">Keywords *</Label>
           <Input id="keywords" placeholder="Enter keywords separated by commas..." className="h-11 border-grey-200" value={draft.keywords} onChange={(event) => onDraftChange({ keywords: event.target.value })} />
           <p className="text-[11px] text-grey-500">Separate keywords with commas (e.g., machine learning, AI, healthcare)</p>
@@ -443,7 +426,7 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
         </div>
         <div className="rounded-md border border-grey-200 bg-white p-3">
           <p className="text-xs uppercase tracking-wide text-grey-500">Document Type</p>
-          <p className="mt-1 font-medium text-grey-700">{draft.documentType || '—'}</p>
+          <p className="mt-1 font-medium text-grey-700">{draft.department ? getDocTypeForDept(draft.department) : draft.documentType || '—'}</p>
         </div>
         <div className="rounded-md border border-grey-200 bg-white p-3 md:col-span-2">
           <p className="text-xs uppercase tracking-wide text-grey-500">Specialization Track</p>

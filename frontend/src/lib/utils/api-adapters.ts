@@ -86,8 +86,6 @@ export function apiDocToEntry(doc: ApiDocument): ThesisEntry {
     college: 'College of Information and Computing Sciences',
     departmentUnit: DEPT_NAMES[dept] ?? dept,
     thesisAdvisor: doc.adviser ?? 'Not provided',
-    defensePanelChair: 'Not provided',
-    defensePanelMembers: ['Not provided'],
     abstractSummary: doc.abstract ? [doc.abstract] : ['No abstract available.'],
     language: 'English',
     format: 'Electronic (PDF)',

@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { FilePlus2, KeyRound, LayoutGrid, LogOut } from 'lucide-react'
-import { clearStudentSession, getStudentSession } from '@/lib/student/session'
+import { clearStudentSession, getStudentSession, setStudentSession } from '@/lib/student/session'
 import NotificationBell from '@/components/admin/NotificationBell'
 import ChangePasswordModal from '@/components/admin/ChangePasswordModal'
 import { cn } from '@/lib/utils'
@@ -45,6 +45,32 @@ export default function StudentShell({ children }: { children: React.ReactNode }
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = '' }
   }, [isStudentLoginRoute, router])
+
+  // Silently refresh the Supabase token every 50 minutes
+  useEffect(() => {
+    if (!authorized || isStudentLoginRoute) return
+
+    async function refresh() {
+      const session = getStudentSession()
+      if (!session?.refreshToken) return
+      try {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:5000'
+        const res = await fetch(`${backendUrl}/api/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: session.refreshToken }),
+        })
+        if (!res.ok) return
+        const data = await res.json()
+        setStudentSession({ ...session, token: data.access_token, refreshToken: data.refresh_token })
+      } catch {
+        // silent — next real API call will handle expiry
+      }
+    }
+
+    const interval = setInterval(refresh, 50 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [authorized, isStudentLoginRoute])
 
   // Auto-logout after 30 minutes of inactivity
   useEffect(() => {
