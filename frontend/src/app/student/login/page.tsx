@@ -116,7 +116,7 @@ export default function StudentLoginPage() {
                       required
                       className="h-[46px] rounded-[8px] border-[#d9e5e1] bg-white pl-10 pr-10"
                     />
-                    <button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7d928e]">
+                    <button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7d928e]" aria-label={showPassword ? 'Hide password' : 'Show password'}>
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
                   </div>
