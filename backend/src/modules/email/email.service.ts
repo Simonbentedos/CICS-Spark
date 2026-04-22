@@ -1,26 +1,34 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
 
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
-  private transporter: nodemailer.Transporter;
 
-  constructor(private configService: ConfigService) {
-    this.transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('SMTP_HOST'),
-      port: this.configService.get<number>('SMTP_PORT') ?? 465,
-      secure: (this.configService.get<number>('SMTP_PORT') ?? 465) === 465,
-      auth: {
-        user: this.configService.get<string>('SMTP_USER'),
-        pass: this.configService.get<string>('SMTP_PASS'),
+  constructor(private configService: ConfigService) {}
+
+  private async sendEmail(params: { to: string; subject: string; html: string }) {
+    const apiKey = this.configService.get<string>('BREVO_API_KEY');
+    const from = this.configService.get<string>('SMTP_FROM') ?? 'noreply@spark.ust.edu.ph';
+
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': apiKey,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        sender: { name: 'SPARK Repository', email: from },
+        to: [{ email: params.to }],
+        subject: params.subject,
+        htmlContent: params.html,
+      }),
     });
-  }
 
-  private get from() {
-    return this.configService.get<string>('SMTP_FROM') ?? 'noreply@spark.ust.edu.ph';
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Brevo API error: ${err}`);
+    }
   }
 
   async sendWelcomeEmail(params: {
@@ -63,8 +71,7 @@ export class EmailService {
       </div>`;
 
     try {
-      await this.transporter.sendMail({
-        from: this.from,
+      await this.sendEmail({
         to,
         subject: `Your SPARK ${portalLabel} Account Has Been Created`,
         html,
@@ -112,8 +119,7 @@ export class EmailService {
       </div>`;
 
     try {
-      await this.transporter.sendMail({
-        from: this.from,
+      await this.sendEmail({
         to,
         subject: `Full-Text Access Fulfilled: "${documentTitle}" — SPARK`,
         html,
@@ -151,8 +157,7 @@ export class EmailService {
       </div>`;
 
     try {
-      await this.transporter.sendMail({
-        from: this.from,
+      await this.sendEmail({
         to,
         subject: `Full-Text Access Request Update — SPARK`,
         html,
@@ -198,8 +203,7 @@ export class EmailService {
       </div>`;
 
     try {
-      await this.transporter.sendMail({
-        from: this.from,
+      await this.sendEmail({
         to,
         subject: `${documentType === 'thesis' ? 'Thesis' : 'Capstone'} Approved and Published — SPARK`,
         html,
@@ -251,8 +255,7 @@ export class EmailService {
       </div>`;
 
     try {
-      await this.transporter.sendMail({
-        from: this.from,
+      await this.sendEmail({
         to,
         subject: `${documentType === 'thesis' ? 'Thesis' : 'Capstone'} Submission Update — SPARK`,
         html,
@@ -293,8 +296,7 @@ export class EmailService {
       </div>`;
 
     try {
-      await this.transporter.sendMail({
-        from: this.from,
+      await this.sendEmail({
         to,
         subject: 'Password Reset Approved — SPARK',
         html,
@@ -328,8 +330,7 @@ export class EmailService {
       </div>`;
 
     try {
-      await this.transporter.sendMail({
-        from: this.from,
+      await this.sendEmail({
         to,
         subject: 'Password Reset Request Update — SPARK',
         html,
@@ -380,8 +381,7 @@ export class EmailService {
       </div>`;
 
     try {
-      await this.transporter.sendMail({
-        from: this.from,
+      await this.sendEmail({
         to,
         subject: `${documentType === 'thesis' ? 'Thesis' : 'Capstone'} Revision Required — SPARK`,
         html,
