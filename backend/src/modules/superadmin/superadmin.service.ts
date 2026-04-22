@@ -147,9 +147,9 @@ export class SuperadminService {
    * createStudent provisions a new student account.
    *
    * Flow:
-   *  1. Sends a Supabase invite email so the student can set their own password.
-   *  2. Inserts a row into `users` with role='student' and is_active=false.
-   *  3. A Supabase database trigger flips is_active=true once they confirm email.
+   *  1. Creates a Supabase Auth user with a generated temp password (email pre-confirmed).
+   *  2. Inserts a row into `users` with role='student' and is_active=true.
+   *  3. Sends a welcome email with the temp password so the student can log in immediately.
    */
   async createStudent(dto: CreateStudentDto) {
     const { email, first_name, last_name, department } = dto;
@@ -170,14 +170,12 @@ export class SuperadminService {
       'Spark@' +
       Math.random().toString(36).slice(2, 10) +
       Math.random().toString(36).slice(2, 6).toUpperCase();
+
     const { data: authData, error: authError } =
-      await this.databaseService.client.auth.admin.inviteUserByEmail(email, {
-        data: {
-          first_name,
-          last_name,
-          role: 'student',
-          department,
-        },
+      await this.databaseService.client.auth.admin.createUser({
+        email,
+        password: tempPassword,
+        email_confirm: true,
       });
 
     if (authError || !authData.user) {
@@ -195,7 +193,7 @@ export class SuperadminService {
         last_name,
         role: 'student',
         department,
-        is_active: false,
+        is_active: true,
       })
       .select('id, email, first_name, last_name, role, department, is_active, created_at')
       .single();
