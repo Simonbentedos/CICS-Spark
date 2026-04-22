@@ -74,6 +74,7 @@ export default function Home() {
               priority
               sizes="(max-width: 1024px) 100vw, 1029px"
               className="object-cover"
+              style={{ objectPosition: 'left top' }}
             />
           </div>
           
