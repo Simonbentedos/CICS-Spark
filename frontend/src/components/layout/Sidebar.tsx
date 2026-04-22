@@ -23,7 +23,7 @@ function SidebarSection({ title, children }: { title: string; children: React.Re
 
 export default function Sidebar() {
   return (
-    <aside className="w-[220px] shrink-0 flex flex-col gap-4 pt-7 pb-5">
+    <aside className="hidden lg:flex w-[220px] shrink-0 flex-col gap-4 pt-7 pb-5">
       {/* Search Section */}
       <div className="w-full flex flex-col">
         <div className="bg-cics-maroon rounded-t px-4 py-2">

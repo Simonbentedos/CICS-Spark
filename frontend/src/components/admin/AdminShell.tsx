@@ -10,9 +10,11 @@ import {
   KeyRound,
   LayoutGrid,
   LogOut,
+  Menu,
   Settings,
   Users,
   Inbox,
+  X,
 } from 'lucide-react'
 import { ADMIN_NAV_ITEMS, ADMIN_PROFILE, cn, getAdminTopTitle } from '@/lib/utils'
 import { clearAdminSession, getAdminSession, setAdminSession } from '@/lib/admin/session'
@@ -52,6 +54,7 @@ export default function AdminShell({ children }: Readonly<{ children: React.Reac
   const [permissions, setPermissions] = useState<Permission[]>([])
   const [permissionsLoaded, setPermissionsLoaded] = useState(false)
   const [showChangePassword, setShowChangePassword] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const theme = getAdminTheme(departmentCode)
   const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -193,13 +196,43 @@ export default function AdminShell({ children }: Readonly<{ children: React.Reac
 
           <div className="flex items-center gap-2">
             <NotificationBell accentColor={theme.accentHex} />
-            <p className="text-sm font-medium text-grey-700">{topTitle}</p>
+            <p className="hidden sm:block text-sm font-medium text-grey-700">{topTitle}</p>
+            <button
+              className="md:hidden p-1 text-grey-600"
+              onClick={() => setSidebarOpen(v => !v)}
+              aria-label="Toggle sidebar"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
           </div>
         </div>
       </header>
 
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        <aside className="flex w-[255px] min-h-0 shrink-0 flex-col border-r border-grey-200 bg-white" aria-label="Admin sidebar">
+        {/* Mobile overlay backdrop */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/40 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        <aside
+          className={cn(
+            'flex w-[255px] min-h-0 shrink-0 flex-col border-r border-grey-200 bg-white',
+            'fixed md:relative inset-y-0 left-0 z-50 md:z-auto transition-transform duration-200',
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+          )}
+          aria-label="Admin sidebar"
+        >
+          {/* Mobile close button */}
+          <button
+            className="md:hidden absolute top-3 right-3 p-1 text-grey-500"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Close sidebar"
+          >
+            <X className="h-4 w-4" />
+          </button>
           <nav className="flex-1 overflow-y-auto px-4 py-4" aria-label="Admin primary navigation">
             <div className="space-y-1">
               {visibleNavItems.map((item) => {

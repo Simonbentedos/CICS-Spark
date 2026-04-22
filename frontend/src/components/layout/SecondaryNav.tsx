@@ -20,19 +20,18 @@ export default function SecondaryNav({ title, breadcrumb, breadcrumbItems }: Rea
 
   return (
     <div
-      className="sticky top-[calc(1rem+55px)] z-40 w-full border-b-[3px] border-border-grey px-8 lg:px-[300px] shadow-sm bg-cover bg-center bg-no-repeat"
+      className="sticky top-[calc(1rem+55px)] z-40 w-full border-b-[3px] border-border-grey px-4 sm:px-8 lg:px-[300px] shadow-sm bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: "url('/images/Texture.png')" }}
     >
-      <div className="flex min-h-[56px] w-full items-end justify-between gap-6 border-b-[3px] border-cics-maroon py-2">
-        <span className="font-heading text-light-grey text-[28px] leading-[32px] uppercase tracking-wide break-words max-w-[55%]">
+      <div className="flex min-h-[56px] w-full items-end justify-between gap-4 border-b-[3px] border-cics-maroon py-2 flex-wrap">
+        <span className="font-heading text-light-grey text-[22px] sm:text-[28px] leading-[32px] uppercase tracking-wide break-words max-w-full sm:max-w-[55%]">
           {title}
         </span>
         {resolvedBreadcrumbItems.length > 0 && (
-          <Breadcrumb>
+          <Breadcrumb className="hidden sm:block">
             <BreadcrumbList className="font-body text-[13px] flex-wrap justify-end">
               {resolvedBreadcrumbItems.map((item, index) => {
                 const isLast = index === resolvedBreadcrumbItems.length - 1
-
                 return (
                   <BreadcrumbListItem key={`${item.label}-${index}`}>
                     {item.href && !isLast ? (

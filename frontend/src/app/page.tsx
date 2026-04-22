@@ -59,7 +59,7 @@ export default function Home() {
       <SecondaryNav title="Home" breadcrumb="Home" />
       
       {/* Main Content Area */}
-      <div className="flex flex-1 px-8 lg:px-[300px] gap-6">
+      <div className="flex flex-1 px-4 sm:px-8 lg:px-[300px] gap-6">
         {/* Sidebar */}
         <Sidebar />
         
@@ -88,7 +88,7 @@ export default function Home() {
           </h2>
           
           {/* Action Cards Grid */}
-          <div className="grid grid-cols-3 gap-x-16 gap-y-16 pt-12 pb-8 justify-items-center">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-8 md:gap-x-16 md:gap-y-16 pt-8 pb-8 justify-items-center">
             {actionCards.map((card, index) => (
               <ActionCard 
                 key={index}
