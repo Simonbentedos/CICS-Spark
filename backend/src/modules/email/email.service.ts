@@ -8,7 +8,7 @@ export class EmailService {
   constructor(private configService: ConfigService) {}
 
   private async sendEmail(params: { to: string; subject: string; html: string }) {
-    const apiKey = this.configService.get<string>('BREVO_API_KEY');
+    const apiKey = this.configService.get<string>('BREVO_API_KEY') ?? '';
     const from = this.configService.get<string>('SMTP_FROM') ?? 'noreply@spark.ust.edu.ph';
 
     const res = await fetch('https://api.brevo.com/v3/smtp/email', {
