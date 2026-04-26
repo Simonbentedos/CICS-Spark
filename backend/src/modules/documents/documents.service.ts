@@ -22,7 +22,7 @@ export class DocumentsService {
    * uploadDocument stores the PDF in Supabase Storage, then inserts
    * a record into the `documents` table with status='pending'.
    */
-  async uploadDocument(userId: string, file: Express.Multer.File, dto: UploadDocumentDto, abstractFile?: Express.Multer.File) {
+  async uploadDocument(userId: string, file: Express.Multer.File, dto: UploadDocumentDto, abstractFile: Express.Multer.File) {
     // Block submission if title similarity ≥ 80% with any non-rejected document
     const dupeCheck = await this.checkDuplicate(dto.title);
     if (dupeCheck.isDuplicate) {
@@ -47,20 +47,17 @@ export class DocumentsService {
       );
     }
 
-    let abstractFilePath: string | null = null;
-    if (abstractFile) {
-      const abstractStoragePath = `${userId}/${ts}_abstract_${abstractFile.originalname}`;
-      const { error: abstractStorageError } = await this.databaseService.client.storage
-        .from('documents')
-        .upload(abstractStoragePath, abstractFile.buffer, { contentType: abstractFile.mimetype });
-      if (abstractStorageError) {
-        await this.databaseService.client.storage.from('documents').remove([storagePath]);
-        throw new InternalServerErrorException(
-          abstractStorageError.message || 'Failed to upload abstract file to storage.',
-        );
-      }
-      abstractFilePath = abstractStoragePath;
+    const abstractStoragePath = `${userId}/${ts}_abstract_${abstractFile.originalname}`;
+    const { error: abstractStorageError } = await this.databaseService.client.storage
+      .from('documents')
+      .upload(abstractStoragePath, abstractFile.buffer, { contentType: abstractFile.mimetype });
+    if (abstractStorageError) {
+      await this.databaseService.client.storage.from('documents').remove([storagePath]);
+      throw new InternalServerErrorException(
+        abstractStorageError.message || 'Failed to upload abstract file to storage.',
+      );
     }
+    const abstractFilePath = abstractStoragePath;
 
     const { data: document, error: dbError } = await this.databaseService.client
       .from('documents')

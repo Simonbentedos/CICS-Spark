@@ -166,10 +166,10 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
       return Boolean(draft.thesisAdvisor.trim() && draft.keywords.trim() && draft.abstract.trim())
     }
     if (step.key === 'file-upload') {
-      return pdfFile !== null
+      return pdfFile !== null && abstractFile !== null
     }
-    // verify-details: enabled once title + file present
-    return Boolean(draft.title.trim()) && pdfFile !== null
+    // verify-details: enabled once title + both files present
+    return Boolean(draft.title.trim()) && pdfFile !== null && abstractFile !== null
   }, [draft, step?.key, pdfFile])
 
   function setPdfFile(file: File | null) {
@@ -295,7 +295,7 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
   }
 
   const isVerifyStep = step.key === 'verify-details'
-  const missingFile = isVerifyStep && pdfFile === null
+  const missingFile = isVerifyStep && (pdfFile === null || abstractFile === null)
   const pageTitle = getDeptCode(draft.department) === 'CS' ? 'Submit New Thesis' : 'Submit New Capstone'
 
   return (
@@ -310,7 +310,7 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
           )}
           {missingFile && (
             <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
-              No file selected. Please go back to step 3 and upload your PDF.
+              {pdfFile === null ? 'No thesis/capstone PDF selected.' : 'No ACM/ITSU abstract PDF selected.'} Please go back to step 3 and upload both files.
             </p>
           )}
           <div className="flex items-center justify-between gap-2">

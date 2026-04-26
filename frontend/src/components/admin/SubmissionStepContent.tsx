@@ -379,7 +379,7 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-grey-700">ACM/ITSU Abstract PDF <span className="text-grey-400 font-normal">(optional)</span></Label>
+          <Label className="text-sm font-medium text-grey-700">ACM/ITSU Abstract PDF *</Label>
           {onAbstractFileChange ? (
             <label className="flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed border-grey-200 bg-white hover:border-[#0f766e] hover:bg-[#f0fdf9] transition-colors">
               <Upload className="mb-2 h-7 w-7 text-grey-400" />
@@ -391,7 +391,7 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
               ) : (
                 <div className="text-center px-4">
                   <p className="text-sm font-medium text-grey-700">Click to choose abstract PDF</p>
-                  <p className="text-xs text-grey-500 mt-0.5">ACM or ITSU format (optional)</p>
+                  <p className="text-xs text-grey-500 mt-0.5">ACM or ITSU format</p>
                 </div>
               )}
               <input
