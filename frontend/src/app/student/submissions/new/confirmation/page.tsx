@@ -4,7 +4,7 @@ export default function StudentSubmissionConfirmationPage() {
   return (
     <div className="mx-auto max-w-[780px] space-y-4 pt-4">
       <section>
-        <h1 className="text-[36px] font-semibold leading-tight text-navy">Submission Received</h1>
+        <h1 className="text-[36px] font-semibold leading-tight text-navy">Submitted</h1>
         <div className="mt-2 h-[2px] w-full bg-[#0f766e]" />
       </section>
 

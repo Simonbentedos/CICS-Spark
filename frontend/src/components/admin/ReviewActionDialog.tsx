@@ -6,7 +6,6 @@ import AdminModal from '@/components/admin/AdminModal'
 import {
   REVIEW_APPROVE_CHECKLIST,
   REVIEW_COMMON_ISSUES,
-  REVIEW_SAMPLE_REVISION_COMMENT,
   getReviewActionConfig,
 } from '@/lib/utils'
 import type { ReviewActionType } from '@/types/admin'
@@ -104,15 +103,6 @@ export default function ReviewActionDialog({
             </Button>
           </div>
 
-          {comment.trim().length === 0 ? (
-            <button
-              type="button"
-              onClick={() => setComment(REVIEW_SAMPLE_REVISION_COMMENT)}
-              className="text-xs text-cics-maroon hover:text-cics-maroon-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cics-maroon focus-visible:ring-offset-1"
-            >
-              Use sample revision comment
-            </button>
-          ) : null}
         </div>
       ) : null}
 

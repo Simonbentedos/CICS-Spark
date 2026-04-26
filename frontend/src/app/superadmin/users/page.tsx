@@ -125,7 +125,7 @@ export default function SuperAdminUsersPage() {
           <span className="inline-flex items-center gap-1.5">
             <Button
               variant="outline"
-              className="h-7 rounded-md px-2.5 text-xs border-grey-200 text-grey-600 hover:border-cics-maroon hover:text-cics-maroon"
+              className="h-7 rounded-md px-2.5 text-xs border-grey-200 text-grey-600 hover:border-cics-maroon hover:bg-cics-maroon/10 hover:text-cics-maroon"
               onClick={() => { setEditingUser(u); setEditError(null) }}
             >
               <Pencil className="mr-1 h-3 w-3" />
@@ -134,7 +134,7 @@ export default function SuperAdminUsersPage() {
             {u.is_active ? (
               <Button
                 variant="outline"
-                className="h-7 rounded-md px-2.5 text-xs border-grey-200 text-grey-600 hover:border-red-500 hover:text-red-600"
+                className="h-7 rounded-md px-2.5 text-xs border-grey-200 text-grey-600 hover:border-red-500 hover:bg-red-50 hover:text-red-600"
                 onClick={() => { setDisableTarget(u); setDisableError(null) }}
               >
                 <Ban className="mr-1 h-3 w-3" />
@@ -143,7 +143,7 @@ export default function SuperAdminUsersPage() {
             ) : (
               <Button
                 variant="outline"
-                className="h-7 rounded-md px-2.5 text-xs border-grey-200 text-grey-600 hover:border-green-600 hover:text-green-700"
+                className="h-7 rounded-md px-2.5 text-xs border-grey-200 text-grey-600 hover:border-green-600 hover:bg-green-50 hover:text-green-700"
                 onClick={() => { setEnableTarget(u); setEnableError(null) }}
               >
                 <CircleCheck className="mr-1 h-3 w-3" />

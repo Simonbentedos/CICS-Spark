@@ -1,6 +1,7 @@
 import {
   Injectable,
   BadRequestException,
+  ConflictException,
   NotFoundException,
   ForbiddenException,
   InternalServerErrorException,
@@ -22,6 +23,16 @@ export class DocumentsService {
    * a record into the `documents` table with status='pending'.
    */
   async uploadDocument(userId: string, file: Express.Multer.File, dto: UploadDocumentDto) {
+    // Block submission if title similarity ≥ 80% with any non-rejected document
+    const dupeCheck = await this.checkDuplicate(dto.title);
+    if (dupeCheck.isDuplicate) {
+      const top = dupeCheck.matches[0];
+      const pct = Math.round((top.similarity ?? 0) * 100);
+      throw new ConflictException(
+        `A thesis/capstone with a very similar title already exists (${pct}% match: "${top.title}"). Duplicate submissions are not allowed.`,
+      );
+    }
+
     const storagePath = `${userId}/${Date.now()}_${file.originalname}`;
     const checksum = createHash('sha256').update(file.buffer).digest('hex');
 

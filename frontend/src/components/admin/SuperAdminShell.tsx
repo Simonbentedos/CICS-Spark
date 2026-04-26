@@ -105,8 +105,8 @@ export default function SuperAdminShell({ children }: Readonly<{ children: React
 
           <div className="mt-auto shrink-0 border-t border-grey-300 px-4 py-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-cics-maroon text-[24px] font-medium text-white">
-                {sessionName.charAt(0)}
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-cics-maroon text-[16px] font-medium text-white">
+                {sessionName.split(' ').map((n) => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()}
               </div>
               <div>
                 <p className="text-sm font-medium text-grey-700">{sessionName}</p>

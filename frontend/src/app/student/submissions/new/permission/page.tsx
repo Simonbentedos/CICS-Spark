@@ -1,8 +1,7 @@
 "use client"
 
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { CircleCheck, CircleX } from 'lucide-react'
+import { CircleCheck } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { adminRepository } from '@/lib/admin/admin-repository'
 
@@ -40,14 +39,7 @@ export default function StudentSubmissionPermissionPage() {
         </ul>
       </section>
 
-      <div className="flex items-center justify-center gap-6 pt-6">
-        <Button asChild className="h-10 min-w-44 bg-grey-500 hover:bg-grey-600">
-          <Link href="/student/dashboard" className="no-underline">
-            <CircleX className="mr-1.5 h-4 w-4" />
-            I Decline
-          </Link>
-        </Button>
-
+      <div className="flex items-center justify-center pt-6">
         <Button className="h-10 min-w-44 bg-[#0f766e] hover:bg-[#0f766e]" onClick={handleAccept}>
           <CircleCheck className="mr-1.5 h-4 w-4" />
           I Accept

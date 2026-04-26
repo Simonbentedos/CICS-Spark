@@ -152,10 +152,12 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null)
 
+  const isDuplicateBlocked = Boolean(duplicateWarning?.startsWith('DUPLICATE:'))
+
   const canProceed = useMemo(() => {
     if (!step) return false
     if (step.key === 'basic-info') {
-      return Boolean(draft.title.trim() && draft.firstName.trim() && draft.lastName.trim() && draft.trackSpecialization)
+      return Boolean(draft.title.trim() && draft.firstName.trim() && draft.lastName.trim() && draft.trackSpecialization) && !isDuplicateBlocked
     }
     if (step.key === 'academic-details') {
       return Boolean(draft.thesisAdvisor.trim() && draft.keywords.trim() && draft.abstract.trim())
@@ -182,8 +184,13 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
     try {
       const result = await checkDuplicate(title)
       if (result.isDuplicate && result.matches.length > 0) {
-        const pct = Math.round((result.matches[0].similarity ?? 0) * 100)
-        setDuplicateWarning(`Similar title found (${pct}% match). Please confirm your submission is not a duplicate.`)
+        const similarity = result.matches[0].similarity ?? 0
+        const pct = Math.round(similarity * 100)
+        if (similarity >= 0.8) {
+          setDuplicateWarning(`DUPLICATE: A thesis/capstone with a very similar title already exists (${pct}% match). Submission is not allowed.`)
+        } else {
+          setDuplicateWarning(`Similar title found (${pct}% match). Please confirm your submission is not a duplicate.`)
+        }
       } else {
         setDuplicateWarning(null)
       }

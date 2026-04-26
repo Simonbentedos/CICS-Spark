@@ -127,7 +127,7 @@ function BasicInfoStep({ draft, onDraftChange, duplicateWarning, onTitleBlur }: 
                 <Input id="firstName" className="h-10 border-grey-200" value={draft.firstName} onChange={(event) => onDraftChange({ firstName: event.target.value })} />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="middleName" className="text-xs text-grey-600">Middle Name</Label>
+                <Label htmlFor="middleName" className="text-xs text-grey-600">Middle Initial</Label>
                 <Input id="middleName" className="h-10 border-grey-200" value={draft.middleName} onChange={(event) => onDraftChange({ middleName: event.target.value })} />
               </div>
               <div className="space-y-1">
@@ -150,7 +150,7 @@ function BasicInfoStep({ draft, onDraftChange, duplicateWarning, onTitleBlur }: 
                   <Input className="h-10 border-grey-200" value={draft.author2FirstName} onChange={(e) => onDraftChange({ author2FirstName: e.target.value })} />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-grey-600">Middle Name</Label>
+                  <Label className="text-xs text-grey-600">Middle Initial</Label>
                   <Input className="h-10 border-grey-200" value={draft.author2MiddleName} onChange={(e) => onDraftChange({ author2MiddleName: e.target.value })} />
                 </div>
                 <div className="space-y-1">
@@ -174,7 +174,7 @@ function BasicInfoStep({ draft, onDraftChange, duplicateWarning, onTitleBlur }: 
                   <Input className="h-10 border-grey-200" value={draft.author3FirstName} onChange={(e) => onDraftChange({ author3FirstName: e.target.value })} />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-grey-600">Middle Name</Label>
+                  <Label className="text-xs text-grey-600">Middle Initial</Label>
                   <Input className="h-10 border-grey-200" value={draft.author3MiddleName} onChange={(e) => onDraftChange({ author3MiddleName: e.target.value })} />
                 </div>
                 <div className="space-y-1">
@@ -198,7 +198,7 @@ function BasicInfoStep({ draft, onDraftChange, duplicateWarning, onTitleBlur }: 
                   <Input className="h-10 border-grey-200" value={draft.author4FirstName} onChange={(e) => onDraftChange({ author4FirstName: e.target.value })} />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-grey-600">Middle Name</Label>
+                  <Label className="text-xs text-grey-600">Middle Initial</Label>
                   <Input className="h-10 border-grey-200" value={draft.author4MiddleName} onChange={(e) => onDraftChange({ author4MiddleName: e.target.value })} />
                 </div>
                 <div className="space-y-1">
@@ -222,7 +222,7 @@ function BasicInfoStep({ draft, onDraftChange, duplicateWarning, onTitleBlur }: 
                   <Input className="h-10 border-grey-200" value={draft.author5FirstName} onChange={(e) => onDraftChange({ author5FirstName: e.target.value })} />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-grey-600">Middle Name</Label>
+                  <Label className="text-xs text-grey-600">Middle Initial</Label>
                   <Input className="h-10 border-grey-200" value={draft.author5MiddleName} onChange={(e) => onDraftChange({ author5MiddleName: e.target.value })} />
                 </div>
                 <div className="space-y-1">
@@ -418,7 +418,11 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
         </div>
         <div className="rounded-md border border-grey-200 bg-white p-3">
           <p className="text-xs uppercase tracking-wide text-grey-500">Date of Publication</p>
-          <p className="mt-1 font-medium text-grey-700">{draft.publishedOn || '—'}</p>
+          <p className="mt-1 font-medium text-grey-700">
+            {draft.publishedOn
+              ? new Date(draft.publishedOn + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+              : '—'}
+          </p>
         </div>
         <div className="rounded-md border border-grey-200 bg-white p-3">
           <p className="text-xs uppercase tracking-wide text-grey-500">Department</p>

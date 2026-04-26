@@ -52,12 +52,7 @@ export default function ThesisItemPage({ params: paramsPromise }: Readonly<Thesi
         department: ftDept.trim(),
       })
       setFtSuccess(true)
-      setShowFulltextModal(false)
-      // Reset form
-      setFtName('')
-      setFtEmail('')
-      setFtPurpose('')
-      setFtDept('')
+      // Keep modal open to show success state — user dismisses it themselves
     } catch (err: unknown) {
       setFtError(err instanceof Error ? err.message : 'Failed to submit request.')
     } finally {
@@ -109,93 +104,85 @@ export default function ThesisItemPage({ params: paramsPromise }: Readonly<Thesi
                 OAI Identifier: oai:spark.cics:{params.thesis}
               </p>
 
-              {ftSuccess && (
-                <div className="mt-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                  Your full-text request has been submitted. The admin will contact you by email.
-                </div>
-              )}
             </>
           )}
         </main>
       </div>
 
       {/* Full-text Request Modal */}
-      <Dialog 
-        open={showFulltextModal} 
-        onClose={() => setShowFulltextModal(false)}
-        title="Request Full Text Access"
+      <Dialog
+        open={showFulltextModal}
+        onClose={() => { setShowFulltextModal(false); setFtSuccess(false) }}
+        title={ftSuccess ? 'Request Submitted' : 'Request Full Text Access'}
       >
-        <p className="text-sm text-grey-500 mb-4">Fill out this form and the admin will send the full PDF to your email.</p>
-        <form onSubmit={handleFulltextSubmit} className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="ft-name" className="text-sm font-medium text-grey-700">Full Name *</Label>
-              <Input 
-                id="ft-name" 
-                required 
-                value={ftName} 
-                onChange={(e) => setFtName(e.target.value)} 
-                className="h-10 border-grey-200" 
-              />
+        {ftSuccess ? (
+          <div className="space-y-4 text-center py-2">
+            <div className="flex items-center justify-center">
+              <span className="text-green-500 text-5xl">✓</span>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="ft-email" className="text-sm font-medium text-grey-700">Email Address *</Label>
-              <Input 
-                id="ft-email" 
-                type="email" 
-                required 
-                value={ftEmail} 
-                onChange={(e) => setFtEmail(e.target.value)} 
-                className="h-10 border-grey-200" 
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="ft-dept" className="text-sm font-medium text-grey-700">Department / Affiliation *</Label>
-            <select
-              id="ft-dept"
-              required
-              value={ftDept}
-              onChange={(e) => setFtDept(e.target.value)}
-              className="w-full h-10 rounded-md border border-grey-200 px-3 text-sm text-grey-700 outline-none focus-visible:ring-2 focus-visible:ring-[#337ab7]"
+            <p className="text-sm font-medium text-grey-700">Your full-text request has been submitted successfully.</p>
+            <p className="text-sm text-grey-500">The admin will review your request and contact you by email.</p>
+            <Button
+              className="h-10 w-full bg-[#337ab7] hover:bg-[#2f6ea1] rounded-md"
+              onClick={() => { setShowFulltextModal(false); setFtSuccess(false) }}
             >
-              <option value="">Select department...</option>
-              <option value="CS">Computer Science (CS)</option>
-              <option value="IT">Information Technology (IT)</option>
-              <option value="IS">Information Systems (IS)</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="ft-purpose" className="text-sm font-medium text-grey-700">Purpose *</Label>
-            <textarea
-              id="ft-purpose"
-              required
-              rows={3}
-              value={ftPurpose}
-              onChange={(e) => setFtPurpose(e.target.value)}
-              placeholder="Briefly describe your purpose for requesting the full text…"
-              className="w-full rounded-md border border-grey-200 px-3 py-2 text-sm text-grey-700 outline-none focus-visible:ring-2 focus-visible:ring-[#337ab7]"
-            />
-          </div>
-          {ftError && <p className="text-sm text-red-600">{ftError}</p>}
-          <div className="flex items-center gap-3 pt-2">
-            <Button 
-              type="submit" 
-              disabled={ftSubmitting} 
-              className="h-10 bg-[#337ab7] hover:bg-[#2f6ea1] rounded-md px-6"
-            >
-              {ftSubmitting ? 'Submitting…' : 'Submit Request'}
+              Close
             </Button>
-            <button 
-              type="button" 
-              onClick={() => setShowFulltextModal(false)} 
-              className="text-sm text-grey-500 hover:text-grey-700"
-            >
-              Cancel
-            </button>
           </div>
-        </form>
+        ) : (
+          <>
+            <p className="text-sm text-grey-500 mb-4">Fill out this form and the admin will send the full PDF to your email.</p>
+            <form onSubmit={handleFulltextSubmit} className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="ft-name" className="text-sm font-medium text-grey-700">Full Name *</Label>
+                  <Input id="ft-name" required value={ftName} onChange={(e) => setFtName(e.target.value)} className="h-10 border-grey-200" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ft-email" className="text-sm font-medium text-grey-700">Email Address *</Label>
+                  <Input id="ft-email" type="email" required value={ftEmail} onChange={(e) => setFtEmail(e.target.value)} className="h-10 border-grey-200" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ft-dept" className="text-sm font-medium text-grey-700">Department / Affiliation *</Label>
+                <select
+                  id="ft-dept"
+                  required
+                  value={ftDept}
+                  onChange={(e) => setFtDept(e.target.value)}
+                  className="w-full h-10 rounded-md border border-grey-200 px-3 text-sm text-grey-700 outline-none focus-visible:ring-2 focus-visible:ring-[#337ab7]"
+                >
+                  <option value="">Select department...</option>
+                  <option value="CS">Computer Science (CS)</option>
+                  <option value="IT">Information Technology (IT)</option>
+                  <option value="IS">Information Systems (IS)</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ft-purpose" className="text-sm font-medium text-grey-700">Purpose *</Label>
+                <textarea
+                  id="ft-purpose"
+                  required
+                  rows={3}
+                  value={ftPurpose}
+                  onChange={(e) => setFtPurpose(e.target.value)}
+                  placeholder="Briefly describe your purpose for requesting the full text…"
+                  className="w-full rounded-md border border-grey-200 px-3 py-2 text-sm text-grey-700 outline-none focus-visible:ring-2 focus-visible:ring-[#337ab7]"
+                />
+              </div>
+              {ftError && <p className="text-sm text-red-600">{ftError}</p>}
+              <div className="flex items-center gap-3 pt-2">
+                <Button type="submit" disabled={ftSubmitting} className="h-10 bg-[#337ab7] hover:bg-[#2f6ea1] rounded-md px-6">
+                  {ftSubmitting ? 'Submitting…' : 'Submit Request'}
+                </Button>
+                <button type="button" onClick={() => setShowFulltextModal(false)} className="text-sm text-grey-500 hover:text-grey-700">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </>
+        )}
       </Dialog>
 
       <CICSFooter />
