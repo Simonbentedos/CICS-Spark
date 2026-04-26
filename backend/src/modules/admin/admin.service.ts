@@ -47,7 +47,7 @@ export class AdminService {
     let query = this.databaseService.client
       .from('documents')
       .select(
-        'id, title, authors, abstract, year, department, type, track_specialization, adviser, degree, keywords, pdf_file_path, uploaded_by, status, created_at, updated_at',
+        'id, title, authors, abstract, year, department, type, track_specialization, adviser, degree, keywords, pdf_file_path, abstract_file_path, uploaded_by, status, created_at, updated_at',
       )
       .order('created_at', { ascending: false });
 
@@ -72,7 +72,7 @@ export class AdminService {
     const { data: document, error } = await this.databaseService.client
       .from('documents')
       .select(
-        'id, title, authors, abstract, year, department, type, track_specialization, adviser, degree, keywords, pdf_file_path, uploaded_by, status, created_at, updated_at',
+        'id, title, authors, abstract, year, department, type, track_specialization, adviser, degree, keywords, pdf_file_path, abstract_file_path, uploaded_by, status, created_at, updated_at',
       )
       .eq('id', documentId)
       .single();
@@ -91,7 +91,27 @@ export class AdminService {
       .eq('document_id', documentId)
       .order('created_at', { ascending: false });
 
-    return { ...document, reviews: reviews ?? [] };
+    const reviewsData = reviews ?? [];
+    const reviewerIds = [...new Set(reviewsData.map((r: any) => r.reviewed_by).filter(Boolean))];
+    let reviewerMap: Record<string, string> = {};
+    if (reviewerIds.length > 0) {
+      const { data: reviewers } = await this.databaseService.client
+        .from('users')
+        .select('id, first_name, last_name')
+        .in('id', reviewerIds);
+      if (reviewers) {
+        reviewerMap = Object.fromEntries(
+          reviewers.map((u: any) => [u.id, `${u.first_name} ${u.last_name}`]),
+        );
+      }
+    }
+
+    const reviewsWithNames = reviewsData.map((r: any) => ({
+      ...r,
+      reviewer_name: r.reviewed_by ? (reviewerMap[r.reviewed_by] ?? null) : null,
+    }));
+
+    return { ...document, reviews: reviewsWithNames };
   }
 
   /**
@@ -133,6 +153,40 @@ export class AdminService {
       pdfUrl: signedUrlData.signedUrl,
       expiresIn: 3600,
     };
+  }
+
+  /**
+   * getSubmissionAbstractPdfUrl generates a signed URL for the optional abstract PDF.
+   */
+  async getSubmissionAbstractPdfUrl(documentId: string, currentUser: any) {
+    const { data: document, error: fetchError } = await this.databaseService.client
+      .from('documents')
+      .select('id, abstract_file_path, department')
+      .eq('id', documentId)
+      .single();
+
+    if (fetchError || !document) {
+      throw new NotFoundException('Document not found.');
+    }
+
+    if (currentUser.role === 'admin' && document.department !== currentUser.department) {
+      throw new ForbiddenException('You can only preview documents from your department.');
+    }
+
+    if (!document.abstract_file_path) {
+      throw new NotFoundException('No abstract PDF associated with this document.');
+    }
+
+    const { data: signedUrlData, error: urlError } = await this.databaseService.client
+      .storage
+      .from('documents')
+      .createSignedUrl(document.abstract_file_path, 3600);
+
+    if (urlError || !signedUrlData) {
+      throw new InternalServerErrorException('Failed to generate abstract PDF URL.');
+    }
+
+    return { pdfUrl: signedUrlData.signedUrl, expiresIn: 3600 };
   }
 
   /**

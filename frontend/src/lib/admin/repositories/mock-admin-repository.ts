@@ -434,5 +434,6 @@ function defaultSubmissionDraft(): SubmissionDraft {
     keywords: '',
     abstract: '',
     fileName: '',
+    abstractFileName: '',
   }
 }

@@ -14,9 +14,10 @@ import type { SubmissionDraft, SubmissionStepMeta } from '@/types/admin'
 
 const DRAFT_KEY = 'spark_submission_draft'
 
-// Module-level variable persists the File object across client-side navigations
+// Module-level variables persist File objects across client-side navigations
 // (File objects cannot be stored in localStorage/sessionStorage)
 let _pendingPdfFile: File | null = null
+let _pendingAbstractFile: File | null = null
 
 function emptyDraft(): SubmissionDraft {
   return {
@@ -45,6 +46,7 @@ function emptyDraft(): SubmissionDraft {
     keywords: '',
     abstract: '',
     fileName: '',
+    abstractFileName: '',
   }
 }
 
@@ -148,6 +150,7 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
     return base
   })
   const [pdfFile, setPdfFileState] = useState<File | null>(_pendingPdfFile)
+  const [abstractFile, setAbstractFileState] = useState<File | null>(_pendingAbstractFile)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null)
@@ -174,6 +177,11 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
     setPdfFileState(file)
   }
 
+  function setAbstractFile(file: File | null) {
+    _pendingAbstractFile = file
+    setAbstractFileState(file)
+  }
+
   function updateDraft(patch: Partial<SubmissionDraft>) {
     setDraft((cur) => persistDraft(patch, cur))
   }
@@ -183,14 +191,12 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
     if (title.length < 5) return
     try {
       const result = await checkDuplicate(title)
-      if (result.isDuplicate && result.matches.length > 0) {
-        const similarity = result.matches[0].similarity ?? 0
-        const pct = Math.round(similarity * 100)
-        if (similarity >= 0.8) {
-          setDuplicateWarning(`DUPLICATE: A thesis/capstone with a very similar title already exists (${pct}% match). Submission is not allowed.`)
-        } else {
-          setDuplicateWarning(`Similar title found (${pct}% match). Please confirm your submission is not a duplicate.`)
-        }
+      if (result.isDuplicate) {
+        const pct = Math.round((result.matches[0]?.similarity ?? 0) * 100)
+        setDuplicateWarning(`DUPLICATE: This title is identical or near-identical to an existing submission (${pct}% match). Submission is not allowed.`)
+      } else if (result.matches.length > 0) {
+        const pct = Math.round((result.matches[0].similarity ?? 0) * 100)
+        setDuplicateWarning(`Similar title found (${pct}% match). Please verify your submission is not a duplicate before proceeding.`)
       } else {
         setDuplicateWarning(null)
       }
@@ -250,6 +256,7 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
 
       const formData = new FormData()
       formData.append('file', pdfFile)
+      if (abstractFile) formData.append('abstract_file', abstractFile)
       formData.append('title', draft.title)
       formData.append('authors', JSON.stringify(authors))
       formData.append('department', deptCode)
@@ -263,8 +270,9 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
 
       await uploadDocument(formData)
 
-      // Clear draft and pending file on success
+      // Clear draft and pending files on success
       _pendingPdfFile = null
+      _pendingAbstractFile = null
       try { localStorage.removeItem(DRAFT_KEY) } catch { /* ignore */ }
 
       router.push('/student/submissions/new/confirmation')
@@ -340,6 +348,8 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
         onDraftChange={updateDraft}
         pdfFile={pdfFile}
         onFileChange={setPdfFile}
+        abstractFile={abstractFile}
+        onAbstractFileChange={setAbstractFile}
         duplicateWarning={duplicateWarning}
         onTitleBlur={handleTitleBlur}
       />

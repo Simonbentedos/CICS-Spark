@@ -10,6 +10,7 @@ import ReviewActionDialog from '@/components/admin/ReviewActionDialog'
 import {
   getAdminSubmissionById,
   getSubmissionPdfUrl,
+  getSubmissionAbstractPdfUrl,
   reviewSubmission,
   downloadAbstractUrl,
   type ApiDocument,
@@ -37,6 +38,7 @@ export default function SuperAdminSubmissionReviewPage({
   const [submitting, setSubmitting] = useState(false)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [loadingPdf, setLoadingPdf] = useState(false)
+  const [abstractPdfUrl, setAbstractPdfUrl] = useState<string | null>(null)
 
   useEffect(() => {
     getAdminSubmissionById(params.submissionId)
@@ -52,6 +54,12 @@ export default function SuperAdminSubmissionReviewPage({
         .then((data) => setPdfUrl(data.pdfUrl))
         .catch((err) => console.error('Failed to load PDF:', err))
         .finally(() => setLoadingPdf(false))
+
+      if (submission.abstract_file_path) {
+        getSubmissionAbstractPdfUrl(params.submissionId)
+          .then((data) => setAbstractPdfUrl(data.pdfUrl))
+          .catch(() => { /* no abstract PDF — silently ignore */ })
+      }
     }
   }, [params.submissionId, submission])
 
@@ -193,6 +201,23 @@ export default function SuperAdminSubmissionReviewPage({
               </div>
             </CardContent>
           </Card>
+
+          {abstractPdfUrl ? (
+            <Card className="border border-grey-200 shadow-none">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-navy">ACM/ITSU Abstract PDF</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border border-grey-200 bg-white overflow-hidden">
+                  <iframe
+                    src={abstractPdfUrl}
+                    className="w-full h-[500px]"
+                    title="Abstract PDF Preview"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
 
         <aside className="space-y-3">
@@ -230,19 +255,32 @@ export default function SuperAdminSubmissionReviewPage({
               <CardTitle className="text-sm font-medium text-navy">Review History</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-xs text-grey-600">
-              {reviews.length === 0 ? (
-                <p className="text-grey-400">No reviews yet.</p>
-              ) : (
-                reviews.map((review) => (
-                  <div key={review.id} className="rounded-md border border-grey-200 p-2 space-y-1">
-                    <p className="font-medium text-grey-700 capitalize">{review.decision}d</p>
-                    <p>{new Date(review.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                    {review.feedback_text && (
-                      <p className="text-grey-500 italic">{review.feedback_text}</p>
-                    )}
-                  </div>
-                ))
-              )}
+              {reviews.map((review) => (
+                <div key={review.id} className="rounded-md border border-grey-200 p-2 space-y-1">
+                  <p className="font-medium text-grey-700">
+                    {review.decision === 'approve' ? 'Approved' : review.decision === 'reject' ? 'Rejected' : 'Revision Requested'}
+                  </p>
+                  {review.reviewer_name && (
+                    <p className="text-grey-500">by {review.reviewer_name}</p>
+                  )}
+                  <p className="text-grey-400">
+                    {new Date(review.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {' · '}
+                    {new Date(review.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  </p>
+                  {review.feedback_text && (
+                    <p className="text-grey-500 italic">{review.feedback_text}</p>
+                  )}
+                </div>
+              ))}
+              <div className="rounded-md border border-grey-200 bg-grey-50 p-2 space-y-1">
+                <p className="font-medium text-grey-700">Submitted</p>
+                <p className="text-grey-400">
+                  {new Date(submission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  {' · '}
+                  {new Date(submission.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                </p>
+              </div>
             </CardContent>
           </Card>
         </aside>

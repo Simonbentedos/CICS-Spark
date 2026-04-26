@@ -52,6 +52,7 @@ export interface SubmissionDraft {
   keywords: string
   abstract: string
   fileName: string
+  abstractFileName: string
 }
 
 export interface UserRecord {

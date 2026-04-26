@@ -81,6 +81,19 @@ export class AdminController {
   }
 
   /**
+   * GET /api/admin/submissions/:id/preview-abstract-pdf
+   * Admin or super_admin only. Returns signed URL for the optional abstract PDF.
+   * Requires: submissions.view permission
+   */
+  @Get('submissions/:id/preview-abstract-pdf')
+  @Roles('admin', 'super_admin')
+  @UseGuards(PermissionGuard)
+  @RequirePermission('submissions.view')
+  async previewAbstractPdf(@Param('id') id: string, @Request() req: any) {
+    return this.adminService.getSubmissionAbstractPdfUrl(id, req.user);
+  }
+
+  /**
    * POST /api/admin/submissions/:id/review
    * Admin or super_admin only. Approve, reject, or request revision on a submission.
    * Body: { decision: 'approve' | 'reject' | 'revise', feedback?: string }

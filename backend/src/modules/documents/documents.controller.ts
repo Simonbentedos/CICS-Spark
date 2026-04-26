@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Post,
   Put,
@@ -9,13 +10,11 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  UploadedFiles,
   Request,
-  ParseFilePipe,
-  MaxFileSizeValidator,
-  FileTypeValidator,
   Res,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { DocumentsService } from './documents.service';
 import { UploadDocumentDto } from '../student/dto/upload-material.dto';
@@ -62,21 +61,21 @@ export class DocumentsController {
   @Post('upload')
   @UseGuards(SupabaseGuard, RolesGuard)
   @Roles('student')
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_FILE_SIZE } }))
+  @UseInterceptors(FileFieldsInterceptor([
+    { name: 'file', maxCount: 1 },
+    { name: 'abstract_file', maxCount: 1 },
+  ], { limits: { fileSize: MAX_FILE_SIZE } }))
   uploadDocument(
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({ maxSize: MAX_FILE_SIZE }),
-          new FileTypeValidator({ fileType: 'application/pdf' }),
-        ],
-      }),
-    )
-    file: Express.Multer.File,
+    @UploadedFiles() files: { file?: Express.Multer.File[]; abstract_file?: Express.Multer.File[] },
     @Body() dto: UploadDocumentDto,
     @Request() req: any,
   ) {
-    return this.documentsService.uploadDocument(req.user.id, file, dto);
+    const mainFile = files?.file?.[0];
+    if (!mainFile) throw new BadRequestException('PDF file is required.');
+    if (mainFile.mimetype !== 'application/pdf') throw new BadRequestException('Main file must be a PDF.');
+    const abstractFile = files?.abstract_file?.[0] ?? undefined;
+    if (abstractFile && abstractFile.mimetype !== 'application/pdf') throw new BadRequestException('Abstract file must be a PDF.');
+    return this.documentsService.uploadDocument(req.user.id, mainFile, dto, abstractFile);
   }
 
   /**

@@ -22,18 +22,19 @@ export class DocumentsService {
    * uploadDocument stores the PDF in Supabase Storage, then inserts
    * a record into the `documents` table with status='pending'.
    */
-  async uploadDocument(userId: string, file: Express.Multer.File, dto: UploadDocumentDto) {
+  async uploadDocument(userId: string, file: Express.Multer.File, dto: UploadDocumentDto, abstractFile?: Express.Multer.File) {
     // Block submission if title similarity ≥ 80% with any non-rejected document
     const dupeCheck = await this.checkDuplicate(dto.title);
     if (dupeCheck.isDuplicate) {
       const top = dupeCheck.matches[0];
       const pct = Math.round((top.similarity ?? 0) * 100);
       throw new ConflictException(
-        `A thesis/capstone with a very similar title already exists (${pct}% match: "${top.title}"). Duplicate submissions are not allowed.`,
+        `This title is too similar to an existing submission (${pct}% match: "${top.title}"). Duplicate submissions are not allowed.`,
       );
     }
 
-    const storagePath = `${userId}/${Date.now()}_${file.originalname}`;
+    const ts = Date.now();
+    const storagePath = `${userId}/${ts}_${file.originalname}`;
     const checksum = createHash('sha256').update(file.buffer).digest('hex');
 
     const { error: storageError } = await this.databaseService.client.storage
@@ -44,6 +45,21 @@ export class DocumentsService {
       throw new InternalServerErrorException(
         storageError.message || 'Failed to upload file to storage.',
       );
+    }
+
+    let abstractFilePath: string | null = null;
+    if (abstractFile) {
+      const abstractStoragePath = `${userId}/${ts}_abstract_${abstractFile.originalname}`;
+      const { error: abstractStorageError } = await this.databaseService.client.storage
+        .from('documents')
+        .upload(abstractStoragePath, abstractFile.buffer, { contentType: abstractFile.mimetype });
+      if (abstractStorageError) {
+        await this.databaseService.client.storage.from('documents').remove([storagePath]);
+        throw new InternalServerErrorException(
+          abstractStorageError.message || 'Failed to upload abstract file to storage.',
+        );
+      }
+      abstractFilePath = abstractStoragePath;
     }
 
     const { data: document, error: dbError } = await this.databaseService.client
@@ -60,6 +76,7 @@ export class DocumentsService {
         degree: dto.degree ?? null,
         keywords: dto.keywords ?? null,
         pdf_file_path: storagePath,
+        abstract_file_path: abstractFilePath,
         uploaded_by: userId,
         status: 'pending',
         checksum,
@@ -275,11 +292,6 @@ export class DocumentsService {
 
   // ─── GET /api/documents/check-duplicate ───────────────────────────────────
 
-  /**
-   * checkDuplicate compares the provided title against all existing non-rejected
-   * document titles using the Dice coefficient. Returns matches with similarity
-   * ≥ 0.80.
-   */
   async checkDuplicate(title: string) {
     if (!title?.trim()) {
       throw new BadRequestException('Title cannot be empty.');
@@ -293,17 +305,23 @@ export class DocumentsService {
     if (error) throw new BadRequestException(error.message);
 
     const normalizedInput = title.trim().toLowerCase();
+    const strippedInput = this.stripStopWords(normalizedInput) || normalizedInput;
+
     const matches = (data ?? [])
-      .map((doc) => ({
-        id: doc.id,
-        title: doc.title,
-        similarity: this.diceCoefficient(normalizedInput, doc.title.toLowerCase()),
-      }))
-      .filter((r) => r.similarity >= 0.8)
+      .map((doc) => {
+        const normalizedDoc = doc.title.toLowerCase();
+        const strippedDoc = this.stripStopWords(normalizedDoc) || normalizedDoc;
+        return {
+          id: doc.id,
+          title: doc.title,
+          similarity: this.diceCoefficient(strippedInput, strippedDoc),
+        };
+      })
+      .filter((r) => r.similarity >= 0.70)
       .sort((a, b) => b.similarity - a.similarity);
 
     return {
-      isDuplicate: matches.length > 0,
+      isDuplicate: matches.some((m) => m.similarity >= 0.95),
       matches,
     };
   }
@@ -330,6 +348,20 @@ export class DocumentsService {
   }
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
+
+  private readonly STOP_WORDS = new Set([
+    'a', 'an', 'the', 'of', 'in', 'on', 'for', 'to', 'with', 'and', 'or',
+    'development', 'design', 'implementation', 'study', 'analysis',
+    'system', 'application', 'using', 'based', 'approach',
+  ]);
+
+  private stripStopWords(title: string): string {
+    return title
+      .split(/\s+/)
+      .filter((word) => !this.STOP_WORDS.has(word))
+      .join(' ')
+      .trim();
+  }
 
   /**
    * Dice coefficient — measures bigram overlap between two strings.
