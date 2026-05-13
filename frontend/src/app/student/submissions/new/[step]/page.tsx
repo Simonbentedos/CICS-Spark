@@ -12,12 +12,11 @@ import type { SubmissionDraft, SubmissionStepMeta } from '@/types/admin'
 
 // ── Draft persistence (text fields only — File cannot be serialised) ──────────
 
-const DRAFT_KEY = 'spark_submission_draft'
-
 // Module-level variables persist File objects across client-side navigations
 // (File objects cannot be stored in localStorage/sessionStorage)
 let _pendingPdfFile: File | null = null
 let _pendingAbstractFile: File | null = null
+let _lastDraftUserId: string | null = null
 
 function emptyDraft(): SubmissionDraft {
   return {
@@ -50,10 +49,15 @@ function emptyDraft(): SubmissionDraft {
   }
 }
 
-function loadDraft(): SubmissionDraft {
+function getDraftKey(userId: string): string {
+  return `spark_submission_draft_${userId}`
+}
+
+function loadDraft(userId: string): SubmissionDraft {
   try {
     if (typeof window === 'undefined') return emptyDraft()
-    const raw = localStorage.getItem(DRAFT_KEY)
+    const draftKey = getDraftKey(userId)
+    const raw = localStorage.getItem(draftKey)
     if (!raw) return emptyDraft()
     return { ...emptyDraft(), ...JSON.parse(raw) }
   } catch {
@@ -61,12 +65,24 @@ function loadDraft(): SubmissionDraft {
   }
 }
 
-function persistDraft(patch: Partial<SubmissionDraft>, current: SubmissionDraft): SubmissionDraft {
+function persistDraft(patch: Partial<SubmissionDraft>, current: SubmissionDraft, userId: string): SubmissionDraft {
   const next = { ...current, ...patch }
   try {
-    if (typeof window !== 'undefined') localStorage.setItem(DRAFT_KEY, JSON.stringify(next))
+    if (typeof window !== 'undefined') {
+      const draftKey = getDraftKey(userId)
+      localStorage.setItem(draftKey, JSON.stringify(next))
+    }
   } catch { /* storage full — ignore */ }
   return next
+}
+
+function clearDraft(userId: string) {
+  try {
+    if (typeof window !== 'undefined') {
+      const draftKey = getDraftKey(userId)
+      localStorage.removeItem(draftKey)
+    }
+  } catch { /* ignore */ }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -75,7 +91,8 @@ function getDeptCode(deptName: string): 'CS' | 'IT' | 'IS' {
   const n = deptName.toLowerCase()
   if (n === 'it' || n.includes('information technology')) return 'IT'
   if (n === 'is' || n.includes('information systems')) return 'IS'
-  return 'CS'
+  if (n === 'cs' || n.includes('computer science')) return 'CS'
+  return 'CS' // default to CS
 }
 
 const DEGREE_BY_DEPT: Record<string, string> = {
@@ -137,11 +154,45 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
   const router = useRouter()
   const step = isSubmissionStepKey(params.step) ? STUDENT_STEPS[params.step] : undefined
 
+  // Get session first to ensure user-specific draft loading
+  const session = getStudentSession()
+  const userId = session?.studentId || session?.email || 'anonymous'
+
+  // One-time migration: clear old global draft key
+  if (typeof window !== 'undefined') {
+    try {
+      const oldDraft = localStorage.getItem('spark_submission_draft')
+      if (oldDraft) {
+        console.log('Migrating old draft to user-specific storage')
+        localStorage.removeItem('spark_submission_draft')
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  // Clear draft and files if user changed
+  if (_lastDraftUserId && _lastDraftUserId !== userId) {
+    _pendingPdfFile = null
+    _pendingAbstractFile = null
+  }
+  _lastDraftUserId = userId
+
   const [draft, setDraft] = useState<SubmissionDraft>(() => {
-    const base = loadDraft()
+    const base = loadDraft(userId)
+    
     // Department and degree come from the student's account (read-only in the form)
+    // If the draft's department doesn't match the current user's department, reset the draft
+    if (session?.department && base.department && base.department !== session.department) {
+      console.warn('Draft department mismatch - resetting draft')
+      return {
+        ...emptyDraft(),
+        department: session.department,
+        degree: DEGREE_BY_DEPT[getDeptCode(session.department)] ?? '',
+      }
+    }
+    
     if (!base.department) {
-      const session = getStudentSession()
       if (session?.department) {
         base.department = session.department
         base.degree = DEGREE_BY_DEPT[getDeptCode(session.department)] ?? base.degree
@@ -183,7 +234,7 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
   }
 
   function updateDraft(patch: Partial<SubmissionDraft>) {
-    setDraft((cur) => persistDraft(patch, cur))
+    setDraft((cur) => persistDraft(patch, cur, userId))
   }
 
   async function handleTitleBlur() {
@@ -226,6 +277,8 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
       router.push('/student/login')
       return
     }
+
+    const userId = session.studentId || session.email
 
     if (!pdfFile) {
       setSubmitError('Please upload a PDF file on step 3 before submitting.')
@@ -273,7 +326,7 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
       // Clear draft and pending files on success
       _pendingPdfFile = null
       _pendingAbstractFile = null
-      try { localStorage.removeItem(DRAFT_KEY) } catch { /* ignore */ }
+      clearDraft(userId)
 
       router.push('/student/submissions/new/confirmation')
     } catch (err: unknown) {
@@ -296,7 +349,11 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
 
   const isVerifyStep = step.key === 'verify-details'
   const missingFile = isVerifyStep && (pdfFile === null || abstractFile === null)
-  const pageTitle = getDeptCode(draft.department) === 'CS' ? 'Submit New Thesis' : 'Submit New Capstone'
+  const deptCode = getDeptCode(draft.department)
+  const pageTitle = deptCode === 'CS' ? 'Submit New Thesis' : 'Submit New Capstone'
+  
+  // Debug: log department info
+  console.log('DEBUG - Department:', draft.department, 'Code:', deptCode, 'Title:', pageTitle)
 
   return (
     <SubmissionStepLayout

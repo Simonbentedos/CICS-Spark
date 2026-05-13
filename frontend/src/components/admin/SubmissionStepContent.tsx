@@ -13,12 +13,26 @@ const TRACKS_BY_DEPT: Record<string, { value: string; label: string }[]> = {
     { value: 'Game Development', label: 'Game Development' },
     { value: 'Data Science', label: 'Data Science' },
   ],
+  'CS': [
+    { value: 'Core Computer Science', label: 'Core Computer Science' },
+    { value: 'Game Development', label: 'Game Development' },
+    { value: 'Data Science', label: 'Data Science' },
+  ],
   'Information Technology': [
     { value: 'Network and Security', label: 'Network and Security' },
     { value: 'Web and Mobile App Development', label: 'Web and Mobile App Development' },
     { value: 'IT Automation Track', label: 'IT Automation Track' },
   ],
+  'IT': [
+    { value: 'Network and Security', label: 'Network and Security' },
+    { value: 'Web and Mobile App Development', label: 'Web and Mobile App Development' },
+    { value: 'IT Automation Track', label: 'IT Automation Track' },
+  ],
   'Information Systems': [
+    { value: 'Business Analytics', label: 'Business Analytics' },
+    { value: 'Service Management', label: 'Service Management' },
+  ],
+  'IS': [
     { value: 'Business Analytics', label: 'Business Analytics' },
     { value: 'Service Management', label: 'Service Management' },
   ],
@@ -30,7 +44,10 @@ function getDocTypeForDept(dept: string): string {
   if (d.includes('information technology') || d.includes('information systems') || d === 'it' || d === 'is') {
     return 'Capstone'
   }
-  return 'Thesis'
+  if (d.includes('computer science') || d === 'cs') {
+    return 'Thesis'
+  }
+  return 'Thesis' // default to Thesis
 }
 
 type SubmissionStepContentProps = {
@@ -333,10 +350,13 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
   }
 
   if (step.key === 'file-upload') {
+    const docType = draft.department ? getDocTypeForDept(draft.department) : 'PDF'
+    const uploadLabel = docType === 'Thesis' ? 'Upload Thesis PDF *' : docType === 'Capstone' ? 'Upload Capstone PDF *' : 'Upload PDF *'
+    
     return (
       <>
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-grey-700">Upload PDF *</Label>
+          <Label className="text-sm font-medium text-grey-700">{uploadLabel}</Label>
           {onFileChange ? (
             <label className="flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed border-grey-200 bg-white hover:border-[#0f766e] hover:bg-[#f0fdf9] transition-colors">
               <Upload className="mb-2 h-10 w-10 text-grey-400" />
