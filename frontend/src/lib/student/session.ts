@@ -54,6 +54,27 @@ export function clearStudentSession() {
     return
   }
 
+  // Get the session before clearing to get the user ID
+  const session = getStudentSession()
+  
   localStorage.removeItem(STUDENT_SESSION_KEY)
   deleteCookie(STUDENT_SESSION_KEY)
+  
+  // Clear user-specific submission draft
+  if (session) {
+    const userId = session.studentId || session.email
+    const draftKey = `spark_submission_draft_${userId}`
+    try {
+      localStorage.removeItem(draftKey)
+    } catch {
+      // ignore
+    }
+  }
+  
+  // Also clear the old global draft key (migration cleanup)
+  try {
+    localStorage.removeItem('spark_submission_draft')
+  } catch {
+    // ignore
+  }
 }
