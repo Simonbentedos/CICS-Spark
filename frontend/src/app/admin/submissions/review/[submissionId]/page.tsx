@@ -205,7 +205,7 @@ export default function SubmissionReviewPage({
           {abstractPdfUrl ? (
             <Card className="border border-grey-200 shadow-none">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-navy">ACM/ITSU Abstract PDF</CardTitle>
+                <CardTitle className="text-sm font-medium text-navy">ACM/ITSO Abstract PDF</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="rounded-md border border-grey-200 bg-white overflow-hidden">

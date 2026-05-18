@@ -367,7 +367,7 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
           )}
           {missingFile && (
             <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
-              {pdfFile === null ? 'No thesis/capstone PDF selected.' : 'No ACM/ITSU abstract PDF selected.'} Please go back to step 3 and upload both files.
+              {pdfFile === null ? 'No thesis/capstone PDF selected.' : 'No ACM/ITSO abstract PDF selected.'} Please go back to step 3 and upload both files.
             </p>
           )}
           <div className="flex items-center justify-between gap-2">

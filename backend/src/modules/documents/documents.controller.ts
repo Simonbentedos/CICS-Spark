@@ -74,7 +74,7 @@ export class DocumentsController {
     if (!mainFile) throw new BadRequestException('PDF file is required.');
     if (mainFile.mimetype !== 'application/pdf') throw new BadRequestException('Main file must be a PDF.');
     const abstractFile = files?.abstract_file?.[0];
-    if (!abstractFile) throw new BadRequestException('ACM/ITSU abstract PDF is required.');
+    if (!abstractFile) throw new BadRequestException('ACM/ITSO abstract PDF is required.');
     if (abstractFile.mimetype !== 'application/pdf') throw new BadRequestException('Abstract file must be a PDF.');
     return this.documentsService.uploadDocument(req.user.id, mainFile, dto, abstractFile);
   }
