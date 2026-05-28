@@ -305,7 +305,13 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
               {requireManuscript
                 ? <p className="text-xs text-amber-700">The reviewer has requested a new manuscript. You must upload a replacement to resubmit.</p>
                 : <p className="text-xs text-grey-500">Leave blank to keep the existing file.</p>}
-              <label className={`flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed py-8 transition-colors ${requireManuscript && !pdfFile ? 'border-amber-300 bg-amber-50 hover:border-amber-400' : 'border-grey-200 bg-white hover:border-[#0f766e] hover:bg-[#f0fdf9]'}`}>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => fileInputRef.current?.click()}
+                onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
+                className={`flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed py-8 transition-colors ${requireManuscript && !pdfFile ? 'border-amber-300 bg-amber-50 hover:border-amber-400' : 'border-grey-200 bg-white hover:border-[#0f766e] hover:bg-[#f0fdf9]'}`}
+              >
                 <Upload className="mb-2 h-8 w-8 text-grey-400" />
                 {pdfFile ? (
                   <div className="text-center px-4">
@@ -322,7 +328,7 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
                   className="sr-only"
                   onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)}
                 />
-              </label>
+              </div>
               <ul className="list-disc space-y-0.5 pl-5 text-xs text-grey-500">
                 {FILE_REQUIREMENTS.map((req) => <li key={req}>{req}</li>)}
               </ul>
@@ -345,7 +351,13 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
               {requireAcm
                 ? <p className="text-xs text-amber-700">The reviewer has requested a new ACM/ITSO abstract. You must upload a replacement to resubmit.</p>
                 : <p className="text-xs text-grey-500">Leave blank to keep the existing abstract file.</p>}
-              <label className={`flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed py-8 transition-colors ${requireAcm && !abstractFile ? 'border-amber-300 bg-amber-50 hover:border-amber-400' : 'border-grey-200 bg-white hover:border-[#0f766e] hover:bg-[#f0fdf9]'}`}>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => abstractFileInputRef.current?.click()}
+                onKeyDown={(e) => e.key === 'Enter' && abstractFileInputRef.current?.click()}
+                className={`flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed py-8 transition-colors ${requireAcm && !abstractFile ? 'border-amber-300 bg-amber-50 hover:border-amber-400' : 'border-grey-200 bg-white hover:border-[#0f766e] hover:bg-[#f0fdf9]'}`}
+              >
                 <Upload className="mb-2 h-8 w-8 text-grey-400" />
                 {abstractFile ? (
                   <div className="text-center px-4">
@@ -362,7 +374,7 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
                   className="sr-only"
                   onChange={(e) => setAbstractFile(e.target.files?.[0] ?? null)}
                 />
-              </label>
+              </div>
             </CardContent>
           </Card>
         )}
