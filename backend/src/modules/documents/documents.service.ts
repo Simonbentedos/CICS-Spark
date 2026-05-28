@@ -209,19 +209,6 @@ export class DocumentsService {
       throw new InternalServerErrorException('Failed to update document record.');
     }
 
-    // Record the resubmission in the review history. Wrapped in try-catch so a
-    // DB CHECK constraint on decision values never blocks the resubmission itself.
-    try {
-      await this.databaseService.client.from('reviews').insert({
-        document_id: documentId,
-        reviewed_by: userId,
-        decision: 'resubmit',
-        feedback_text: null,
-      });
-    } catch {
-      // Non-fatal — history entry is best-effort
-    }
-
     return updated;
   }
 

@@ -79,7 +79,36 @@ export default function SubmissionReviewPage({
     )
   }
 
-  const reviews: ApiReview[] = (submission.reviews as ApiReview[]) ?? []
+  const reviews: ApiReview[] = ((submission.reviews as ApiReview[]) ?? [])
+    .filter(r => r.decision !== 'resubmit') // filter out any resubmit records (handled synthetically)
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) // ascending for processing
+
+  // Synthesize the full timeline including resubmission events
+  type TimelineEvent =
+    | { kind: 'review'; review: ApiReview }
+    | { kind: 'resubmit'; timestamp: string | null }
+    | { kind: 'submitted'; timestamp: string }
+
+  const timelineAsc: TimelineEvent[] = [{ kind: 'submitted', timestamp: submission.created_at }]
+  for (let i = 0; i < reviews.length; i++) {
+    const r = reviews[i]
+    timelineAsc.push({ kind: 'review', review: r })
+    if (r.decision === 'revise') {
+      if (i < reviews.length - 1) {
+        // A resubmission happened between this revise and the next admin action
+        timelineAsc.push({ kind: 'resubmit', timestamp: null })
+      } else if (
+        submission.status === 'pending' &&
+        new Date(submission.updated_at) > new Date(r.created_at)
+      ) {
+        // Student resubmitted after this revision request; still awaiting review
+        timelineAsc.push({ kind: 'resubmit', timestamp: submission.updated_at })
+      }
+    }
+  }
+  // Display newest-first
+  const timeline = [...timelineAsc].reverse()
+
   const statusLabel = STATUS_LABEL[submission.status] ?? submission.status
 
   async function handleReview(payload: ReviewPayload) {
@@ -262,20 +291,47 @@ export default function SubmissionReviewPage({
               <CardTitle className="text-sm font-medium text-navy">Review History</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-xs text-grey-600">
-              {reviews.map((review) => {
-                const isResubmit = review.decision === 'resubmit'
+              {timeline.map((event, i) => {
+                if (event.kind === 'submitted') {
+                  return (
+                    <div key="submitted" className="rounded-md border border-grey-200 bg-grey-50 p-2 space-y-1">
+                      <p className="font-medium text-grey-700">Submitted</p>
+                      <p className="text-grey-400">
+                        {new Date(event.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {' · '}
+                        {new Date(event.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  )
+                }
+
+                if (event.kind === 'resubmit') {
+                  return (
+                    <div key={`resubmit-${i}`} className="rounded-md border border-blue-200 bg-blue-50 p-2 space-y-1">
+                      <p className="font-medium text-blue-700">Student Resubmitted</p>
+                      {event.timestamp ? (
+                        <p className="text-blue-400">
+                          {new Date(event.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          {' · '}
+                          {new Date(event.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                        </p>
+                      ) : (
+                        <p className="text-blue-400 italic">Resubmitted before next review</p>
+                      )}
+                    </div>
+                  )
+                }
+
+                // kind === 'review'
+                const { review } = event
                 return (
-                  <div
-                    key={review.id}
-                    className={`rounded-md border p-2 space-y-1 ${isResubmit ? 'border-blue-200 bg-blue-50' : 'border-grey-200'}`}
-                  >
-                    <p className={`font-medium ${isResubmit ? 'text-blue-700' : 'text-grey-700'}`}>
+                  <div key={review.id} className="rounded-md border border-grey-200 p-2 space-y-1">
+                    <p className="font-medium text-grey-700">
                       {review.decision === 'approve' ? 'Approved'
                         : review.decision === 'reject' ? 'Rejected'
-                        : review.decision === 'resubmit' ? 'Student Resubmitted'
                         : 'Revision Requested'}
                     </p>
-                    {!isResubmit && review.reviewer_name && (
+                    {review.reviewer_name && (
                       <p className="text-grey-500">by {review.reviewer_name}</p>
                     )}
                     <p className="text-grey-400">
@@ -283,7 +339,7 @@ export default function SubmissionReviewPage({
                       {' · '}
                       {new Date(review.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                     </p>
-                    {!isResubmit && review.feedback_text && (() => {
+                    {review.feedback_text && (() => {
                       const match = review.feedback_text!.match(/^\[REQUIRE:([^\]]*)\]\n?/)
                       const clean = match ? review.feedback_text!.slice(match[0].length) : review.feedback_text
                       const files = match ? match[1].split(',') : []
@@ -301,14 +357,6 @@ export default function SubmissionReviewPage({
                   </div>
                 )
               })}
-              <div className="rounded-md border border-grey-200 bg-grey-50 p-2 space-y-1">
-                <p className="font-medium text-grey-700">Submitted</p>
-                <p className="text-grey-400">
-                  {new Date(submission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  {' · '}
-                  {new Date(submission.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                </p>
-              </div>
             </CardContent>
           </Card>
         </aside>
