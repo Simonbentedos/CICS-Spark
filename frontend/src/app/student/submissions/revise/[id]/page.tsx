@@ -4,9 +4,32 @@ import { use, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle, Upload } from 'lucide-react'
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label } from '@/components/ui'
+import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui'
 import { getMyDocuments, reviseDocument, type ApiDocument } from '@/lib/api/documents'
 import { FILE_REQUIREMENTS } from '@/lib/utils'
+
+const TRACKS_BY_DEPT: Record<string, { value: string; label: string }[]> = {
+  CS: [
+    { value: 'Core Computer Science', label: 'Core Computer Science' },
+    { value: 'Game Development', label: 'Game Development' },
+    { value: 'Data Science', label: 'Data Science' },
+  ],
+  IT: [
+    { value: 'Network and Security', label: 'Network and Security' },
+    { value: 'Web and Mobile App Development', label: 'Web and Mobile App Development' },
+    { value: 'IT Automation Track', label: 'IT Automation Track' },
+  ],
+  IS: [
+    { value: 'Business Analytics', label: 'Business Analytics' },
+    { value: 'Service Management', label: 'Service Management' },
+  ],
+}
+
+const DEPT_NAMES: Record<string, string> = {
+  CS: 'Computer Science',
+  IT: 'Information Technology',
+  IS: 'Information Systems',
+}
 
 export default function StudentRevisionPage({ params: paramsPromise }: Readonly<{ params: Promise<{ id: string }> }>) {
   const params = use(paramsPromise)
@@ -23,6 +46,8 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
   const [abstract, setAbstract] = useState('')
   const [keywords, setKeywords] = useState('')
   const [adviser, setAdviser] = useState('')
+  const [trackSpecialization, setTrackSpecialization] = useState('')
+  const [dateSubmitted, setDateSubmitted] = useState('')
 
   // New PDF (optional — only replace if the student selects a new file)
   const [pdfFile, setPdfFile] = useState<File | null>(null)
@@ -32,39 +57,33 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // ── Load the document ────────────────────────────────────────────────────────
-
   useEffect(() => {
     getMyDocuments()
       .then((docs) => {
         const found = docs.find((d) => d.id === id)
-        if (!found) {
-          setNotFound(true)
-          return
-        }
-        if (found.status !== 'revision') {
-          setNotFound(true)
-          return
-        }
+        if (!found) { setNotFound(true); return }
+        if (found.status !== 'revision') { setNotFound(true); return }
         setDoc(found)
         setTitle(found.title)
         setAuthorName(Array.isArray(found.authors) ? found.authors.join(', ') : '')
         setAbstract(found.abstract ?? '')
         setKeywords(Array.isArray(found.keywords) ? found.keywords.join(', ') : '')
         setAdviser(found.adviser ?? '')
+        setTrackSpecialization(found.track_specialization ?? '')
+        if (found.year) {
+          setDateSubmitted(`${found.year}-01-01`)
+        }
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false))
   }, [id])
-
-  // ── Derive the latest review feedback ────────────────────────────────────────
 
   const latestFeedback = doc?.reviews
     ?.filter((r) => r.decision === 'revise')
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
     ?.feedback_text ?? null
 
-  // ── Submit revision ──────────────────────────────────────────────────────────
+  const trackOptions = TRACKS_BY_DEPT[doc?.department ?? ''] ?? []
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -84,6 +103,11 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
       if (abstract) formData.append('abstract', abstract)
       if (adviser) formData.append('adviser', adviser)
       if (kwList.length) formData.append('keywords', JSON.stringify(kwList))
+      if (trackSpecialization) formData.append('track_specialization', trackSpecialization)
+      if (dateSubmitted) {
+        const year = new Date(dateSubmitted).getFullYear()
+        if (!isNaN(year)) formData.append('year', String(year))
+      }
 
       await reviseDocument(id, formData)
       router.push('/student/dashboard')
@@ -93,8 +117,6 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
       setSubmitting(false)
     }
   }
-
-  // ── Render states ────────────────────────────────────────────────────────────
 
   if (loading) {
     return <p className="py-12 text-center text-sm text-grey-500">Loading your submission…</p>
@@ -114,16 +136,17 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
     )
   }
 
+  const today = new Date().toISOString().split('T')[0]
+
   return (
     <div className="mx-auto max-w-[760px] space-y-4">
       <header>
         <h1 className="text-[28px] font-semibold text-navy leading-tight">Revise Submission</h1>
         <p className="mt-0.5 text-sm text-grey-500">
-          Update your submission and resubmit it for review.
+          Update your submission details and resubmit for review.
         </p>
       </header>
 
-      {/* Admin feedback */}
       {latestFeedback && (
         <div className="flex items-start gap-3 rounded-lg border border-violet-200 bg-violet-50 px-4 py-3">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-violet-600" />
@@ -134,8 +157,23 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
         </div>
       )}
 
+      {/* Read-only info */}
+      {doc && (
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+          {[
+            { label: 'Department', value: DEPT_NAMES[doc.department] ?? doc.department },
+            { label: 'Document Type', value: doc.type.charAt(0).toUpperCase() + doc.type.slice(1) },
+            { label: 'Program', value: doc.degree ?? '—' },
+          ].map(({ label, value }) => (
+            <div key={label} className="rounded-md border border-grey-200 bg-grey-50 p-3">
+              <p className="text-[10px] uppercase tracking-wide text-grey-400">{label}</p>
+              <p className="mt-0.5 text-sm font-medium text-grey-600">{value}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Metadata fields */}
         <Card className="border border-grey-200 shadow-none">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold text-navy">Document Details</CardTitle>
@@ -164,11 +202,39 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="adviser" className="text-sm font-medium text-grey-700">Thesis Adviser</Label>
+              <Label htmlFor="adviser" className="text-sm font-medium text-grey-700">Technical Adviser</Label>
               <Input
                 id="adviser"
                 value={adviser}
                 onChange={(e) => setAdviser(e.target.value)}
+                className="h-11 border-grey-200"
+              />
+            </div>
+
+            {trackOptions.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-grey-700">Specialization Track</Label>
+                <Select value={trackSpecialization} onValueChange={setTrackSpecialization}>
+                  <SelectTrigger className="h-11 border-grey-200">
+                    <SelectValue placeholder="Select your track..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {trackOptions.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="dateSubmitted" className="text-sm font-medium text-grey-700">Date Submitted (final manuscript)</Label>
+              <Input
+                id="dateSubmitted"
+                type="date"
+                max={today}
+                value={dateSubmitted}
+                onChange={(e) => setDateSubmitted(e.target.value)}
                 className="h-11 border-grey-200"
               />
             </div>
@@ -197,10 +263,9 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
           </CardContent>
         </Card>
 
-        {/* File replacement */}
         <Card className="border border-grey-200 shadow-none">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold text-navy">Replace PDF (optional)</CardTitle>
+            <CardTitle className="text-base font-semibold text-navy">Replace Manuscript PDF (optional)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 p-4 pt-0">
             <p className="text-xs text-grey-500">

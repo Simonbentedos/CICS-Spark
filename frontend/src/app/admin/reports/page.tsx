@@ -19,7 +19,6 @@ import AdminFilterBar from '@/components/admin/AdminFilterBar'
 import AdminMetricCards from '@/components/admin/AdminMetricCards'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import { getSubmissionStatuses } from '@/lib/utils'
-import { getAdminSession } from '@/lib/admin/session'
 import { getAdminSubmissions, type ApiDocument } from '@/lib/api/documents'
 import { getAdminUsers, type ApiUser } from '@/lib/api/users'
 import { getUsageMetrics, type UsageMetrics } from '@/lib/api/analytics'
@@ -27,7 +26,6 @@ import type {
   DepartmentReportRow,
   ReportDateRange,
   ReportExportFormat,
-  ReportExportPreset,
   ReportFilters,
   ReportSnapshot,
   SubmissionStatus,
@@ -37,15 +35,12 @@ const DATE_RANGE_OPTIONS: { value: ReportDateRange; label: string }[] = [
   { value: '30d', label: 'Last 30 Days' },
   { value: '90d', label: 'Last 90 Days' },
   { value: 'ytd', label: 'Year to Date' },
+  { value: '1y', label: 'Last 1 Year' },
+  { value: '2y', label: 'Last 2 Years' },
+  { value: '3y', label: 'Last 3 Years' },
+  { value: '4y', label: 'Last 4 Years' },
+  { value: '5y', label: 'Last 5 Years' },
   { value: 'all', label: 'All Time' },
-]
-
-const REPORT_PRESET_OPTIONS: { value: ReportExportPreset; label: string }[] = [
-  { value: 'executive-summary', label: 'Executive Summary' },
-  { value: 'submission-pipeline', label: 'Submission Pipeline' },
-  { value: 'department-performance', label: 'Department Performance' },
-  { value: 'user-access-usage', label: 'User & Access Usage' },
-  { value: 'audit-trail', label: 'Audit Trail' },
 ]
 
 const EXPORT_FORMAT_OPTIONS: { value: ReportExportFormat; label: string }[] = [
@@ -65,17 +60,16 @@ function isWithinRange(dateString: string, range: ReportDateRange) {
   const date = new Date(dateString)
   if (isNaN(date.getTime())) return false
   const now = new Date()
-  
-  if (range === '30d') {
-    const cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-    return date >= cutoff
-  }
-  if (range === '90d') {
-    const cutoff = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
-    return date >= cutoff
-  }
-  if (range === 'ytd') {
-    const cutoff = new Date(now.getFullYear(), 0, 1) // Jan 1st of current year
+
+  if (range === '30d') return date >= new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+  if (range === '90d') return date >= new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
+  if (range === 'ytd') return date >= new Date(now.getFullYear(), 0, 1)
+
+  const yearMatch = range.match(/^(\d+)y$/)
+  if (yearMatch) {
+    const years = parseInt(yearMatch[1], 10)
+    const cutoff = new Date(now)
+    cutoff.setFullYear(cutoff.getFullYear() - years)
     return date >= cutoff
   }
   return true
@@ -83,7 +77,6 @@ function isWithinRange(dateString: string, range: ReportDateRange) {
 
 export default function AdminReportsPage() {
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedPreset, setSelectedPreset] = useState<ReportExportPreset>('executive-summary')
   const [selectedFormat, setSelectedFormat] = useState<ReportExportFormat>('csv')
 
   const [submissions, setSubmissions] = useState<ApiDocument[]>([])
@@ -98,7 +91,7 @@ export default function AdminReportsPage() {
   const [error, setError] = useState<string | null>(null)
 
   const [filters, setFilters] = useState<ReportFilters>(() => ({
-    range: 'all', // Show all-time data by default to match dashboard exactly
+    range: 'all',
     department: 'all-departments',
     status: 'all-status',
   }))
@@ -273,10 +266,6 @@ export default function AdminReportsPage() {
   }, [submissions, users, filters, usageMetrics])
 
 
-  const departments = useMemo(
-    () => Array.from(new Set(submissions.map((s) => s.department))),
-    [submissions],
-  )
   const statuses = useMemo(() => getSubmissionStatuses(), [])
 
   const maxTrend = Math.max(1, ...report.trend.map((item) => item.submitted))
@@ -303,13 +292,12 @@ export default function AdminReportsPage() {
     if (selectedFormat === 'json') {
       content = JSON.stringify(report, null, 2)
       mimeType = 'application/json'
-      fileName = `spark-report-${selectedPreset}-${new Date().toISOString().split('T')[0]}.json`
+      fileName = `spark-report-${new Date().toISOString().split('T')[0]}.json`
     } else {
       // CSV format with comprehensive data
       const rows = ['# SPARK Repository Report']
       rows.push(`# Generated: ${new Date().toLocaleString()}`)
-      rows.push(`# Preset: ${selectedPreset}`)
-      rows.push(`# Filters: ${filters.range} | ${filters.department} | ${filters.status}`)
+      rows.push(`# Date Range: ${filters.range} | Status: ${filters.status}`)
       rows.push('')
       
       // KPI Summary
@@ -372,7 +360,7 @@ export default function AdminReportsPage() {
       
       content = rows.join('\n')
       mimeType = 'text/csv;charset=utf-8;'
-      fileName = `spark-report-${selectedPreset}-${new Date().toISOString().split('T')[0]}.csv`
+      fileName = `spark-report-${new Date().toISOString().split('T')[0]}.csv`
     }
 
     const blob = new Blob([content], { type: mimeType })
@@ -393,17 +381,6 @@ export default function AdminReportsPage() {
         subtitle="Analytics, performance, usage, and audit reporting for thesis repository operations."
         action={
           <div className="flex items-center gap-2">
-            <Select value={selectedPreset} onValueChange={(value) => setSelectedPreset(value as ReportExportPreset)}>
-              <SelectTrigger className="h-9 w-[190px] border-grey-200 bg-white text-xs text-navy dark:text-navy">
-                <SelectValue placeholder="Select report" />
-              </SelectTrigger>
-              <SelectContent>
-                {REPORT_PRESET_OPTIONS.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
             <Select value={selectedFormat} onValueChange={(value) => setSelectedFormat(value as ReportExportFormat)}>
               <SelectTrigger className="h-9 w-[110px] border-grey-200 bg-white text-xs text-navy dark:text-navy">
                 <SelectValue placeholder="Format" />
@@ -442,18 +419,6 @@ export default function AdminReportsPage() {
                   <SelectContent>
                     {DATE_RANGE_OPTIONS.map((item) => (
                       <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={filters.department} onValueChange={(value) => updateFilters({ department: value })}>
-                  <SelectTrigger className="h-10 w-[170px] border-grey-200 bg-white text-xs text-navy dark:text-navy">
-                    <SelectValue placeholder="All Departments" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all-departments">All Departments</SelectItem>
-                    {departments.map((item) => (
-                      <SelectItem key={item} value={item}>{item}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
