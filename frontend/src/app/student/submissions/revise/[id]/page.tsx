@@ -3,7 +3,7 @@
 import { use, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { AlertTriangle, Upload } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Upload } from 'lucide-react'
 import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui'
 import { getMyDocuments, reviseDocument, type ApiDocument } from '@/lib/api/documents'
 import { FILE_REQUIREMENTS } from '@/lib/utils'
@@ -53,6 +53,7 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
 
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitted, setSubmitted] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const abstractFileInputRef = useRef<HTMLInputElement>(null)
@@ -117,7 +118,8 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
         if (!isNaN(year)) formData.append('year', String(year))
       }
       await reviseDocument(id, formData)
-      router.push('/student/dashboard')
+      setSubmitted(true)
+      setTimeout(() => router.push('/student/dashboard'), 3000)
     } catch (err: unknown) {
       setSubmitError(err instanceof Error ? err.message : 'Revision failed. Please try again.')
     } finally {
@@ -144,6 +146,24 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
   }
 
   const today = new Date().toISOString().split('T')[0]
+
+  if (submitted) {
+    return (
+      <div className="mx-auto max-w-[760px] py-16 flex flex-col items-center gap-4 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+          <CheckCircle2 className="h-8 w-8 text-green-600" />
+        </div>
+        <h2 className="text-2xl font-semibold text-navy">Revision Submitted!</h2>
+        <p className="text-sm text-grey-500 max-w-sm">
+          Your updated submission has been sent back for admin review. You will be notified once a decision is made.
+        </p>
+        <p className="text-xs text-grey-400">Redirecting you to your dashboard…</p>
+        <Link href="/student/dashboard" className="mt-2 text-sm text-[#0f766e] hover:underline no-underline">
+          Go to Dashboard now →
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <div className="mx-auto max-w-[760px] space-y-4">

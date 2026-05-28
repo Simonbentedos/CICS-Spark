@@ -262,36 +262,45 @@ export default function SubmissionReviewPage({
               <CardTitle className="text-sm font-medium text-navy">Review History</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-xs text-grey-600">
-              {reviews.map((review) => (
-                <div key={review.id} className="rounded-md border border-grey-200 p-2 space-y-1">
-                  <p className="font-medium text-grey-700">
-                    {review.decision === 'approve' ? 'Approved' : review.decision === 'reject' ? 'Rejected' : 'Revision Requested'}
-                  </p>
-                  {review.reviewer_name && (
-                    <p className="text-grey-500">by {review.reviewer_name}</p>
-                  )}
-                  <p className="text-grey-400">
-                    {new Date(review.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    {' · '}
-                    {new Date(review.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                  </p>
-                  {review.feedback_text && (() => {
-                    const match = review.feedback_text.match(/^\[REQUIRE:([^\]]*)\]\n?/)
-                    const clean = match ? review.feedback_text.slice(match[0].length) : review.feedback_text
-                    const files = match ? match[1].split(',') : []
-                    return (
-                      <>
-                        {files.length > 0 && (
-                          <p className="text-[11px] font-medium text-amber-700">
-                            Requires resubmission: {files.map(f => f === 'manuscript' ? 'Manuscript PDF' : 'ACM/ITSO Abstract PDF').join(' + ')}
-                          </p>
-                        )}
-                        {clean && <p className="text-grey-500 italic whitespace-pre-wrap">{clean}</p>}
-                      </>
-                    )
-                  })()}
-                </div>
-              ))}
+              {reviews.map((review) => {
+                const isResubmit = review.decision === 'resubmit'
+                return (
+                  <div
+                    key={review.id}
+                    className={`rounded-md border p-2 space-y-1 ${isResubmit ? 'border-blue-200 bg-blue-50' : 'border-grey-200'}`}
+                  >
+                    <p className={`font-medium ${isResubmit ? 'text-blue-700' : 'text-grey-700'}`}>
+                      {review.decision === 'approve' ? 'Approved'
+                        : review.decision === 'reject' ? 'Rejected'
+                        : review.decision === 'resubmit' ? 'Student Resubmitted'
+                        : 'Revision Requested'}
+                    </p>
+                    {!isResubmit && review.reviewer_name && (
+                      <p className="text-grey-500">by {review.reviewer_name}</p>
+                    )}
+                    <p className="text-grey-400">
+                      {new Date(review.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {' · '}
+                      {new Date(review.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                    </p>
+                    {!isResubmit && review.feedback_text && (() => {
+                      const match = review.feedback_text!.match(/^\[REQUIRE:([^\]]*)\]\n?/)
+                      const clean = match ? review.feedback_text!.slice(match[0].length) : review.feedback_text
+                      const files = match ? match[1].split(',') : []
+                      return (
+                        <>
+                          {files.length > 0 && (
+                            <p className="text-[11px] font-medium text-amber-700">
+                              Requires resubmission: {files.map(f => f === 'manuscript' ? 'Manuscript PDF' : 'ACM/ITSO Abstract PDF').join(' + ')}
+                            </p>
+                          )}
+                          {clean && <p className="text-grey-500 italic whitespace-pre-wrap">{clean}</p>}
+                        </>
+                      )
+                    })()}
+                  </div>
+                )
+              })}
               <div className="rounded-md border border-grey-200 bg-grey-50 p-2 space-y-1">
                 <p className="font-medium text-grey-700">Submitted</p>
                 <p className="text-grey-400">
