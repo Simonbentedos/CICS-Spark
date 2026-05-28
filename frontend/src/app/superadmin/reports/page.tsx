@@ -414,38 +414,45 @@ export default function SuperAdminReportsPage() {
         title="System Reports"
         subtitle="Cross-department analytics and performance overview for all of SPARK."
         action={
-          <div className="flex flex-wrap items-center gap-2">
-            <Select value={selectedFormat} onValueChange={(v) => setSelectedFormat(v as ReportExportFormat)}>
-              <SelectTrigger className="h-9 w-[90px] border-grey-200 bg-white text-xs text-navy">
-                <SelectValue placeholder="Format" />
-              </SelectTrigger>
-              <SelectContent>
-                {EXPORT_FORMAT_OPTIONS.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button variant="outline" className="h-9 px-3 text-xs" onClick={handleExport}>
-              <Download className="mr-1 h-3.5 w-3.5" />
-              Full Report
-            </Button>
-            <Button variant="outline" className="h-9 px-3 text-xs text-green-700 border-green-200 hover:bg-green-50" onClick={handleExportApproved}>
-              <Download className="mr-1 h-3.5 w-3.5" />
-              Approved Submissions (CSV)
-            </Button>
-            <Select value={printScope} onValueChange={(v) => setPrintScope(v as 'complete' | 'graphs')}>
-              <SelectTrigger className="h-9 w-[170px] border-grey-200 bg-white text-xs text-navy">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="complete">Complete Summary</SelectItem>
-                <SelectItem value="graphs">Graphs Only</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" className="h-9 px-3 text-xs" onClick={handlePrint}>
-              <Printer className="mr-1 h-3.5 w-3.5" />
-              Print / PDF
-            </Button>
+          <div className="flex flex-col items-end gap-1.5">
+            {/* Download row */}
+            <div className="flex items-center gap-2">
+              <Select value={selectedFormat} onValueChange={(v) => setSelectedFormat(v as ReportExportFormat)}>
+                <SelectTrigger className="h-9 w-[90px] border-grey-200 bg-white text-xs text-navy">
+                  <SelectValue placeholder="Format" />
+                </SelectTrigger>
+                <SelectContent>
+                  {EXPORT_FORMAT_OPTIONS.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" className="h-9 px-3 text-xs" onClick={handleExport}>
+                <Download className="mr-1 h-3.5 w-3.5" />
+                Full Report
+              </Button>
+              <Button variant="outline" className="h-9 px-3 text-xs text-green-700 border-green-200 hover:bg-green-50" onClick={handleExportApproved}>
+                <Download className="mr-1 h-3.5 w-3.5" />
+                Approved Submissions (CSV)
+              </Button>
+            </div>
+
+            {/* Print row */}
+            <div className="flex items-center gap-2">
+              <Select value={printScope} onValueChange={(v) => setPrintScope(v as 'complete' | 'graphs')}>
+                <SelectTrigger className="h-9 w-[170px] border-grey-200 bg-white text-xs text-navy">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="complete">Complete Summary</SelectItem>
+                  <SelectItem value="graphs">Graphs Only</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" className="h-9 px-3 text-xs" onClick={handlePrint}>
+                <Printer className="mr-1 h-3.5 w-3.5" />
+                Print / PDF
+              </Button>
+            </div>
           </div>
         }
       />
