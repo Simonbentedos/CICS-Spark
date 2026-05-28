@@ -25,7 +25,7 @@ export type ApiDocument = {
 
 export type ApiReview = {
   id: string
-  decision: 'approve' | 'reject' | 'revise'
+  decision: 'approve' | 'reject' | 'revise' | 'resubmit'
   feedback_text: string | null
   reviewed_by: string | null
   reviewer_name: string | null

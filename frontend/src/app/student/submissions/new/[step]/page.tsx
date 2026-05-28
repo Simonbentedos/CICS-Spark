@@ -208,6 +208,8 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
 
   const isDuplicateBlocked = Boolean(duplicateWarning?.startsWith('DUPLICATE:'))
 
+  const isCSStudent = getDeptCode(draft.department) === 'CS'
+
   const canProceed = useMemo(() => {
     if (!step) return false
     if (step.key === 'basic-info') {
@@ -217,11 +219,11 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
       return Boolean(draft.thesisAdvisor.trim() && draft.keywords.trim() && draft.abstract.trim())
     }
     if (step.key === 'file-upload') {
-      return pdfFile !== null && abstractFile !== null
+      return pdfFile !== null && (isCSStudent || abstractFile !== null)
     }
-    // verify-details: enabled once title + both files present
-    return Boolean(draft.title.trim()) && pdfFile !== null && abstractFile !== null
-  }, [draft, step?.key, pdfFile])
+    // verify-details: CS only needs the main PDF; IT/IS need both
+    return Boolean(draft.title.trim()) && pdfFile !== null && (isCSStudent || abstractFile !== null)
+  }, [draft, step?.key, pdfFile, abstractFile, isCSStudent, isDuplicateBlocked])
 
   function setPdfFile(file: File | null) {
     _pendingPdfFile = file
@@ -348,12 +350,9 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
   }
 
   const isVerifyStep = step.key === 'verify-details'
-  const missingFile = isVerifyStep && (pdfFile === null || abstractFile === null)
+  const missingFile = isVerifyStep && (pdfFile === null || (!isCSStudent && abstractFile === null))
   const deptCode = getDeptCode(draft.department)
   const pageTitle = deptCode === 'CS' ? 'Submit New Thesis' : 'Submit New Capstone'
-  
-  // Debug: log department info
-  console.log('DEBUG - Department:', draft.department, 'Code:', deptCode, 'Title:', pageTitle)
 
   return (
     <SubmissionStepLayout
@@ -367,7 +366,10 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
           )}
           {missingFile && (
             <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
-              {pdfFile === null ? 'No thesis/capstone PDF selected.' : 'No ACM/ITSO abstract PDF selected.'} Please go back to step 3 and upload both files.
+              {pdfFile === null
+                ? 'No manuscript PDF selected.'
+                : 'No ACM/ITSO abstract PDF selected (required for IT and IS).'}
+              {' '}Please go back to step 3 and upload the required file(s).
             </p>
           )}
           <div className="flex items-center justify-between gap-2">

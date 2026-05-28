@@ -117,7 +117,7 @@ export interface AdminSession {
   loginAt: string
 }
 
-export type ReportDateRange = '30d' | '90d' | 'ytd' | 'all'
+export type ReportDateRange = '30d' | '90d' | 'ytd' | '1y' | '2y' | '3y' | '4y' | '5y' | 'all'
 export type ReportExportFormat = 'csv' | 'json'
 export type ReportExportPreset = 'executive-summary' | 'submission-pipeline' | 'department-performance' | 'user-access-usage' | 'audit-trail'
 

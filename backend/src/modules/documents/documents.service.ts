@@ -119,6 +119,7 @@ export class DocumentsService {
     userId: string,
     file: Express.Multer.File | undefined,
     dto: ReviseDocumentDto,
+    abstractFile?: Express.Multer.File,
   ) {
     // Only the owner may revise their document
     const { data: existing, error: fetchError } = await this.databaseService.client
@@ -139,11 +140,10 @@ export class DocumentsService {
     }
 
     let pdf_file_path = existing.pdf_file_path;
-
+    let abstract_file_path = existing.abstract_file_path;
     let newChecksum: string | undefined;
 
     if (file) {
-      // Remove the old PDF and upload the new one
       await this.databaseService.client.storage
         .from('documents')
         .remove([existing.pdf_file_path]);
@@ -161,6 +161,25 @@ export class DocumentsService {
       newChecksum = createHash('sha256').update(file.buffer).digest('hex');
     }
 
+    if (abstractFile) {
+      if (existing.abstract_file_path) {
+        await this.databaseService.client.storage
+          .from('documents')
+          .remove([existing.abstract_file_path]);
+      }
+
+      const abstractStoragePath = `${userId}/${Date.now()}_abstract_${abstractFile.originalname}`;
+      const { error: abstractStorageError } = await this.databaseService.client.storage
+        .from('documents')
+        .upload(abstractStoragePath, abstractFile.buffer, { contentType: abstractFile.mimetype });
+
+      if (abstractStorageError) {
+        throw new InternalServerErrorException('Failed to upload revised abstract file.');
+      }
+
+      abstract_file_path = abstractStoragePath;
+    }
+
     // Build the update payload — only include fields explicitly provided
     const updatePayload: Record<string, any> = {
       status: 'pending',
@@ -176,6 +195,7 @@ export class DocumentsService {
     if (dto.adviser !== undefined) updatePayload.adviser = dto.adviser;
     if (dto.keywords !== undefined) updatePayload.keywords = dto.keywords;
     if (pdf_file_path !== existing.pdf_file_path) updatePayload.pdf_file_path = pdf_file_path;
+    if (abstract_file_path !== existing.abstract_file_path) updatePayload.abstract_file_path = abstract_file_path;
     if (newChecksum) updatePayload.checksum = newChecksum;
 
     const { data: updated, error: updateError } = await this.databaseService.client

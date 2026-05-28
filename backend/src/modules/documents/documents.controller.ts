@@ -9,7 +9,6 @@ import {
   Query,
   UseGuards,
   UseInterceptors,
-  UploadedFile,
   UploadedFiles,
   Request,
   Res,
@@ -108,14 +107,19 @@ export class DocumentsController {
   @Put(':id')
   @UseGuards(SupabaseGuard, RolesGuard)
   @Roles('student')
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_FILE_SIZE } }))
+  @UseInterceptors(FileFieldsInterceptor([
+    { name: 'file', maxCount: 1 },
+    { name: 'abstract_file', maxCount: 1 },
+  ], { limits: { fileSize: MAX_FILE_SIZE } }))
   reviseDocument(
     @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFiles() files: { file?: Express.Multer.File[]; abstract_file?: Express.Multer.File[] },
     @Body() dto: ReviseDocumentDto,
     @Request() req: any,
   ) {
-    return this.documentsService.reviseDocument(id, req.user.id, file, dto);
+    const mainFile = files?.file?.[0];
+    const abstractFile = files?.abstract_file?.[0];
+    return this.documentsService.reviseDocument(id, req.user.id, mainFile, dto, abstractFile);
   }
 
   /**
