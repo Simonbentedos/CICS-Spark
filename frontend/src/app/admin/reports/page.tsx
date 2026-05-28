@@ -507,6 +507,7 @@ export default function AdminReportsPage() {
 
     const html = `<!DOCTYPE html><html><head><title>SPARK Reports</title>
       <style>
+        * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         body { font-family: Arial, sans-serif; color: #111; margin: 24px; }
         @media print { body { margin: 0; } }
         td { ${tdStyle} } th { ${thStyle} }
@@ -545,7 +546,7 @@ export default function AdminReportsPage() {
     win.document.write(html)
     win.document.close()
     win.focus()
-    win.print()
+    win.onload = () => win.print()
   }
 
   return (
@@ -573,11 +574,11 @@ export default function AdminReportsPage() {
 
             <Button variant="outline" className="h-9 px-3 text-xs text-green-700 border-green-200 hover:bg-green-50" onClick={handleExportApproved}>
               <Download className="mr-1 h-3.5 w-3.5" />
-              Approved (CSV)
+              Approved Submissions (CSV)
             </Button>
 
             <Select value={printScope} onValueChange={(v) => setPrintScope(v as 'complete' | 'graphs')}>
-              <SelectTrigger className="h-9 w-[140px] border-grey-200 bg-white text-xs text-navy dark:text-navy">
+              <SelectTrigger className="h-9 w-[170px] border-grey-200 bg-white text-xs text-navy dark:text-navy">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -650,8 +651,8 @@ export default function AdminReportsPage() {
               </CardHeader>
               <CardContent className="px-6 pb-6">
                 <div className="flex items-end justify-between gap-3 h-[180px]">
-                  {report.trend.map((point) => (
-                    <div key={point.label} className="flex flex-col items-center flex-1 h-full">
+                  {report.trend.map((point, i) => (
+                    <div key={i} className="flex flex-col items-center flex-1 h-full">
                       <div className="flex-1 w-full flex items-end justify-center pb-2">
                         <div 
                           className="w-full max-w-[48px] rounded-t-md bg-gradient-to-t from-blue-600 to-blue-400 transition-all hover:opacity-80 relative group"
@@ -721,8 +722,8 @@ export default function AdminReportsPage() {
                 <CardTitle className="text-sm font-medium text-navy">User Growth (Active Departments)</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {report.userGrowth.map((item) => (
-                  <div key={item.label} className="space-y-1">
+                {report.userGrowth.map((item, i) => (
+                  <div key={i} className="space-y-1">
                     <div className="flex items-center justify-between text-xs text-grey-600">
                       <span>{item.label}</span>
                       <span className="font-medium text-grey-700">{item.newUsers} new</span>

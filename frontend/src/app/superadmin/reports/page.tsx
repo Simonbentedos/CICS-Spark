@@ -377,7 +377,7 @@ export default function SuperAdminReportsPage() {
       </table>`
 
     const html = `<!DOCTYPE html><html><head><title>SPARK System Reports</title>
-      <style>body{font-family:Arial,sans-serif;color:#111;margin:24px}@media print{body{margin:0}}</style>
+      <style>*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{font-family:Arial,sans-serif;color:#111;margin:24px}@media print{body{margin:0}}</style>
     </head><body>
       <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1e3a5f;padding-bottom:10px;margin-bottom:16px">
         <div>
@@ -405,7 +405,7 @@ export default function SuperAdminReportsPage() {
     win.document.write(html)
     win.document.close()
     win.focus()
-    win.print()
+    win.onload = () => win.print()
   }
 
   return (
@@ -431,10 +431,10 @@ export default function SuperAdminReportsPage() {
             </Button>
             <Button variant="outline" className="h-9 px-3 text-xs text-green-700 border-green-200 hover:bg-green-50" onClick={handleExportApproved}>
               <Download className="mr-1 h-3.5 w-3.5" />
-              Approved (CSV)
+              Approved Submissions (CSV)
             </Button>
             <Select value={printScope} onValueChange={(v) => setPrintScope(v as 'complete' | 'graphs')}>
-              <SelectTrigger className="h-9 w-[140px] border-grey-200 bg-white text-xs text-navy">
+              <SelectTrigger className="h-9 w-[170px] border-grey-200 bg-white text-xs text-navy">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

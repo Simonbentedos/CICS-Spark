@@ -40,7 +40,6 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
 
-  // Editable fields (pre-filled from the document)
   const [title, setTitle] = useState('')
   const [authorName, setAuthorName] = useState('')
   const [abstract, setAbstract] = useState('')
@@ -49,7 +48,6 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
   const [trackSpecialization, setTrackSpecialization] = useState('')
   const [dateSubmitted, setDateSubmitted] = useState('')
 
-  // New files (optional — only replace if the student selects a new file)
   const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [abstractFile, setAbstractFile] = useState<File | null>(null)
 
@@ -72,9 +70,7 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
         setKeywords(Array.isArray(found.keywords) ? found.keywords.join(', ') : '')
         setAdviser(found.adviser ?? '')
         setTrackSpecialization(found.track_specialization ?? '')
-        if (found.year) {
-          setDateSubmitted(`${found.year}-01-01`)
-        }
+        if (found.year) setDateSubmitted(`${found.year}-01-01`)
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false))
@@ -100,17 +96,13 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
     (!requireManuscript || pdfFile !== null) &&
     (!requireAcm || abstractFile !== null)
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!canSubmit) return
-
+  async function handleSubmit() {
+    if (!canSubmit || submitting) return
     setSubmitting(true)
     setSubmitError(null)
-
     try {
       const kwList = keywords.split(',').map((k) => k.trim()).filter(Boolean)
       const authorList = authorName.split(',').map((a) => a.trim()).filter(Boolean)
-
       const formData = new FormData()
       if (pdfFile) formData.append('file', pdfFile)
       if (abstractFile) formData.append('abstract_file', abstractFile)
@@ -124,7 +116,6 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
         const year = new Date(dateSubmitted).getFullYear()
         if (!isNaN(year)) formData.append('year', String(year))
       }
-
       await reviseDocument(id, formData)
       router.push('/student/dashboard')
     } catch (err: unknown) {
@@ -158,9 +149,7 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
     <div className="mx-auto max-w-[760px] space-y-4">
       <header>
         <h1 className="text-[28px] font-semibold text-navy leading-tight">Revise Submission</h1>
-        <p className="mt-0.5 text-sm text-grey-500">
-          Update your submission details and resubmit for review.
-        </p>
+        <p className="mt-0.5 text-sm text-grey-500">Update your submission details and resubmit for review.</p>
       </header>
 
       {(latestFeedback || requiredFiles.length > 0) && (
@@ -168,9 +157,7 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-violet-600" />
           <div className="text-sm space-y-1.5">
             <p className="font-medium text-violet-800">Reviewer feedback</p>
-            {latestFeedback && (
-              <p className="text-violet-700 whitespace-pre-wrap">{latestFeedback}</p>
-            )}
+            {latestFeedback && <p className="text-violet-700 whitespace-pre-wrap">{latestFeedback}</p>}
             {requiredFiles.length > 0 && (
               <div className="mt-1 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
                 <p className="text-xs font-semibold text-amber-800">Required resubmission:</p>
@@ -184,7 +171,6 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
         </div>
       )}
 
-      {/* Read-only info */}
       {doc && (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
           {[
@@ -200,202 +186,172 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <Card className="border border-grey-200 shadow-none">
+      {/* Document details — no <form> to avoid file-input navigation side effects */}
+      <Card className="border border-grey-200 shadow-none">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold text-navy">Document Details</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 p-4 pt-0">
+          <div className="space-y-2">
+            <Label htmlFor="title" className="text-sm font-medium text-grey-700">Title *</Label>
+            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} className="h-11 border-grey-200" />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="authors" className="text-sm font-medium text-grey-700">Authors</Label>
+            <Input id="authors" value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Comma-separated author names" className="h-11 border-grey-200" />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="adviser" className="text-sm font-medium text-grey-700">Technical Adviser</Label>
+            <Input id="adviser" value={adviser} onChange={(e) => setAdviser(e.target.value)} className="h-11 border-grey-200" />
+          </div>
+
+          {trackOptions.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-grey-700">Specialization Track</Label>
+              <Select value={trackSpecialization} onValueChange={setTrackSpecialization}>
+                <SelectTrigger className="h-11 border-grey-200">
+                  <SelectValue placeholder="Select your track..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {trackOptions.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="dateSubmitted" className="text-sm font-medium text-grey-700">Date Submitted (final manuscript)</Label>
+            <Input id="dateSubmitted" type="date" max={today} value={dateSubmitted} onChange={(e) => setDateSubmitted(e.target.value)} className="h-11 border-grey-200" />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="keywords" className="text-sm font-medium text-grey-700">Keywords</Label>
+            <Input id="keywords" value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="Comma-separated keywords" className="h-11 border-grey-200" />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="abstract" className="text-sm font-medium text-grey-700">Abstract</Label>
+            <textarea
+              id="abstract"
+              value={abstract}
+              onChange={(e) => setAbstract(e.target.value)}
+              rows={6}
+              className="w-full rounded-md border border-grey-200 px-3 py-2 text-sm text-grey-700 outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Manuscript PDF upload */}
+      {(requireManuscript || requiredFiles.length === 0) && (
+        <Card className={`shadow-none ${requireManuscript ? 'border border-amber-300' : 'border border-grey-200'}`}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold text-navy">Document Details</CardTitle>
+            <CardTitle className="text-base font-semibold text-navy flex items-center gap-2">
+              Complete Manuscript PDF
+              {requireManuscript
+                ? <span className="text-xs font-semibold text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-2 py-0.5">Required</span>
+                : <span className="text-xs font-normal text-grey-400">(optional)</span>}
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 p-4 pt-0">
-            <div className="space-y-2">
-              <Label htmlFor="title" className="text-sm font-medium text-grey-700">Title *</Label>
-              <Input
-                id="title"
-                required
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="h-11 border-grey-200"
+          <CardContent className="space-y-3 p-4 pt-0">
+            {requireManuscript
+              ? <p className="text-xs text-amber-700">The reviewer has requested a new manuscript. You must upload a replacement to resubmit.</p>
+              : <p className="text-xs text-grey-500">Leave blank to keep the existing file.</p>}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => fileInputRef.current?.click()}
+              onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
+              className={`flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed py-8 transition-colors ${requireManuscript && !pdfFile ? 'border-amber-300 bg-amber-50 hover:border-amber-400' : 'border-grey-200 bg-white hover:border-[#0f766e] hover:bg-[#f0fdf9]'}`}
+            >
+              <Upload className="mb-2 h-8 w-8 text-grey-400" />
+              {pdfFile ? (
+                <div className="text-center px-4">
+                  <p className="text-sm font-medium text-[#0f766e]">{pdfFile.name}</p>
+                  <p className="text-xs text-grey-500 mt-0.5">{(pdfFile.size / 1024 / 1024).toFixed(2)} MB — click to replace</p>
+                </div>
+              ) : (
+                <p className="text-sm text-grey-500">Click to choose a PDF file</p>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,application/pdf"
+                className="sr-only"
+                onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)}
               />
             </div>
+            <ul className="list-disc space-y-0.5 pl-5 text-xs text-grey-500">
+              {FILE_REQUIREMENTS.map((req) => <li key={req}>{req}</li>)}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
-            <div className="space-y-2">
-              <Label htmlFor="authors" className="text-sm font-medium text-grey-700">Authors</Label>
-              <Input
-                id="authors"
-                value={authorName}
-                onChange={(e) => setAuthorName(e.target.value)}
-                placeholder="Comma-separated author names"
-                className="h-11 border-grey-200"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="adviser" className="text-sm font-medium text-grey-700">Technical Adviser</Label>
-              <Input
-                id="adviser"
-                value={adviser}
-                onChange={(e) => setAdviser(e.target.value)}
-                className="h-11 border-grey-200"
-              />
-            </div>
-
-            {trackOptions.length > 0 && (
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-grey-700">Specialization Track</Label>
-                <Select value={trackSpecialization} onValueChange={setTrackSpecialization}>
-                  <SelectTrigger className="h-11 border-grey-200">
-                    <SelectValue placeholder="Select your track..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {trackOptions.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="dateSubmitted" className="text-sm font-medium text-grey-700">Date Submitted (final manuscript)</Label>
-              <Input
-                id="dateSubmitted"
-                type="date"
-                max={today}
-                value={dateSubmitted}
-                onChange={(e) => setDateSubmitted(e.target.value)}
-                className="h-11 border-grey-200"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="keywords" className="text-sm font-medium text-grey-700">Keywords</Label>
-              <Input
-                id="keywords"
-                value={keywords}
-                onChange={(e) => setKeywords(e.target.value)}
-                placeholder="Comma-separated keywords"
-                className="h-11 border-grey-200"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="abstract" className="text-sm font-medium text-grey-700">Abstract</Label>
-              <textarea
-                id="abstract"
-                value={abstract}
-                onChange={(e) => setAbstract(e.target.value)}
-                rows={6}
-                className="w-full rounded-md border border-grey-200 px-3 py-2 text-sm text-grey-700 outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]"
+      {/* ACM/ITSO Abstract upload */}
+      {(requireAcm || requiredFiles.length === 0) && (
+        <Card className={`shadow-none ${requireAcm ? 'border border-amber-300' : 'border border-grey-200'}`}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold text-navy flex items-center gap-2">
+              ACM/ITSO Abstract in PDF
+              {requireAcm
+                ? <span className="text-xs font-semibold text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-2 py-0.5">Required</span>
+                : <span className="text-xs font-normal text-grey-400">(optional)</span>}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 p-4 pt-0">
+            {requireAcm
+              ? <p className="text-xs text-amber-700">The reviewer has requested a new ACM/ITSO abstract. You must upload a replacement to resubmit.</p>
+              : <p className="text-xs text-grey-500">Leave blank to keep the existing abstract file.</p>}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => abstractFileInputRef.current?.click()}
+              onKeyDown={(e) => e.key === 'Enter' && abstractFileInputRef.current?.click()}
+              className={`flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed py-8 transition-colors ${requireAcm && !abstractFile ? 'border-amber-300 bg-amber-50 hover:border-amber-400' : 'border-grey-200 bg-white hover:border-[#0f766e] hover:bg-[#f0fdf9]'}`}
+            >
+              <Upload className="mb-2 h-8 w-8 text-grey-400" />
+              {abstractFile ? (
+                <div className="text-center px-4">
+                  <p className="text-sm font-medium text-[#0f766e]">{abstractFile.name}</p>
+                  <p className="text-xs text-grey-500 mt-0.5">{(abstractFile.size / 1024 / 1024).toFixed(2)} MB — click to replace</p>
+                </div>
+              ) : (
+                <p className="text-sm text-grey-500">Click to choose abstract PDF (ACM or ITSO format)</p>
+              )}
+              <input
+                ref={abstractFileInputRef}
+                type="file"
+                accept=".pdf,application/pdf"
+                className="sr-only"
+                onChange={(e) => setAbstractFile(e.target.files?.[0] ?? null)}
               />
             </div>
           </CardContent>
         </Card>
+      )}
 
-        {/* Manuscript PDF — show always when required by admin, hide when not required and no file requirement was set */}
-        {(requireManuscript || requiredFiles.length === 0) && (
-          <Card className={`shadow-none ${requireManuscript ? 'border border-amber-300' : 'border border-grey-200'}`}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold text-navy flex items-center gap-2">
-                Complete Manuscript PDF
-                {requireManuscript
-                  ? <span className="text-xs font-semibold text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-2 py-0.5">Required</span>
-                  : <span className="text-xs font-normal text-grey-400">(optional)</span>}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 p-4 pt-0">
-              {requireManuscript
-                ? <p className="text-xs text-amber-700">The reviewer has requested a new manuscript. You must upload a replacement to resubmit.</p>
-                : <p className="text-xs text-grey-500">Leave blank to keep the existing file.</p>}
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={() => fileInputRef.current?.click()}
-                onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
-                className={`flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed py-8 transition-colors ${requireManuscript && !pdfFile ? 'border-amber-300 bg-amber-50 hover:border-amber-400' : 'border-grey-200 bg-white hover:border-[#0f766e] hover:bg-[#f0fdf9]'}`}
-              >
-                <Upload className="mb-2 h-8 w-8 text-grey-400" />
-                {pdfFile ? (
-                  <div className="text-center px-4">
-                    <p className="text-sm font-medium text-[#0f766e]">{pdfFile.name}</p>
-                    <p className="text-xs text-grey-500 mt-0.5">{(pdfFile.size / 1024 / 1024).toFixed(2)} MB — click to replace</p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-grey-500">Click to choose a PDF file</p>
-                )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,application/pdf"
-                  className="sr-only"
-                  onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)}
-                />
-              </div>
-              <ul className="list-disc space-y-0.5 pl-5 text-xs text-grey-500">
-                {FILE_REQUIREMENTS.map((req) => <li key={req}>{req}</li>)}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
+      {submitError && (
+        <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{submitError}</p>
+      )}
 
-        {/* ACM/ITSO Abstract — show always when required by admin, hide when not required and no file requirement was set */}
-        {(requireAcm || requiredFiles.length === 0) && (
-          <Card className={`shadow-none ${requireAcm ? 'border border-amber-300' : 'border border-grey-200'}`}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold text-navy flex items-center gap-2">
-                ACM/ITSO Abstract in PDF
-                {requireAcm
-                  ? <span className="text-xs font-semibold text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-2 py-0.5">Required</span>
-                  : <span className="text-xs font-normal text-grey-400">(optional)</span>}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 p-4 pt-0">
-              {requireAcm
-                ? <p className="text-xs text-amber-700">The reviewer has requested a new ACM/ITSO abstract. You must upload a replacement to resubmit.</p>
-                : <p className="text-xs text-grey-500">Leave blank to keep the existing abstract file.</p>}
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={() => abstractFileInputRef.current?.click()}
-                onKeyDown={(e) => e.key === 'Enter' && abstractFileInputRef.current?.click()}
-                className={`flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed py-8 transition-colors ${requireAcm && !abstractFile ? 'border-amber-300 bg-amber-50 hover:border-amber-400' : 'border-grey-200 bg-white hover:border-[#0f766e] hover:bg-[#f0fdf9]'}`}
-              >
-                <Upload className="mb-2 h-8 w-8 text-grey-400" />
-                {abstractFile ? (
-                  <div className="text-center px-4">
-                    <p className="text-sm font-medium text-[#0f766e]">{abstractFile.name}</p>
-                    <p className="text-xs text-grey-500 mt-0.5">{(abstractFile.size / 1024 / 1024).toFixed(2)} MB — click to replace</p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-grey-500">Click to choose abstract PDF (ACM or ITSO format)</p>
-                )}
-                <input
-                  ref={abstractFileInputRef}
-                  type="file"
-                  accept=".pdf,application/pdf"
-                  className="sr-only"
-                  onChange={(e) => setAbstractFile(e.target.files?.[0] ?? null)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {submitError && (
-          <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{submitError}</p>
-        )}
-
-        <div className="flex items-center justify-between gap-3 pb-4">
-          <Button variant="outline" asChild className="h-10">
-            <Link href="/student/dashboard" className="no-underline">Cancel</Link>
-          </Button>
-          <Button
-            type="submit"
-            disabled={submitting || !canSubmit}
-            className="h-10 px-6 bg-[#0f766e] hover:bg-[#0d6460]"
-          >
-            {submitting ? 'Resubmitting…' : 'Resubmit for Review →'}
-          </Button>
-        </div>
-      </form>
+      <div className="flex items-center justify-between gap-3 pb-4">
+        <Button variant="outline" asChild className="h-10">
+          <Link href="/student/dashboard" className="no-underline">Cancel</Link>
+        </Button>
+        <Button
+          type="button"
+          disabled={submitting || !canSubmit}
+          onClick={handleSubmit}
+          className="h-10 px-6 bg-[#0f766e] hover:bg-[#0d6460]"
+        >
+          {submitting ? 'Resubmitting…' : 'Resubmit for Review →'}
+        </Button>
+      </div>
     </div>
   )
 }
