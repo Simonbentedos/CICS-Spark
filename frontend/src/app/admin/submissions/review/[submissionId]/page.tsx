@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
 import AdminBadge from '@/components/admin/AdminBadge'
-import ReviewActionDialog from '@/components/admin/ReviewActionDialog'
+import ReviewActionDialog, { type ReviewPayload } from '@/components/admin/ReviewActionDialog'
 import {
   getAdminSubmissionById,
   getSubmissionPdfUrl,
@@ -82,11 +82,18 @@ export default function SubmissionReviewPage({
   const reviews: ApiReview[] = (submission.reviews as ApiReview[]) ?? []
   const statusLabel = STATUS_LABEL[submission.status] ?? submission.status
 
-  async function handleReview(payload: { comment?: string; issues?: string[] }) {
+  async function handleReview(payload: ReviewPayload) {
     if (!activeAction) return
     setSubmitting(true)
     try {
-      const feedback = [payload.comment, ...(payload.issues ?? [])].filter(Boolean).join('\n')
+      const lines = [payload.comment, ...(payload.issues ?? [])].filter(Boolean)
+      let feedback = lines.join('\n')
+
+      if (activeAction === 'revise' && payload.requireFiles && payload.requireFiles.length > 0) {
+        const prefix = `[REQUIRE:${payload.requireFiles.join(',')}]`
+        feedback = feedback ? `${prefix}\n${feedback}` : prefix
+      }
+
       await reviewSubmission(submission!.id, activeAction, feedback || undefined)
       router.push('/admin/submissions')
     } catch (err: unknown) {
@@ -268,9 +275,21 @@ export default function SubmissionReviewPage({
                     {' · '}
                     {new Date(review.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                   </p>
-                  {review.feedback_text && (
-                    <p className="text-grey-500 italic">{review.feedback_text}</p>
-                  )}
+                  {review.feedback_text && (() => {
+                    const match = review.feedback_text.match(/^\[REQUIRE:([^\]]*)\]\n?/)
+                    const clean = match ? review.feedback_text.slice(match[0].length) : review.feedback_text
+                    const files = match ? match[1].split(',') : []
+                    return (
+                      <>
+                        {files.length > 0 && (
+                          <p className="text-[11px] font-medium text-amber-700">
+                            Requires resubmission: {files.map(f => f === 'manuscript' ? 'Manuscript PDF' : 'ACM/ITSO Abstract PDF').join(' + ')}
+                          </p>
+                        )}
+                        {clean && <p className="text-grey-500 italic whitespace-pre-wrap">{clean}</p>}
+                      </>
+                    )
+                  })()}
                 </div>
               ))}
               <div className="rounded-md border border-grey-200 bg-grey-50 p-2 space-y-1">
