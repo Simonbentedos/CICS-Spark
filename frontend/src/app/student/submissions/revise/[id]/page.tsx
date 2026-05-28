@@ -49,13 +49,15 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
   const [trackSpecialization, setTrackSpecialization] = useState('')
   const [dateSubmitted, setDateSubmitted] = useState('')
 
-  // New PDF (optional — only replace if the student selects a new file)
+  // New files (optional — only replace if the student selects a new file)
   const [pdfFile, setPdfFile] = useState<File | null>(null)
+  const [abstractFile, setAbstractFile] = useState<File | null>(null)
 
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const abstractFileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     getMyDocuments()
@@ -98,6 +100,7 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
 
       const formData = new FormData()
       if (pdfFile) formData.append('file', pdfFile)
+      if (abstractFile) formData.append('abstract_file', abstractFile)
       formData.append('title', title)
       formData.append('authors', JSON.stringify(authorList.length ? authorList : [authorName]))
       if (abstract) formData.append('abstract', abstract)
@@ -293,6 +296,35 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
             <ul className="list-disc space-y-0.5 pl-5 text-xs text-grey-500">
               {FILE_REQUIREMENTS.map((req) => <li key={req}>{req}</li>)}
             </ul>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-grey-200 shadow-none">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold text-navy">Replace ACM/ITSO Abstract in PDF (optional)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 p-4 pt-0">
+            <p className="text-xs text-grey-500">
+              Leave blank to keep the existing abstract file. Upload a new one only if you need to replace it.
+            </p>
+            <label className="flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed border-grey-200 bg-white py-8 hover:border-[#0f766e] hover:bg-[#f0fdf9] transition-colors">
+              <Upload className="mb-2 h-8 w-8 text-grey-400" />
+              {abstractFile ? (
+                <div className="text-center px-4">
+                  <p className="text-sm font-medium text-[#0f766e]">{abstractFile.name}</p>
+                  <p className="text-xs text-grey-500 mt-0.5">{(abstractFile.size / 1024 / 1024).toFixed(2)} MB — click to replace</p>
+                </div>
+              ) : (
+                <p className="text-sm text-grey-500">Click to choose abstract PDF (ACM or ITSO format)</p>
+              )}
+              <input
+                ref={abstractFileInputRef}
+                type="file"
+                accept=".pdf,application/pdf"
+                className="sr-only"
+                onChange={(e) => setAbstractFile(e.target.files?.[0] ?? null)}
+              />
+            </label>
           </CardContent>
         </Card>
 

@@ -78,6 +78,7 @@ function isWithinRange(dateString: string, range: ReportDateRange) {
 export default function AdminReportsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFormat, setSelectedFormat] = useState<ReportExportFormat>('csv')
+  const [printScope, setPrintScope] = useState<'complete' | 'graphs'>('complete')
 
   const [submissions, setSubmissions] = useState<ApiDocument[]>([])
   const [users, setUsers] = useState<ApiUser[]>([])
@@ -374,15 +375,188 @@ export default function AdminReportsPage() {
     URL.revokeObjectURL(url)
   }
 
+  function handleExportApproved() {
+    const rangeLabel = DATE_RANGE_OPTIONS.find(o => o.value === filters.range)?.label ?? filters.range
+    const approved = submissions.filter(s => s.status === 'approved' && isWithinRange(s.created_at, filters.range))
+    const date = new Date().toISOString().split('T')[0]
+
+    const rows: string[] = [
+      'SPARK Repository — Published/Approved Submissions',
+      `Generated: ${new Date().toLocaleString()}`,
+      `Date Filter: ${rangeLabel}`,
+      `Total Approved: ${approved.length}`,
+      '',
+      'No.,Title,Authors,Department,Type,Specialization Track,Technical Adviser,Keywords,Year,Date Submitted,Approval Date',
+    ]
+
+    approved.forEach((s, i) => {
+      const authors = (Array.isArray(s.authors) ? s.authors : []).join('; ')
+      const keywords = (Array.isArray(s.keywords) ? s.keywords : []).join('; ')
+      const approvedAt = s.reviews
+        ?.filter(r => r.decision === 'approve')
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+        ?.created_at ?? ''
+      const approvalDate = approvedAt ? new Date(approvedAt).toLocaleDateString('en-US') : '—'
+      const submittedDate = new Date(s.created_at).toLocaleDateString('en-US')
+      const esc = (v: string) => `"${v.replace(/"/g, '""')}"`
+      rows.push([
+        i + 1,
+        esc(s.title),
+        esc(authors),
+        s.department,
+        s.type,
+        esc(s.track_specialization ?? ''),
+        esc(s.adviser ?? ''),
+        esc(keywords),
+        s.year ?? '—',
+        submittedDate,
+        approvalDate,
+      ].join(','))
+    })
+
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `spark-approved-submissions-${date}.csv`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  function handlePrint() {
+    const rangeLabel = DATE_RANGE_OPTIONS.find(o => o.value === filters.range)?.label ?? filters.range
+    const approved = submissions.filter(s => s.status === 'approved' && isWithinRange(s.created_at, filters.range))
+    const graphsOnly = printScope === 'graphs'
+
+    const trendBars = report.trend.map(p => {
+      const pct = Math.round((p.submitted / Math.max(1, ...report.trend.map(x => x.submitted))) * 100)
+      return `<div style="display:flex;flex-direction:column;align-items:center;flex:1">
+        <div style="background:#2563eb;width:100%;height:${Math.max(4, pct)}px;border-radius:2px 2px 0 0"></div>
+        <div style="font-size:10px;color:#555;margin-top:4px">${p.label}</div>
+        <div style="font-size:11px;font-weight:600">${p.submitted}</div>
+      </div>`
+    }).join('')
+
+    const statusRows = report.statusBreakdown.map(s =>
+      `<tr><td>${s.status}</td><td style="text-align:center">${s.count}</td><td style="text-align:center">${s.percentage}%</td></tr>`
+    ).join('')
+
+    const deptRows = report.departmentBreakdown.map(d =>
+      `<tr><td>${d.department}</td><td style="text-align:center">${d.total}</td><td style="text-align:center">${d.approved}</td><td style="text-align:center">${d.rejected}</td><td style="text-align:center">${d.approvalRate}%</td></tr>`
+    ).join('')
+
+    const approvedRows = approved.map((s, i) => {
+      const authors = (Array.isArray(s.authors) ? s.authors : []).join(', ')
+      const approvedAt = s.reviews
+        ?.filter(r => r.decision === 'approve')
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at ?? ''
+      return `<tr>
+        <td style="text-align:center">${i + 1}</td>
+        <td>${s.title}</td>
+        <td>${authors}</td>
+        <td style="text-align:center">${s.department}</td>
+        <td>${s.track_specialization ?? '—'}</td>
+        <td style="text-align:center">${s.year ?? '—'}</td>
+        <td style="text-align:center">${approvedAt ? new Date(approvedAt).toLocaleDateString('en-US') : '—'}</td>
+      </tr>`
+    }).join('')
+
+    const auditRows = report.auditLogs.slice(0, 30).map(l =>
+      `<tr><td style="white-space:nowrap">${l.at}</td><td>${l.actor}</td><td>${l.action}</td><td>${l.target}</td><td>${l.details ?? ''}</td></tr>`
+    ).join('')
+
+    const tableStyle = `border-collapse:collapse;width:100%;font-size:11px;margin-bottom:16px`
+    const thStyle = `background:#f3f4f6;border:1px solid #d1d5db;padding:6px 8px;text-align:left;font-weight:600`
+    const tdStyle = `border:1px solid #d1d5db;padding:5px 8px`
+
+    const completeSection = graphsOnly ? '' : `
+      <h2 style="font-size:14px;font-weight:700;margin:20px 0 8px;color:#1e3a5f">Status Breakdown</h2>
+      <table style="${tableStyle}">
+        <thead><tr>
+          <th style="${thStyle}">Status</th><th style="${thStyle};text-align:center">Count</th><th style="${thStyle};text-align:center">Percentage</th>
+        </tr></thead>
+        <tbody>${statusRows}</tbody>
+      </table>
+
+      <h2 style="font-size:14px;font-weight:700;margin:20px 0 8px;color:#1e3a5f">Department Breakdown</h2>
+      <table style="${tableStyle}">
+        <thead><tr>
+          <th style="${thStyle}">Department</th><th style="${thStyle};text-align:center">Total</th><th style="${thStyle};text-align:center">Approved</th><th style="${thStyle};text-align:center">Rejected</th><th style="${thStyle};text-align:center">Approval Rate</th>
+        </tr></thead>
+        <tbody>${deptRows}</tbody>
+      </table>
+
+      <h2 style="font-size:14px;font-weight:700;margin:20px 0 8px;color:#1e3a5f">Published / Approved Submissions (${approved.length})</h2>
+      <table style="${tableStyle}">
+        <thead><tr>
+          <th style="${thStyle};text-align:center">#</th><th style="${thStyle}">Title</th><th style="${thStyle}">Authors</th><th style="${thStyle};text-align:center">Dept</th><th style="${thStyle}">Track</th><th style="${thStyle};text-align:center">Year</th><th style="${thStyle};text-align:center">Approved</th>
+        </tr></thead>
+        <tbody>${approvedRows || '<tr><td colspan="7" style="text-align:center;padding:12px;color:#999">No approved submissions for this period.</td></tr>'}</tbody>
+      </table>
+
+      <h2 style="font-size:14px;font-weight:700;margin:20px 0 8px;color:#1e3a5f">Recent Audit Log (last 30 entries)</h2>
+      <table style="${tableStyle}">
+        <thead><tr>
+          <th style="${thStyle}">Time</th><th style="${thStyle}">Actor</th><th style="${thStyle}">Action</th><th style="${thStyle}">Target</th><th style="${thStyle}">Details</th>
+        </tr></thead>
+        <tbody style="font-size:10px">${auditRows || '<tr><td colspan="5" style="text-align:center;padding:12px;color:#999">No audit entries.</td></tr>'}</tbody>
+      </table>
+    `
+
+    const html = `<!DOCTYPE html><html><head><title>SPARK Reports</title>
+      <style>
+        body { font-family: Arial, sans-serif; color: #111; margin: 24px; }
+        @media print { body { margin: 0; } }
+        td { ${tdStyle} } th { ${thStyle} }
+      </style>
+    </head><body>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1e3a5f;padding-bottom:10px;margin-bottom:16px">
+        <div>
+          <div style="font-size:18px;font-weight:700;color:#1e3a5f">SPARK Repository — Reports</div>
+          <div style="font-size:11px;color:#666;margin-top:2px">College of Information and Computing Sciences, University of Santo Tomas</div>
+        </div>
+        <div style="text-align:right;font-size:11px;color:#666">
+          <div>Generated: ${new Date().toLocaleString()}</div>
+          <div>Date Filter: ${rangeLabel}</div>
+          <div>Scope: ${graphsOnly ? 'Graphs Only' : 'Complete Summary'}</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+        ${report.kpiCards.map(c => `
+          <div style="border:1px solid #e5e7eb;border-radius:6px;padding:12px">
+            <div style="font-size:11px;color:#666">${c.label}</div>
+            <div style="font-size:22px;font-weight:700;color:#1e3a5f;margin-top:2px">${c.value}</div>
+          </div>`).join('')}
+      </div>
+
+      <h2 style="font-size:14px;font-weight:700;margin:0 0 8px;color:#1e3a5f">Submission Volume Trend (Last 6 Months)</h2>
+      <div style="display:flex;align-items:flex-end;gap:8px;height:120px;border-bottom:1px solid #e5e7eb;margin-bottom:20px;padding:0 4px">
+        ${trendBars}
+      </div>
+
+      ${completeSection}
+    </body></html>`
+
+    const win = window.open('', '_blank', 'width=900,height=700')
+    if (!win) return
+    win.document.write(html)
+    win.document.close()
+    win.focus()
+    win.print()
+  }
+
   return (
     <div className="space-y-4">
       <AdminPageHeader
         title="Reports"
         subtitle="Analytics, performance, usage, and audit reporting for thesis repository operations."
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Select value={selectedFormat} onValueChange={(value) => setSelectedFormat(value as ReportExportFormat)}>
-              <SelectTrigger className="h-9 w-[110px] border-grey-200 bg-white text-xs text-navy dark:text-navy">
+              <SelectTrigger className="h-9 w-[90px] border-grey-200 bg-white text-xs text-navy dark:text-navy">
                 <SelectValue placeholder="Format" />
               </SelectTrigger>
               <SelectContent>
@@ -394,9 +568,25 @@ export default function AdminReportsPage() {
 
             <Button variant="outline" className="h-9 px-3 text-xs" onClick={handleExportReport}>
               <Download className="mr-1 h-3.5 w-3.5" />
-              Download
+              Full Report
             </Button>
-            <Button variant="outline" className="h-9 px-3 text-xs" onClick={() => globalThis.print()}>
+
+            <Button variant="outline" className="h-9 px-3 text-xs text-green-700 border-green-200 hover:bg-green-50" onClick={handleExportApproved}>
+              <Download className="mr-1 h-3.5 w-3.5" />
+              Approved (CSV)
+            </Button>
+
+            <Select value={printScope} onValueChange={(v) => setPrintScope(v as 'complete' | 'graphs')}>
+              <SelectTrigger className="h-9 w-[140px] border-grey-200 bg-white text-xs text-navy dark:text-navy">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="complete">Complete Summary</SelectItem>
+                <SelectItem value="graphs">Graphs Only</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button variant="outline" className="h-9 px-3 text-xs" onClick={handlePrint}>
               <Printer className="mr-1 h-3.5 w-3.5" />
               Print / PDF
             </Button>
