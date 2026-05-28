@@ -508,7 +508,7 @@ export default function SuperAdminReportsPage() {
 
                     return (
                       <div
-                        key={point.label}
+                        key={idx}
                         className="relative flex flex-col items-center flex-1 h-full"
                         onMouseEnter={() => setHoveredMonth(point.label)}
                         onMouseLeave={() => setHoveredMonth(null)}
