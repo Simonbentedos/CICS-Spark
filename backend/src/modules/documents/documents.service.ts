@@ -170,6 +170,9 @@ export class DocumentsService {
       throw new NotFoundException('Document not found or access denied.');
     }
 
+    // Extract itso_file_path with explicit typing (column added via migration, not in generated types)
+    const existingItsoFilePath: string | null = (existing as Record<string, any>).itso_file_path ?? null;
+
     if (existing.status !== 'revision' && existing.status !== 'rejected') {
       throw new ForbiddenException(
         `Only documents with status 'revision' or 'rejected' can be re-submitted. Current status: '${existing.status}'.`,
@@ -181,7 +184,7 @@ export class DocumentsService {
 
     let pdf_file_path = existing.pdf_file_path;
     let abstract_file_path = existing.abstract_file_path;
-    let itso_file_path = (existing as any).itso_file_path ?? null;
+    let itso_file_path = existingItsoFilePath;
     let newChecksum: string | undefined;
 
     if (file) {
@@ -228,7 +231,7 @@ export class DocumentsService {
         }
         throw new InternalServerErrorException('Failed to upload revised ITSO file.');
       }
-      if ((existing as any).itso_file_path) oldStoragePathsToClean.push((existing as any).itso_file_path);
+      if (existingItsoFilePath) oldStoragePathsToClean.push(existingItsoFilePath);
       itso_file_path = itsoStoragePath;
     }
 
@@ -249,7 +252,7 @@ export class DocumentsService {
     if (pdf_file_path !== existing.pdf_file_path) updatePayload.pdf_file_path = pdf_file_path;
     if (newChecksum) updatePayload.checksum = newChecksum;
     if (abstract_file_path !== existing.abstract_file_path) updatePayload.abstract_file_path = abstract_file_path;
-    if (itso_file_path !== existing.itso_file_path) updatePayload.itso_file_path = itso_file_path;
+    if (itso_file_path !== existingItsoFilePath) updatePayload.itso_file_path = itso_file_path;
 
     const { data: updated, error: updateError } = await this.databaseService.client
       .from('documents')

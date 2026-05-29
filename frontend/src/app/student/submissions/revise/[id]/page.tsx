@@ -269,7 +269,7 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
         </Card>
 
         {/* ACM Abstract */}
-        {(requireAcm || requiredFiles.length === 0) && (
+        {(requireAcm || (requiredFiles.length === 0 && doc?.department !== 'CS')) && (
           <Card className={`shadow-none ${requireAcm ? 'border border-amber-300' : 'border border-grey-200'}`}>
             <CardHeader className="pb-2">
               <CardTitle className="text-base font-semibold text-navy flex items-center gap-2">
@@ -312,7 +312,7 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
         )}
 
         {/* ITSO Abstract */}
-        {(requireItso || requiredFiles.length === 0) && (
+        {(requireItso || (requiredFiles.length === 0 && doc?.department !== 'CS')) && (
           <Card className={`shadow-none ${requireItso ? 'border border-amber-300' : 'border border-grey-200'}`}>
             <CardHeader className="pb-2">
               <CardTitle className="text-base font-semibold text-navy flex items-center gap-2">
