@@ -327,7 +327,7 @@ export class AdminService {
       let query = this.databaseService.client
         .from('fulltext_requests')
         .select(
-          'id, document_id, requester_name, requester_email, purpose, department, status, handled_by, created_at, fulfilled_at',
+          'id, document_id, requester_name, requester_email, purpose, department, status, handled_by, created_at, fulfilled_at, document:documents(title)',
         )
         .in('document_id', docIds)
         .order('created_at', { ascending: false });
@@ -336,14 +336,17 @@ export class AdminService {
 
       const { data, error } = await query;
       if (error) throw new InternalServerErrorException(error.message);
-      return data;
+      return (data ?? []).map(({ document, ...rest }: any) => ({
+        ...rest,
+        document_title: (document as any)?.title ?? null,
+      }));
     }
 
     // Super admin: see all
     let query = this.databaseService.client
       .from('fulltext_requests')
       .select(
-        'id, document_id, requester_name, requester_email, purpose, department, status, handled_by, created_at, fulfilled_at',
+        'id, document_id, requester_name, requester_email, purpose, department, status, handled_by, created_at, fulfilled_at, document:documents(title)',
       )
       .order('created_at', { ascending: false });
 
@@ -351,7 +354,10 @@ export class AdminService {
 
     const { data, error } = await query;
     if (error) throw new InternalServerErrorException(error.message);
-    return data;
+    return (data ?? []).map(({ document, ...rest }: any) => ({
+      ...rest,
+      document_title: (document as any)?.title ?? null,
+    }));
   }
 
   /**

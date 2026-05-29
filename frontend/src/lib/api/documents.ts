@@ -47,6 +47,7 @@ export type DuplicateCheckResponse = {
 export type FulltextRequest = {
   id: string
   document_id: string
+  document_title: string | null
   requester_name: string
   requester_email: string
   purpose: string | null
