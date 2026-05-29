@@ -33,10 +33,23 @@ import type {
   SubmissionStatus,
 } from '@/types/admin'
 
+function getAcademicYearOptions(): { value: ReportDateRange; label: string }[] {
+  const now = new Date()
+  const currentAyStart = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1
+  return Array.from({ length: 6 }, (_, i) => {
+    const start = currentAyStart - i
+    return { value: `ay${start}` as ReportDateRange, label: `Academic Year ${start}-${start + 1}` }
+  })
+}
+
 const DATE_RANGE_OPTIONS: { value: ReportDateRange; label: string }[] = [
-  { value: '30d', label: 'Last 30 Days' },
-  { value: '90d', label: 'Last 90 Days' },
+  ...getAcademicYearOptions(),
   { value: 'ytd', label: 'Year to Date' },
+  { value: '1y', label: 'Last 1 Year' },
+  { value: '2y', label: 'Last 2 Years' },
+  { value: '3y', label: 'Last 3 Years' },
+  { value: '4y', label: 'Last 4 Years' },
+  { value: '5y', label: 'Last 5 Years' },
   { value: 'all', label: 'All Time' },
 ]
 
@@ -65,17 +78,22 @@ function isWithinRange(dateString: string, range: ReportDateRange) {
   const date = new Date(dateString)
   if (isNaN(date.getTime())) return false
   const now = new Date()
-  
-  if (range === '30d') {
-    const cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-    return date >= cutoff
+
+  if (range === 'ytd') return date >= new Date(now.getFullYear(), 0, 1)
+
+  const ayMatch = range.match(/^ay(\d{4})$/)
+  if (ayMatch) {
+    const startYear = parseInt(ayMatch[1], 10)
+    const start = new Date(startYear, 7, 1)      // Aug 1, startYear
+    const end = new Date(startYear + 1, 7, 1)    // Aug 1, startYear+1 (exclusive)
+    return date >= start && date < end
   }
-  if (range === '90d') {
-    const cutoff = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
-    return date >= cutoff
-  }
-  if (range === 'ytd') {
-    const cutoff = new Date(now.getFullYear(), 0, 1) // Jan 1st of current year
+
+  const yearMatch = range.match(/^(\d+)y$/)
+  if (yearMatch) {
+    const years = parseInt(yearMatch[1], 10)
+    const cutoff = new Date(now)
+    cutoff.setFullYear(cutoff.getFullYear() - years)
     return date >= cutoff
   }
   return true
