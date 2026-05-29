@@ -22,9 +22,14 @@ const STATUS_STYLES: Record<string, string> = {
 }
 
 function formatFeedbackText(text: string): string {
-  return text.replace(/\[REQUIRE:([^\]]*)\]/g, (_match, files: string) =>
-    `[REQUIRE:${files.split(',').map((f) => f.trim().toUpperCase()).join(',')}]`
-  )
+  return text
+    .split('\n')
+    .map((line) => {
+      if (!line.startsWith('REQUIRE:')) return line
+      const files = line.slice('REQUIRE:'.length).split(',').map((f) => f.trim().toUpperCase())
+      return `REQUIRE:${files.join(',')}`
+    })
+    .join('\n')
 }
 
 export default function StudentDashboardPage() {
