@@ -10,6 +10,12 @@ import {
 } from '@/lib/utils'
 import type { ReviewActionType } from '@/types/admin'
 
+export type ReviewPayload = {
+  comment?: string
+  issues?: string[]
+  requireFiles?: ('manuscript' | 'acm' | 'itso')[]
+}
+
 export default function ReviewActionDialog({
   action,
   onClose,
@@ -17,11 +23,18 @@ export default function ReviewActionDialog({
 }: Readonly<{
   action: ReviewActionType
   onClose: () => void
-  onConfirm: (payload: { comment?: string; issues?: string[] }) => void
+  onConfirm: (payload: ReviewPayload) => void
 }>) {
   const config = useMemo(() => getReviewActionConfig(action), [action])
   const [comment, setComment] = useState('')
   const [issues, setIssues] = useState<string[]>([])
+  const [requireFiles, setRequireFiles] = useState<('manuscript' | 'acm' | 'itso')[]>([])
+
+  function toggleRequireFile(file: 'manuscript' | 'acm' | 'itso') {
+    setRequireFiles((current) =>
+      current.includes(file) ? current.filter((f) => f !== file) : [...current, file]
+    )
+  }
 
   if (!config) {
     return null
@@ -92,11 +105,45 @@ export default function ReviewActionDialog({
             </div>
           </div>
 
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 space-y-2">
+            <p className="text-sm font-medium text-amber-800">Require student to resubmit:</p>
+            <label className="flex items-center gap-2 text-sm text-amber-700">
+              <input
+                type="checkbox"
+                checked={requireFiles.includes('manuscript')}
+                onChange={() => toggleRequireFile('manuscript')}
+                className="rounded border-amber-300 accent-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1"
+              />
+              Complete Manuscript PDF
+            </label>
+            <label className="flex items-center gap-2 text-sm text-amber-700">
+              <input
+                type="checkbox"
+                checked={requireFiles.includes('acm')}
+                onChange={() => toggleRequireFile('acm')}
+                className="rounded border-amber-300 accent-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1"
+              />
+              ACM Abstract PDF
+            </label>
+            <label className="flex items-center gap-2 text-sm text-amber-700">
+              <input
+                type="checkbox"
+                checked={requireFiles.includes('itso')}
+                onChange={() => toggleRequireFile('itso')}
+                className="rounded border-amber-300 accent-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1"
+              />
+              ITSO Abstract PDF
+            </label>
+            {requireFiles.length === 0 && (
+              <p className="text-[11px] text-amber-600 italic">No file resubmission required — student can revise metadata only.</p>
+            )}
+          </div>
+
           <div className="flex items-center gap-3">
             <Button variant="outline" className="h-10 flex-1" onClick={onClose}>Cancel</Button>
             <Button
               className={`h-10 flex-1 ${toneClass}`}
-              onClick={() => onConfirm({ comment, issues })}
+              onClick={() => onConfirm({ comment, issues, requireFiles })}
               disabled={comment.trim().length === 0}
             >
               {config.confirmLabel}

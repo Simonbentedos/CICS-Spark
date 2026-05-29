@@ -53,6 +53,7 @@ export interface SubmissionDraft {
   abstract: string
   fileName: string
   abstractFileName: string
+  itsoFileName: string
 }
 
 export interface UserRecord {

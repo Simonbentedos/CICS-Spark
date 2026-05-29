@@ -59,8 +59,11 @@ type SubmissionStepContentProps = {
   onFileChange?: (file: File | null) => void
   abstractFile?: File | null
   onAbstractFileChange?: (file: File | null) => void
+  itsoFile?: File | null
+  onItsoFileChange?: (file: File | null) => void
   duplicateWarning?: string | null
   onTitleBlur?: () => void
+  abstractRequired?: boolean
 }
 
 type BasicInfoStepProps = {
@@ -315,7 +318,7 @@ function BasicInfoStep({ draft, onDraftChange, duplicateWarning, onTitleBlur }: 
     )
 }
 
-export default function SubmissionStepContent({ step, draft, onDraftChange, pdfFile, onFileChange, abstractFile, onAbstractFileChange, duplicateWarning, onTitleBlur }: Readonly<SubmissionStepContentProps>) {
+export default function SubmissionStepContent({ step, draft, onDraftChange, pdfFile, onFileChange, abstractFile, onAbstractFileChange, itsoFile, onItsoFileChange, duplicateWarning, onTitleBlur, abstractRequired }: Readonly<SubmissionStepContentProps>) {
   if (step.key === 'basic-info') {
     return <BasicInfoStep draft={draft} onDraftChange={onDraftChange} duplicateWarning={duplicateWarning} onTitleBlur={onTitleBlur} />
   }
@@ -399,7 +402,10 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-grey-700">ACM/ITSO Abstract PDF *</Label>
+          <Label className="text-sm font-medium text-grey-700">
+            ACM Abstract in PDF{abstractRequired ? ' *' : ''}
+            {!abstractRequired && <span className="ml-1.5 text-[11px] font-normal text-grey-400">(optional for CS)</span>}
+          </Label>
           {onAbstractFileChange ? (
             <label className="flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed border-grey-200 bg-white hover:border-[#0f766e] hover:bg-[#f0fdf9] transition-colors">
               <Upload className="mb-2 h-7 w-7 text-grey-400" />
@@ -410,8 +416,8 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
                 </div>
               ) : (
                 <div className="text-center px-4">
-                  <p className="text-sm font-medium text-grey-700">Click to choose abstract PDF</p>
-                  <p className="text-xs text-grey-500 mt-0.5">ACM or ITSO format</p>
+                  <p className="text-sm font-medium text-grey-700">Click to choose ACM abstract PDF</p>
+                  <p className="text-xs text-grey-500 mt-0.5">ACM format</p>
                 </div>
               )}
               <input
@@ -422,6 +428,39 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
                   const file = e.target.files?.[0] ?? null
                   onAbstractFileChange(file)
                   if (file) onDraftChange({ abstractFileName: file.name })
+                }}
+              />
+            </label>
+          ) : null}
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-sm font-medium text-grey-700">
+            ITSO Abstract in PDF{abstractRequired ? ' *' : ''}
+            {!abstractRequired && <span className="ml-1.5 text-[11px] font-normal text-grey-400">(optional for CS)</span>}
+          </Label>
+          {onItsoFileChange ? (
+            <label className="flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed border-grey-200 bg-white hover:border-[#0f766e] hover:bg-[#f0fdf9] transition-colors">
+              <Upload className="mb-2 h-7 w-7 text-grey-400" />
+              {itsoFile ? (
+                <div className="text-center px-4">
+                  <p className="text-sm font-medium text-[#0f766e]">{itsoFile.name}</p>
+                  <p className="text-xs text-grey-500 mt-0.5">{(itsoFile.size / 1024 / 1024).toFixed(2)} MB — click to replace</p>
+                </div>
+              ) : (
+                <div className="text-center px-4">
+                  <p className="text-sm font-medium text-grey-700">Click to choose ITSO abstract PDF</p>
+                  <p className="text-xs text-grey-500 mt-0.5">ITSO format</p>
+                </div>
+              )}
+              <input
+                type="file"
+                accept=".pdf,application/pdf"
+                className="sr-only"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] ?? null
+                  onItsoFileChange(file)
+                  if (file) onDraftChange({ itsoFileName: file.name })
                 }}
               />
             </label>
@@ -509,8 +548,15 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
 
       {draft.abstractFileName ? (
         <div className="rounded-md border border-grey-200 bg-white p-3 text-sm">
-          <p className="text-xs uppercase tracking-wide text-grey-500">Abstract PDF</p>
+          <p className="text-xs uppercase tracking-wide text-grey-500">ACM Abstract PDF</p>
           <p className="mt-1 font-medium text-grey-700">{draft.abstractFileName}</p>
+        </div>
+      ) : null}
+
+      {draft.itsoFileName ? (
+        <div className="rounded-md border border-grey-200 bg-white p-3 text-sm">
+          <p className="text-xs uppercase tracking-wide text-grey-500">ITSO Abstract PDF</p>
+          <p className="mt-1 font-medium text-grey-700">{draft.itsoFileName}</p>
         </div>
       ) : null}
 

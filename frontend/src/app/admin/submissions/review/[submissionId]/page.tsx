@@ -6,11 +6,12 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
 import AdminBadge from '@/components/admin/AdminBadge'
-import ReviewActionDialog from '@/components/admin/ReviewActionDialog'
+import ReviewActionDialog, { type ReviewPayload } from '@/components/admin/ReviewActionDialog'
 import {
   getAdminSubmissionById,
   getSubmissionPdfUrl,
   getSubmissionAbstractPdfUrl,
+  getSubmissionItsoPdfUrl,
   reviewSubmission,
   downloadAbstractUrl,
   type ApiDocument,
@@ -39,6 +40,7 @@ export default function SubmissionReviewPage({
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [loadingPdf, setLoadingPdf] = useState(false)
   const [abstractPdfUrl, setAbstractPdfUrl] = useState<string | null>(null)
+  const [itsoPdfUrl, setItsoPdfUrl] = useState<string | null>(null)
 
   useEffect(() => {
     getAdminSubmissionById(params.submissionId)
@@ -59,6 +61,12 @@ export default function SubmissionReviewPage({
         getSubmissionAbstractPdfUrl(params.submissionId)
           .then((data) => setAbstractPdfUrl(data.pdfUrl))
           .catch(() => { /* no abstract PDF — silently ignore */ })
+      }
+
+      if (submission.itso_file_path) {
+        getSubmissionItsoPdfUrl(params.submissionId)
+          .then((data) => setItsoPdfUrl(data.pdfUrl))
+          .catch(() => { /* no ITSO PDF — silently ignore */ })
       }
     }
   }, [params.submissionId, submission])
@@ -82,11 +90,15 @@ export default function SubmissionReviewPage({
   const reviews: ApiReview[] = (submission.reviews as ApiReview[]) ?? []
   const statusLabel = STATUS_LABEL[submission.status] ?? submission.status
 
-  async function handleReview(payload: { comment?: string; issues?: string[] }) {
+  async function handleReview(payload: ReviewPayload) {
     if (!activeAction) return
     setSubmitting(true)
     try {
-      const feedback = [payload.comment, ...(payload.issues ?? [])].filter(Boolean).join('\n')
+      const parts = [payload.comment, ...(payload.issues ?? [])].filter(Boolean)
+      if (payload.requireFiles && payload.requireFiles.length > 0) {
+        parts.push(`REQUIRE:${payload.requireFiles.join(',')}`)
+      }
+      const feedback = parts.join('\n')
       await reviewSubmission(submission!.id, activeAction, feedback || undefined)
       router.push('/admin/submissions')
     } catch (err: unknown) {
@@ -205,7 +217,7 @@ export default function SubmissionReviewPage({
           {abstractPdfUrl ? (
             <Card className="border border-grey-200 shadow-none">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-navy">ACM/ITSO Abstract PDF</CardTitle>
+                <CardTitle className="text-sm font-medium text-navy">ACM Abstract PDF</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="rounded-md border border-grey-200 bg-white overflow-hidden">
@@ -213,6 +225,23 @@ export default function SubmissionReviewPage({
                     src={abstractPdfUrl}
                     className="w-full h-[500px]"
                     title="Abstract PDF Preview"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {itsoPdfUrl ? (
+            <Card className="border border-grey-200 shadow-none">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-navy">ITSO Abstract PDF</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border border-grey-200 bg-white overflow-hidden">
+                  <iframe
+                    src={itsoPdfUrl}
+                    className="w-full h-[500px]"
+                    title="ITSO PDF Preview"
                   />
                 </div>
               </CardContent>
@@ -268,9 +297,29 @@ export default function SubmissionReviewPage({
                     {' · '}
                     {new Date(review.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                   </p>
-                  {review.feedback_text && (
-                    <p className="text-grey-500 italic">{review.feedback_text}</p>
-                  )}
+                  {review.feedback_text && (() => {
+                    const lines = review.feedback_text.split('\n')
+                    const requireLine = lines.find((l) => l.startsWith('REQUIRE:'))
+                    const commentLines = lines.filter((l) => !l.startsWith('REQUIRE:'))
+                    const files = requireLine ? requireLine.replace('REQUIRE:', '').split(',').filter(Boolean) : []
+                    return (
+                      <>
+                        {commentLines.join('\n').trim() && (
+                          <p className="text-grey-500 italic">{commentLines.join('\n').trim()}</p>
+                        )}
+                        {files.length > 0 && (
+                          <p className="text-amber-700 font-medium">
+                            Requires: {files.map((f) => {
+                              if (f === 'manuscript') return 'Manuscript PDF'
+                              if (f === 'acm') return 'ACM Abstract PDF'
+                              if (f === 'itso') return 'ITSO Abstract PDF'
+                              return f.toUpperCase()
+                            }).join(' + ')}
+                          </p>
+                        )}
+                      </>
+                    )
+                  })()}
                 </div>
               ))}
               <div className="rounded-md border border-grey-200 bg-grey-50 p-2 space-y-1">
