@@ -94,26 +94,29 @@ export class DocumentsService {
       itsoFilePath = itsoStoragePath;
     }
 
+    const insertPayload: Record<string, any> = {
+      title: dto.title,
+      authors: dto.authors,
+      abstract: dto.abstract ?? null,
+      year: dto.year ?? null,
+      department: dto.department,
+      type: dto.type,
+      track_specialization: dto.track_specialization ?? null,
+      adviser: dto.adviser ?? null,
+      degree: dto.degree ?? null,
+      keywords: dto.keywords ?? null,
+      pdf_file_path: storagePath,
+      abstract_file_path: abstractFilePath,
+      uploaded_by: userId,
+      status: 'pending',
+      checksum,
+    };
+    // Only include itso_file_path if provided — column requires DB migration to exist
+    if (itsoFilePath !== null) insertPayload.itso_file_path = itsoFilePath;
+
     const { data: document, error: dbError } = await this.databaseService.client
       .from('documents')
-      .insert({
-        title: dto.title,
-        authors: dto.authors,
-        abstract: dto.abstract ?? null,
-        year: dto.year ?? null,
-        department: dto.department,
-        type: dto.type,
-        track_specialization: dto.track_specialization ?? null,
-        adviser: dto.adviser ?? null,
-        degree: dto.degree ?? null,
-        keywords: dto.keywords ?? null,
-        pdf_file_path: storagePath,
-        abstract_file_path: abstractFilePath,
-        itso_file_path: itsoFilePath,
-        uploaded_by: userId,
-        status: 'pending',
-        checksum,
-      })
+      .insert(insertPayload)
       .select()
       .single();
 
@@ -252,7 +255,8 @@ export class DocumentsService {
     if (pdf_file_path !== existing.pdf_file_path) updatePayload.pdf_file_path = pdf_file_path;
     if (newChecksum) updatePayload.checksum = newChecksum;
     if (abstract_file_path !== existing.abstract_file_path) updatePayload.abstract_file_path = abstract_file_path;
-    if (itso_file_path !== existingItsoFilePath) updatePayload.itso_file_path = itso_file_path;
+    // Only set itso_file_path if it changed AND is non-null (column requires DB migration to exist)
+    if (itso_file_path !== existingItsoFilePath && itso_file_path !== null) updatePayload.itso_file_path = itso_file_path;
 
     const { data: updated, error: updateError } = await this.databaseService.client
       .from('documents')
@@ -272,6 +276,29 @@ export class DocumentsService {
         .remove(oldStoragePathsToClean)
         .catch(() => { /* non-fatal: blobs orphaned but DB is consistent */ });
     }
+
+    // Notify admins and super_admins that a student resubmitted (fire-and-forget)
+    (async () => {
+      try {
+        const { data: admins } = await this.databaseService.client
+          .from('users')
+          .select('id')
+          .in('role', ['admin', 'super_admin'])
+          .or(`department.eq.${updated.department},role.eq.super_admin`)
+          .eq('is_active', true);
+
+        if (admins && admins.length > 0) {
+          const notifRows = admins.map((admin: any) => ({
+            user_id: admin.id,
+            type: 'new_submission',
+            message: `Resubmission pending review: "${updated.title}"`,
+            is_read: false,
+            reference_id: updated.id,
+          }));
+          await this.databaseService.client.from('notifications').insert(notifRows);
+        }
+      } catch { /* non-fatal */ }
+    })();
 
     return updated;
   }

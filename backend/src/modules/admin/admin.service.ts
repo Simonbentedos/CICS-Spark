@@ -47,7 +47,7 @@ export class AdminService {
     let query = this.databaseService.client
       .from('documents')
       .select(
-        'id, title, authors, abstract, year, department, type, track_specialization, adviser, degree, keywords, pdf_file_path, abstract_file_path, itso_file_path, uploaded_by, status, created_at, updated_at',
+        'id, title, authors, abstract, year, department, type, track_specialization, adviser, degree, keywords, pdf_file_path, abstract_file_path, uploaded_by, status, created_at, updated_at',
       )
       .order('created_at', { ascending: false });
 
@@ -72,7 +72,7 @@ export class AdminService {
     const { data: document, error } = await this.databaseService.client
       .from('documents')
       .select(
-        'id, title, authors, abstract, year, department, type, track_specialization, adviser, degree, keywords, pdf_file_path, abstract_file_path, itso_file_path, uploaded_by, status, created_at, updated_at',
+        'id, title, authors, abstract, year, department, type, track_specialization, adviser, degree, keywords, pdf_file_path, abstract_file_path, uploaded_by, status, created_at, updated_at',
       )
       .eq('id', documentId)
       .single();
@@ -193,9 +193,10 @@ export class AdminService {
    * getSubmissionItsoPdfUrl generates a signed URL for the optional ITSO PDF.
    */
   async getSubmissionItsoPdfUrl(documentId: string, currentUser: any) {
+    // Select without itso_file_path first to avoid errors if column doesn't exist yet
     const { data: document, error: fetchError } = await this.databaseService.client
       .from('documents')
-      .select('id, itso_file_path, department')
+      .select('id, department, pdf_file_path')
       .eq('id', documentId)
       .single();
 
@@ -203,18 +204,27 @@ export class AdminService {
       throw new NotFoundException('Document not found.');
     }
 
+    // Fetch itso_file_path separately — returns null if column doesn't exist yet
+    const { data: itsoDoc } = await this.databaseService.client
+      .from('documents')
+      .select('itso_file_path')
+      .eq('id', documentId)
+      .single();
+
+    const itsoFilePath = (itsoDoc as any)?.itso_file_path ?? null;
+
     if (currentUser.role === 'admin' && document.department !== currentUser.department) {
       throw new ForbiddenException('You can only preview documents from your department.');
     }
 
-    if (!document.itso_file_path) {
+    if (!itsoFilePath) {
       throw new NotFoundException('No ITSO PDF associated with this document.');
     }
 
     const { data: signedUrlData, error: urlError } = await this.databaseService.client
       .storage
       .from('documents')
-      .createSignedUrl(document.itso_file_path, 3600);
+      .createSignedUrl(itsoFilePath, 3600);
 
     if (urlError || !signedUrlData) {
       throw new InternalServerErrorException('Failed to generate ITSO PDF preview URL.');
