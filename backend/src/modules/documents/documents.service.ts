@@ -39,6 +39,16 @@ export class DocumentsService {
       );
     }
 
+    // IT and IS departments require both ACM and ITSO abstract files
+    if (['IT', 'IS'].includes(dto.department)) {
+      if (!abstractFile) {
+        throw new BadRequestException('ACM abstract PDF is required for IT and IS departments.');
+      }
+      if (!itsoFile) {
+        throw new BadRequestException('ITSO abstract PDF is required for IT and IS departments.');
+      }
+    }
+
     const ts = Date.now();
     const storagePath = `${userId}/${ts}_${file.originalname}`;
     const checksum = createHash('sha256').update(file.buffer).digest('hex');
@@ -166,62 +176,59 @@ export class DocumentsService {
       );
     }
 
-    let pdf_file_path = existing.pdf_file_path;
+    // Collect old storage paths to clean up AFTER successful DB update
+    const oldStoragePathsToClean: string[] = [];
 
+    let pdf_file_path = existing.pdf_file_path;
+    let abstract_file_path = existing.abstract_file_path;
+    let itso_file_path = (existing as any).itso_file_path ?? null;
     let newChecksum: string | undefined;
 
     if (file) {
-      // Remove the old PDF and upload the new one
-      await this.databaseService.client.storage
-        .from('documents')
-        .remove([existing.pdf_file_path]);
-
       const storagePath = `${userId}/${Date.now()}_${file.originalname}`;
       const { error: storageError } = await this.databaseService.client.storage
         .from('documents')
         .upload(storagePath, file.buffer, { contentType: file.mimetype });
-
       if (storageError) {
         throw new InternalServerErrorException('Failed to upload revised file.');
       }
-
+      if (existing.pdf_file_path) oldStoragePathsToClean.push(existing.pdf_file_path);
       pdf_file_path = storagePath;
       newChecksum = createHash('sha256').update(file.buffer).digest('hex');
     }
 
-    let abstract_file_path = existing.abstract_file_path;
-
     if (abstractFile) {
-      if (existing.abstract_file_path) {
-        await this.databaseService.client.storage
-          .from('documents')
-          .remove([existing.abstract_file_path]);
-      }
       const abstractStoragePath = `${userId}/${Date.now()}_abstract_${abstractFile.originalname}`;
       const { error: abstractStorageError } = await this.databaseService.client.storage
         .from('documents')
         .upload(abstractStoragePath, abstractFile.buffer, { contentType: abstractFile.mimetype });
       if (abstractStorageError) {
-        throw new InternalServerErrorException('Failed to upload revised ACM abstract file.');
+        // Clean up the new main PDF we just uploaded (if we uploaded one this revision)
+        if (pdf_file_path !== existing.pdf_file_path) {
+          await this.databaseService.client.storage.from('documents').remove([pdf_file_path]);
+        }
+        throw new InternalServerErrorException('Failed to upload revised abstract file.');
       }
+      if (existing.abstract_file_path) oldStoragePathsToClean.push(existing.abstract_file_path);
       abstract_file_path = abstractStoragePath;
     }
 
-    let itso_file_path = existing.itso_file_path;
-
     if (itsoFile) {
-      if (existing.itso_file_path) {
-        await this.databaseService.client.storage
-          .from('documents')
-          .remove([existing.itso_file_path]);
-      }
       const itsoStoragePath = `${userId}/${Date.now()}_itso_${itsoFile.originalname}`;
       const { error: itsoStorageError } = await this.databaseService.client.storage
         .from('documents')
         .upload(itsoStoragePath, itsoFile.buffer, { contentType: itsoFile.mimetype });
       if (itsoStorageError) {
+        // Clean up the new main PDF and abstract we just uploaded
+        if (pdf_file_path !== existing.pdf_file_path) {
+          await this.databaseService.client.storage.from('documents').remove([pdf_file_path]);
+        }
+        if (abstract_file_path !== existing.abstract_file_path) {
+          await this.databaseService.client.storage.from('documents').remove([abstract_file_path]);
+        }
         throw new InternalServerErrorException('Failed to upload revised ITSO file.');
       }
+      if ((existing as any).itso_file_path) oldStoragePathsToClean.push((existing as any).itso_file_path);
       itso_file_path = itsoStoragePath;
     }
 
@@ -253,6 +260,14 @@ export class DocumentsService {
 
     if (updateError) {
       throw new InternalServerErrorException('Failed to update document record.');
+    }
+
+    // Best-effort cleanup of old blobs after successful DB update
+    if (oldStoragePathsToClean.length > 0) {
+      this.databaseService.client.storage
+        .from('documents')
+        .remove(oldStoragePathsToClean)
+        .catch(() => { /* non-fatal: blobs orphaned but DB is consistent */ });
     }
 
     return updated;

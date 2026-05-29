@@ -367,9 +367,6 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
   const deptCode = getDeptCode(draft.department)
   const pageTitle = deptCode === 'CS' ? 'Submit New Thesis' : 'Submit New Capstone'
   
-  // Debug: log department info
-  console.log('DEBUG - Department:', draft.department, 'Code:', deptCode, 'Title:', pageTitle)
-
   return (
     <SubmissionStepLayout
       step={step.index}
