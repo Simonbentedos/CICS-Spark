@@ -18,7 +18,7 @@ import AdminDataTable from '@/components/admin/AdminDataTable'
 import AdminFilterBar from '@/components/admin/AdminFilterBar'
 import AdminMetricCards from '@/components/admin/AdminMetricCards'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
-import { getSubmissionStatuses } from '@/lib/utils'
+import { getSubmissionStatuses, getAcademicYearOptions, isWithinRange } from '@/lib/utils'
 import { getAdminSession } from '@/lib/admin/session'
 import { getAdminSubmissions, type ApiDocument } from '@/lib/api/documents'
 import { getAdminUsers, type ApiUser } from '@/lib/api/users'
@@ -32,15 +32,6 @@ import type {
   ReportSnapshot,
   SubmissionStatus,
 } from '@/types/admin'
-
-function getAcademicYearOptions(): { value: ReportDateRange; label: string }[] {
-  const now = new Date()
-  const currentAyStart = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1
-  return Array.from({ length: 6 }, (_, i) => {
-    const start = currentAyStart - i
-    return { value: `ay${start}` as ReportDateRange, label: `Academic Year ${start}-${start + 1}` }
-  })
-}
 
 const DATE_RANGE_OPTIONS: { value: ReportDateRange; label: string }[] = [
   ...getAcademicYearOptions(),
@@ -71,32 +62,6 @@ function getStatusBarClass(status: SubmissionStatus | string) {
   if (status === 'Rejected') return 'bg-red-400'
   if (status === 'Revision Requested') return 'bg-violet-400'
   return 'bg-cics-maroon-300'
-}
-
-function isWithinRange(dateString: string, range: ReportDateRange) {
-  if (range === 'all') return true
-  const date = new Date(dateString)
-  if (isNaN(date.getTime())) return false
-  const now = new Date()
-
-  if (range === 'ytd') return date >= new Date(now.getFullYear(), 0, 1)
-
-  const ayMatch = range.match(/^ay(\d{4})$/)
-  if (ayMatch) {
-    const startYear = parseInt(ayMatch[1], 10)
-    const start = new Date(startYear, 7, 1)      // Aug 1, startYear
-    const end = new Date(startYear + 1, 7, 1)    // Aug 1, startYear+1 (exclusive)
-    return date >= start && date < end
-  }
-
-  const yearMatch = range.match(/^(\d+)y$/)
-  if (yearMatch) {
-    const years = parseInt(yearMatch[1], 10)
-    const cutoff = new Date(now)
-    cutoff.setFullYear(cutoff.getFullYear() - years)
-    return date >= cutoff
-  }
-  return true
 }
 
 export default function AdminReportsPage() {
@@ -199,16 +164,23 @@ export default function AdminReportsPage() {
       approvalRate: data.total > 0 ? Math.round((data.approved / data.total) * 100) : 0,
     }))
 
-    // 5. Generate dynamically grouped trend data (last 6 months)
-    const months = []
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date()
-      d.setMonth(d.getMonth() - i)
-      months.push({
-        label: d.toLocaleDateString('en-US', { month: 'short' }),
-        year: d.getFullYear(),
-        month: d.getMonth()
-      })
+    // 5. Generate dynamically grouped trend data (AY: 12 months, otherwise last 6 months)
+    const months: Array<{label: string, year: number, month: number}> = []
+    const ayTrendMatch = filters.range.match(/^ay(\d{4})$/)
+    if (ayTrendMatch) {
+      const startYear = parseInt(ayTrendMatch[1], 10)
+      for (let i = 0; i < 12; i++) {
+        const month = (7 + i) % 12
+        const year = (7 + i) >= 12 ? startYear + 1 : startYear
+        const d = new Date(year, month, 1)
+        months.push({ label: d.toLocaleDateString('en-US', { month: 'short' }), year, month })
+      }
+    } else {
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date()
+        d.setMonth(d.getMonth() - i)
+        months.push({ label: d.toLocaleDateString('en-US', { month: 'short' }), year: d.getFullYear(), month: d.getMonth() })
+      }
     }
     
     const trend = months.map(m => {
@@ -509,7 +481,9 @@ export default function AdminReportsPage() {
           <section className="grid gap-4 xl:grid-cols-2">
             <Card className="border border-grey-200 shadow-none">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-navy">Submission Volume Trend</CardTitle>
+                <CardTitle className="text-sm font-medium text-navy">
+                  Submission Volume Trend{filters.range.startsWith('ay') ? '' : ' (Last 6 Months)'}
+                </CardTitle>
               </CardHeader>
               <CardContent className="px-6 pb-6">
                 <div className="flex items-end justify-between gap-3 h-[180px]">

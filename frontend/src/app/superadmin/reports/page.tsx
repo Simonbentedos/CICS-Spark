@@ -20,16 +20,8 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import { getAdminSubmissions, type ApiDocument } from '@/lib/api/documents'
 import { getAdminUsers, type ApiUser } from '@/lib/api/users'
 import { getUsageMetrics, type UsageMetrics } from '@/lib/api/analytics'
+import { getAcademicYearOptions, isWithinRange } from '@/lib/utils'
 import type { DepartmentReportRow, ReportDateRange, ReportExportFormat } from '@/types/admin'
-
-function getAcademicYearOptions(): { value: ReportDateRange; label: string }[] {
-  const now = new Date()
-  const currentAyStart = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1
-  return Array.from({ length: 6 }, (_, i) => {
-    const start = currentAyStart - i
-    return { value: `ay${start}` as ReportDateRange, label: `Academic Year ${start}-${start + 1}` }
-  })
-}
 
 const DATE_RANGE_OPTIONS: { value: ReportDateRange; label: string }[] = [
   ...getAcademicYearOptions(),
@@ -51,32 +43,6 @@ const DEPT_COLORS: Record<string, string> = {
   CS: 'bg-blue-400',
   IT: 'bg-violet-400',
   IS: 'bg-emerald-400',
-}
-
-function isWithinRange(dateString: string, range: ReportDateRange) {
-  if (range === 'all') return true
-  const date = new Date(dateString)
-  if (isNaN(date.getTime())) return false
-  const now = new Date()
-
-  if (range === 'ytd') return date >= new Date(now.getFullYear(), 0, 1)
-
-  const ayMatch = range.match(/^ay(\d{4})$/)
-  if (ayMatch) {
-    const startYear = parseInt(ayMatch[1], 10)
-    const start = new Date(startYear, 7, 1)      // Aug 1, startYear
-    const end = new Date(startYear + 1, 7, 1)    // Aug 1, startYear+1 (exclusive)
-    return date >= start && date < end
-  }
-
-  const yearMatch = range.match(/^(\d+)y$/)
-  if (yearMatch) {
-    const years = parseInt(yearMatch[1], 10)
-    const cutoff = new Date(now)
-    cutoff.setFullYear(cutoff.getFullYear() - years)
-    return date >= cutoff
-  }
-  return true
 }
 
 export default function SuperAdminReportsPage() {
@@ -164,16 +130,26 @@ export default function SuperAdminReportsPage() {
     return Array.from(map.entries()).map(([dept, data]) => ({ dept, ...data }))
   }, [users])
 
-  // Last 6 months trend
+  // Trend months: 12-month AY window or last 6 months rolling
   const months = useMemo(() => {
-    const result = []
+    const ayMatch = range.match(/^ay(\d{4})$/)
+    if (ayMatch) {
+      const startYear = parseInt(ayMatch[1], 10)
+      return Array.from({ length: 12 }, (_, i) => {
+        const month = (7 + i) % 12
+        const year = (7 + i) >= 12 ? startYear + 1 : startYear
+        const d = new Date(year, month, 1)
+        return { label: d.toLocaleDateString('en-US', { month: 'short' }), month, year }
+      })
+    }
+    const result: Array<{label: string, month: number, year: number}> = []
     for (let i = 5; i >= 0; i--) {
       const d = new Date()
       d.setMonth(d.getMonth() - i)
       result.push({ label: d.toLocaleDateString('en-US', { month: 'short' }), month: d.getMonth(), year: d.getFullYear() })
     }
     return result
-  }, [])
+  }, [range])
 
   const trend = useMemo(() => months.map((m) => ({
     label: m.label,
@@ -340,7 +316,9 @@ export default function SuperAdminReportsPage() {
             {/* Submission Trend — per department */}
             <Card className="border border-grey-200 shadow-none">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-navy">Submission Trend by Department (Last 6 Months)</CardTitle>
+                <CardTitle className="text-sm font-medium text-navy">
+                  Submission Trend by Department{range.startsWith('ay') ? '' : ' (Last 6 Months)'}
+                </CardTitle>
               </CardHeader>
               <CardContent className="px-6 pb-6">
                 <div className="flex items-end justify-between gap-3 h-[180px]">
