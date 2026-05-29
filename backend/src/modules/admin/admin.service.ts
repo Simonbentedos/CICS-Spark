@@ -338,7 +338,7 @@ export class AdminService {
       if (error) throw new InternalServerErrorException(error.message);
       return (data ?? []).map(({ document, ...rest }: any) => ({
         ...rest,
-        document_title: (document as any)?.title ?? null,
+        document_title: (document?.title as string | null) ?? null,
       }));
     }
 
@@ -356,7 +356,7 @@ export class AdminService {
     if (error) throw new InternalServerErrorException(error.message);
     return (data ?? []).map(({ document, ...rest }: any) => ({
       ...rest,
-      document_title: (document as any)?.title ?? null,
+      document_title: (document?.title as string | null) ?? null,
     }));
   }
 
