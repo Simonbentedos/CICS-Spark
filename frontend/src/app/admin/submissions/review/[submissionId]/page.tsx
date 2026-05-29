@@ -11,6 +11,7 @@ import {
   getAdminSubmissionById,
   getSubmissionPdfUrl,
   getSubmissionAbstractPdfUrl,
+  getSubmissionItsoPdfUrl,
   reviewSubmission,
   downloadAbstractUrl,
   type ApiDocument,
@@ -39,6 +40,7 @@ export default function SubmissionReviewPage({
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [loadingPdf, setLoadingPdf] = useState(false)
   const [abstractPdfUrl, setAbstractPdfUrl] = useState<string | null>(null)
+  const [itsoPdfUrl, setItsoPdfUrl] = useState<string | null>(null)
 
   useEffect(() => {
     getAdminSubmissionById(params.submissionId)
@@ -60,6 +62,12 @@ export default function SubmissionReviewPage({
           .then((data) => setAbstractPdfUrl(data.pdfUrl))
           .catch(() => { /* no abstract PDF — silently ignore */ })
       }
+
+      if (submission.itso_file_path) {
+        getSubmissionItsoPdfUrl(params.submissionId)
+          .then((data) => setItsoPdfUrl(data.pdfUrl))
+          .catch(() => { /* no ITSO PDF — silently ignore */ })
+      }
     }
   }, [params.submissionId, submission])
 
@@ -79,50 +87,18 @@ export default function SubmissionReviewPage({
     )
   }
 
-  const reviews: ApiReview[] = ((submission.reviews as ApiReview[]) ?? [])
-    .filter(r => r.decision !== 'resubmit') // filter out any resubmit records (handled synthetically)
-    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) // ascending for processing
-
-  // Synthesize the full timeline including resubmission events
-  type TimelineEvent =
-    | { kind: 'review'; review: ApiReview }
-    | { kind: 'resubmit'; timestamp: string | null }
-    | { kind: 'submitted'; timestamp: string }
-
-  const timelineAsc: TimelineEvent[] = [{ kind: 'submitted', timestamp: submission.created_at }]
-  for (let i = 0; i < reviews.length; i++) {
-    const r = reviews[i]
-    timelineAsc.push({ kind: 'review', review: r })
-    if (r.decision === 'revise') {
-      if (i < reviews.length - 1) {
-        // A resubmission happened between this revise and the next admin action
-        timelineAsc.push({ kind: 'resubmit', timestamp: null })
-      } else if (
-        submission.status === 'pending' &&
-        new Date(submission.updated_at) > new Date(r.created_at)
-      ) {
-        // Student resubmitted after this revision request; still awaiting review
-        timelineAsc.push({ kind: 'resubmit', timestamp: submission.updated_at })
-      }
-    }
-  }
-  // Display newest-first
-  const timeline = [...timelineAsc].reverse()
-
+  const reviews: ApiReview[] = (submission.reviews as ApiReview[]) ?? []
   const statusLabel = STATUS_LABEL[submission.status] ?? submission.status
 
   async function handleReview(payload: ReviewPayload) {
     if (!activeAction) return
     setSubmitting(true)
     try {
-      const lines = [payload.comment, ...(payload.issues ?? [])].filter(Boolean)
-      let feedback = lines.join('\n')
-
-      if (activeAction === 'revise' && payload.requireFiles && payload.requireFiles.length > 0) {
-        const prefix = `[REQUIRE:${payload.requireFiles.join(',')}]`
-        feedback = feedback ? `${prefix}\n${feedback}` : prefix
+      const parts = [payload.comment, ...(payload.issues ?? [])].filter(Boolean)
+      if (payload.requireFiles && payload.requireFiles.length > 0) {
+        parts.push(`REQUIRE:${payload.requireFiles.join(',')}`)
       }
-
+      const feedback = parts.join('\n')
       await reviewSubmission(submission!.id, activeAction, feedback || undefined)
       router.push('/admin/submissions')
     } catch (err: unknown) {
@@ -241,7 +217,7 @@ export default function SubmissionReviewPage({
           {abstractPdfUrl ? (
             <Card className="border border-grey-200 shadow-none">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-navy">ACM/ITSO Abstract PDF</CardTitle>
+                <CardTitle className="text-sm font-medium text-navy">ACM Abstract PDF</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="rounded-md border border-grey-200 bg-white overflow-hidden">
@@ -249,6 +225,23 @@ export default function SubmissionReviewPage({
                     src={abstractPdfUrl}
                     className="w-full h-[500px]"
                     title="Abstract PDF Preview"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {itsoPdfUrl ? (
+            <Card className="border border-grey-200 shadow-none">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-navy">ITSO Abstract PDF</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border border-grey-200 bg-white overflow-hidden">
+                  <iframe
+                    src={itsoPdfUrl}
+                    className="w-full h-[500px]"
+                    title="ITSO PDF Preview"
                   />
                 </div>
               </CardContent>
@@ -291,72 +284,52 @@ export default function SubmissionReviewPage({
               <CardTitle className="text-sm font-medium text-navy">Review History</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-xs text-grey-600">
-              {timeline.map((event, i) => {
-                if (event.kind === 'submitted') {
-                  return (
-                    <div key="submitted" className="rounded-md border border-grey-200 bg-grey-50 p-2 space-y-1">
-                      <p className="font-medium text-grey-700">Submitted</p>
-                      <p className="text-grey-400">
-                        {new Date(event.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        {' · '}
-                        {new Date(event.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                      </p>
-                    </div>
-                  )
-                }
-
-                if (event.kind === 'resubmit') {
-                  return (
-                    <div key={`resubmit-${i}`} className="rounded-md border border-blue-200 bg-blue-50 p-2 space-y-1">
-                      <p className="font-medium text-blue-700">Student Resubmitted</p>
-                      {event.timestamp ? (
-                        <p className="text-blue-400">
-                          {new Date(event.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                          {' · '}
-                          {new Date(event.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                        </p>
-                      ) : (
-                        <p className="text-blue-400 italic">Resubmitted before next review</p>
-                      )}
-                    </div>
-                  )
-                }
-
-                // kind === 'review'
-                const { review } = event
-                return (
-                  <div key={review.id} className="rounded-md border border-grey-200 p-2 space-y-1">
-                    <p className="font-medium text-grey-700">
-                      {review.decision === 'approve' ? 'Approved'
-                        : review.decision === 'reject' ? 'Rejected'
-                        : 'Revision Requested'}
-                    </p>
-                    {review.reviewer_name && (
-                      <p className="text-grey-500">by {review.reviewer_name}</p>
-                    )}
-                    <p className="text-grey-400">
-                      {new Date(review.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      {' · '}
-                      {new Date(review.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                    </p>
-                    {review.feedback_text && (() => {
-                      const match = review.feedback_text!.match(/^\[REQUIRE:([^\]]*)\]\n?/)
-                      const clean = match ? review.feedback_text!.slice(match[0].length) : review.feedback_text
-                      const files = match ? match[1].split(',') : []
-                      return (
-                        <>
-                          {files.length > 0 && (
-                            <p className="text-[11px] font-medium text-amber-700">
-                              Requires resubmission: {files.map(f => f === 'manuscript' ? 'Manuscript PDF' : 'ACM/ITSO Abstract PDF').join(' + ')}
-                            </p>
-                          )}
-                          {clean && <p className="text-grey-500 italic whitespace-pre-wrap">{clean}</p>}
-                        </>
-                      )
-                    })()}
-                  </div>
-                )
-              })}
+              {reviews.map((review) => (
+                <div key={review.id} className="rounded-md border border-grey-200 p-2 space-y-1">
+                  <p className="font-medium text-grey-700">
+                    {review.decision === 'approve' ? 'Approved' : review.decision === 'reject' ? 'Rejected' : 'Revision Requested'}
+                  </p>
+                  {review.reviewer_name && (
+                    <p className="text-grey-500">by {review.reviewer_name}</p>
+                  )}
+                  <p className="text-grey-400">
+                    {new Date(review.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {' · '}
+                    {new Date(review.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  </p>
+                  {review.feedback_text && (() => {
+                    const lines = review.feedback_text.split('\n')
+                    const requireLine = lines.find((l) => l.startsWith('REQUIRE:'))
+                    const commentLines = lines.filter((l) => !l.startsWith('REQUIRE:'))
+                    const files = requireLine ? requireLine.replace('REQUIRE:', '').split(',').filter(Boolean) : []
+                    return (
+                      <>
+                        {commentLines.join('\n').trim() && (
+                          <p className="text-grey-500 italic">{commentLines.join('\n').trim()}</p>
+                        )}
+                        {files.length > 0 && (
+                          <p className="text-amber-700 font-medium">
+                            Requires: {files.map((f) => {
+                              if (f === 'manuscript') return 'Manuscript PDF'
+                              if (f === 'acm') return 'ACM Abstract PDF'
+                              if (f === 'itso') return 'ITSO Abstract PDF'
+                              return f.toUpperCase()
+                            }).join(' + ')}
+                          </p>
+                        )}
+                      </>
+                    )
+                  })()}
+                </div>
+              ))}
+              <div className="rounded-md border border-grey-200 bg-grey-50 p-2 space-y-1">
+                <p className="font-medium text-grey-700">Submitted</p>
+                <p className="text-grey-400">
+                  {new Date(submission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  {' · '}
+                  {new Date(submission.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                </p>
+              </div>
             </CardContent>
           </Card>
         </aside>

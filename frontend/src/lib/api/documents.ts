@@ -16,6 +16,7 @@ export type ApiDocument = {
   keywords: string[]
   pdf_file_path: string | null
   abstract_file_path: string | null
+  itso_file_path: string | null
   uploaded_by: string | null
   status: DocumentStatus
   created_at: string
@@ -47,6 +48,7 @@ export type DuplicateCheckResponse = {
 export type FulltextRequest = {
   id: string
   document_id: string
+  document_title: string | null
   requester_name: string
   requester_email: string
   purpose: string | null
@@ -172,6 +174,10 @@ export async function getSubmissionPdfUrl(id: string): Promise<{ pdfUrl: string;
 
 export async function getSubmissionAbstractPdfUrl(id: string): Promise<{ pdfUrl: string; expiresIn: number }> {
   return apiRequest<{ pdfUrl: string; expiresIn: number }>(`/api/admin/submissions/${id}/preview-abstract-pdf`)
+}
+
+export async function getSubmissionItsoPdfUrl(id: string): Promise<{ pdfUrl: string; expiresIn: number }> {
+  return apiRequest<{ pdfUrl: string; expiresIn: number }>(`/api/admin/submissions/${id}/preview-itso-pdf`)
 }
 
 export async function reviewSubmission(

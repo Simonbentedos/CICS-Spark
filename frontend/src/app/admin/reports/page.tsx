@@ -18,7 +18,8 @@ import AdminDataTable from '@/components/admin/AdminDataTable'
 import AdminFilterBar from '@/components/admin/AdminFilterBar'
 import AdminMetricCards from '@/components/admin/AdminMetricCards'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
-import { getSubmissionStatuses } from '@/lib/utils'
+import { getSubmissionStatuses, getAcademicYearOptions, isWithinRange } from '@/lib/utils'
+import { getAdminSession } from '@/lib/admin/session'
 import { getAdminSubmissions, type ApiDocument } from '@/lib/api/documents'
 import { getAdminUsers, type ApiUser } from '@/lib/api/users'
 import { getUsageMetrics, type UsageMetrics } from '@/lib/api/analytics'
@@ -26,14 +27,14 @@ import type {
   DepartmentReportRow,
   ReportDateRange,
   ReportExportFormat,
+  ReportExportPreset,
   ReportFilters,
   ReportSnapshot,
   SubmissionStatus,
 } from '@/types/admin'
 
 const DATE_RANGE_OPTIONS: { value: ReportDateRange; label: string }[] = [
-  { value: '30d', label: 'Last 30 Days' },
-  { value: '90d', label: 'Last 90 Days' },
+  ...getAcademicYearOptions(),
   { value: 'ytd', label: 'Year to Date' },
   { value: '1y', label: 'Last 1 Year' },
   { value: '2y', label: 'Last 2 Years' },
@@ -41,6 +42,14 @@ const DATE_RANGE_OPTIONS: { value: ReportDateRange; label: string }[] = [
   { value: '4y', label: 'Last 4 Years' },
   { value: '5y', label: 'Last 5 Years' },
   { value: 'all', label: 'All Time' },
+]
+
+const REPORT_PRESET_OPTIONS: { value: ReportExportPreset; label: string }[] = [
+  { value: 'executive-summary', label: 'Executive Summary' },
+  { value: 'submission-pipeline', label: 'Submission Pipeline' },
+  { value: 'department-performance', label: 'Department Performance' },
+  { value: 'user-access-usage', label: 'User & Access Usage' },
+  { value: 'audit-trail', label: 'Audit Trail' },
 ]
 
 const EXPORT_FORMAT_OPTIONS: { value: ReportExportFormat; label: string }[] = [
@@ -55,30 +64,10 @@ function getStatusBarClass(status: SubmissionStatus | string) {
   return 'bg-cics-maroon-300'
 }
 
-function isWithinRange(dateString: string, range: ReportDateRange) {
-  if (range === 'all') return true
-  const date = new Date(dateString)
-  if (isNaN(date.getTime())) return false
-  const now = new Date()
-
-  if (range === '30d') return date >= new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-  if (range === '90d') return date >= new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
-  if (range === 'ytd') return date >= new Date(now.getFullYear(), 0, 1)
-
-  const yearMatch = range.match(/^(\d+)y$/)
-  if (yearMatch) {
-    const years = parseInt(yearMatch[1], 10)
-    const cutoff = new Date(now)
-    cutoff.setFullYear(cutoff.getFullYear() - years)
-    return date >= cutoff
-  }
-  return true
-}
-
 export default function AdminReportsPage() {
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedPreset, setSelectedPreset] = useState<ReportExportPreset>('executive-summary')
   const [selectedFormat, setSelectedFormat] = useState<ReportExportFormat>('csv')
-  const [printScope, setPrintScope] = useState<'complete' | 'graphs'>('complete')
 
   const [submissions, setSubmissions] = useState<ApiDocument[]>([])
   const [users, setUsers] = useState<ApiUser[]>([])
@@ -92,7 +81,7 @@ export default function AdminReportsPage() {
   const [error, setError] = useState<string | null>(null)
 
   const [filters, setFilters] = useState<ReportFilters>(() => ({
-    range: 'all',
+    range: 'all', // Show all-time data by default to match dashboard exactly
     department: 'all-departments',
     status: 'all-status',
   }))
@@ -175,16 +164,23 @@ export default function AdminReportsPage() {
       approvalRate: data.total > 0 ? Math.round((data.approved / data.total) * 100) : 0,
     }))
 
-    // 5. Generate dynamically grouped trend data (last 6 months)
-    const months = []
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date()
-      d.setMonth(d.getMonth() - i)
-      months.push({
-        label: d.toLocaleDateString('en-US', { month: 'short' }),
-        year: d.getFullYear(),
-        month: d.getMonth()
-      })
+    // 5. Generate dynamically grouped trend data (AY: 12 months, otherwise last 6 months)
+    const months: Array<{label: string, year: number, month: number}> = []
+    const ayTrendMatch = filters.range.match(/^ay(\d{4})$/)
+    if (ayTrendMatch) {
+      const startYear = parseInt(ayTrendMatch[1], 10)
+      for (let i = 0; i < 12; i++) {
+        const month = (7 + i) % 12
+        const year = (7 + i) >= 12 ? startYear + 1 : startYear
+        const d = new Date(year, month, 1)
+        months.push({ label: d.toLocaleDateString('en-US', { month: 'short' }), year, month })
+      }
+    } else {
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date()
+        d.setMonth(d.getMonth() - i)
+        months.push({ label: d.toLocaleDateString('en-US', { month: 'short' }), year: d.getFullYear(), month: d.getMonth() })
+      }
     }
     
     const trend = months.map(m => {
@@ -267,6 +263,10 @@ export default function AdminReportsPage() {
   }, [submissions, users, filters, usageMetrics])
 
 
+  const departments = useMemo(
+    () => Array.from(new Set(submissions.map((s) => s.department))),
+    [submissions],
+  )
   const statuses = useMemo(() => getSubmissionStatuses(), [])
 
   const maxTrend = Math.max(1, ...report.trend.map((item) => item.submitted))
@@ -293,12 +293,13 @@ export default function AdminReportsPage() {
     if (selectedFormat === 'json') {
       content = JSON.stringify(report, null, 2)
       mimeType = 'application/json'
-      fileName = `spark-report-${new Date().toISOString().split('T')[0]}.json`
+      fileName = `spark-report-${selectedPreset}-${new Date().toISOString().split('T')[0]}.json`
     } else {
       // CSV format with comprehensive data
       const rows = ['# SPARK Repository Report']
       rows.push(`# Generated: ${new Date().toLocaleString()}`)
-      rows.push(`# Date Range: ${filters.range} | Status: ${filters.status}`)
+      rows.push(`# Preset: ${selectedPreset}`)
+      rows.push(`# Filters: ${filters.range} | ${filters.department} | ${filters.status}`)
       rows.push('')
       
       // KPI Summary
@@ -361,7 +362,7 @@ export default function AdminReportsPage() {
       
       content = rows.join('\n')
       mimeType = 'text/csv;charset=utf-8;'
-      fileName = `spark-report-${new Date().toISOString().split('T')[0]}.csv`
+      fileName = `spark-report-${selectedPreset}-${new Date().toISOString().split('T')[0]}.csv`
     }
 
     const blob = new Blob([content], { type: mimeType })
@@ -375,228 +376,43 @@ export default function AdminReportsPage() {
     URL.revokeObjectURL(url)
   }
 
-  function handleExportApproved() {
-    const rangeLabel = DATE_RANGE_OPTIONS.find(o => o.value === filters.range)?.label ?? filters.range
-    const approved = submissions.filter(s => s.status === 'approved' && isWithinRange(s.created_at, filters.range))
-    const date = new Date().toISOString().split('T')[0]
-
-    const rows: string[] = [
-      'SPARK Repository — Published/Approved Submissions',
-      `Generated: ${new Date().toLocaleString()}`,
-      `Date Filter: ${rangeLabel}`,
-      `Total Approved: ${approved.length}`,
-      '',
-      'No.,Title,Authors,Department,Type,Specialization Track,Technical Adviser,Keywords,Year,Date Submitted,Approval Date',
-    ]
-
-    approved.forEach((s, i) => {
-      const authors = (Array.isArray(s.authors) ? s.authors : []).join('; ')
-      const keywords = (Array.isArray(s.keywords) ? s.keywords : []).join('; ')
-      const approvedAt = s.reviews
-        ?.filter(r => r.decision === 'approve')
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
-        ?.created_at ?? ''
-      const approvalDate = approvedAt ? new Date(approvedAt).toLocaleDateString('en-US') : '—'
-      const submittedDate = new Date(s.created_at).toLocaleDateString('en-US')
-      const esc = (v: string) => `"${v.replace(/"/g, '""')}"`
-      rows.push([
-        i + 1,
-        esc(s.title),
-        esc(authors),
-        s.department,
-        s.type,
-        esc(s.track_specialization ?? ''),
-        esc(s.adviser ?? ''),
-        esc(keywords),
-        s.year ?? '—',
-        submittedDate,
-        approvalDate,
-      ].join(','))
-    })
-
-    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `spark-approved-submissions-${date}.csv`
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    URL.revokeObjectURL(url)
-  }
-
-  function handlePrint() {
-    const rangeLabel = DATE_RANGE_OPTIONS.find(o => o.value === filters.range)?.label ?? filters.range
-    const approved = submissions.filter(s => s.status === 'approved' && isWithinRange(s.created_at, filters.range))
-    const graphsOnly = printScope === 'graphs'
-
-    const trendBars = report.trend.map(p => {
-      const pct = Math.round((p.submitted / Math.max(1, ...report.trend.map(x => x.submitted))) * 100)
-      return `<div style="display:flex;flex-direction:column;align-items:center;flex:1">
-        <div style="background:#2563eb;width:100%;height:${Math.max(4, pct)}px;border-radius:2px 2px 0 0"></div>
-        <div style="font-size:10px;color:#555;margin-top:4px">${p.label}</div>
-        <div style="font-size:11px;font-weight:600">${p.submitted}</div>
-      </div>`
-    }).join('')
-
-    const statusRows = report.statusBreakdown.map(s =>
-      `<tr><td>${s.status}</td><td style="text-align:center">${s.count}</td><td style="text-align:center">${s.percentage}%</td></tr>`
-    ).join('')
-
-    const deptRows = report.departmentBreakdown.map(d =>
-      `<tr><td>${d.department}</td><td style="text-align:center">${d.total}</td><td style="text-align:center">${d.approved}</td><td style="text-align:center">${d.rejected}</td><td style="text-align:center">${d.approvalRate}%</td></tr>`
-    ).join('')
-
-    const approvedRows = approved.map((s, i) => {
-      const authors = (Array.isArray(s.authors) ? s.authors : []).join(', ')
-      const approvedAt = s.reviews
-        ?.filter(r => r.decision === 'approve')
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at ?? ''
-      return `<tr>
-        <td style="text-align:center">${i + 1}</td>
-        <td>${s.title}</td>
-        <td>${authors}</td>
-        <td style="text-align:center">${s.department}</td>
-        <td>${s.track_specialization ?? '—'}</td>
-        <td style="text-align:center">${s.year ?? '—'}</td>
-        <td style="text-align:center">${approvedAt ? new Date(approvedAt).toLocaleDateString('en-US') : '—'}</td>
-      </tr>`
-    }).join('')
-
-    const auditRows = report.auditLogs.slice(0, 30).map(l =>
-      `<tr><td style="white-space:nowrap">${l.at}</td><td>${l.actor}</td><td>${l.action}</td><td>${l.target}</td><td>${l.details ?? ''}</td></tr>`
-    ).join('')
-
-    const tableStyle = `border-collapse:collapse;width:100%;font-size:11px;margin-bottom:16px`
-    const thStyle = `background:#f3f4f6;border:1px solid #d1d5db;padding:6px 8px;text-align:left;font-weight:600`
-    const tdStyle = `border:1px solid #d1d5db;padding:5px 8px`
-
-    const completeSection = graphsOnly ? '' : `
-      <h2 style="font-size:14px;font-weight:700;margin:20px 0 8px;color:#1e3a5f">Status Breakdown</h2>
-      <table style="${tableStyle}">
-        <thead><tr>
-          <th style="${thStyle}">Status</th><th style="${thStyle};text-align:center">Count</th><th style="${thStyle};text-align:center">Percentage</th>
-        </tr></thead>
-        <tbody>${statusRows}</tbody>
-      </table>
-
-      <h2 style="font-size:14px;font-weight:700;margin:20px 0 8px;color:#1e3a5f">Department Breakdown</h2>
-      <table style="${tableStyle}">
-        <thead><tr>
-          <th style="${thStyle}">Department</th><th style="${thStyle};text-align:center">Total</th><th style="${thStyle};text-align:center">Approved</th><th style="${thStyle};text-align:center">Rejected</th><th style="${thStyle};text-align:center">Approval Rate</th>
-        </tr></thead>
-        <tbody>${deptRows}</tbody>
-      </table>
-
-      <h2 style="font-size:14px;font-weight:700;margin:20px 0 8px;color:#1e3a5f">Published / Approved Submissions (${approved.length})</h2>
-      <table style="${tableStyle}">
-        <thead><tr>
-          <th style="${thStyle};text-align:center">#</th><th style="${thStyle}">Title</th><th style="${thStyle}">Authors</th><th style="${thStyle};text-align:center">Dept</th><th style="${thStyle}">Track</th><th style="${thStyle};text-align:center">Year</th><th style="${thStyle};text-align:center">Approved</th>
-        </tr></thead>
-        <tbody>${approvedRows || '<tr><td colspan="7" style="text-align:center;padding:12px;color:#999">No approved submissions for this period.</td></tr>'}</tbody>
-      </table>
-
-      <h2 style="font-size:14px;font-weight:700;margin:20px 0 8px;color:#1e3a5f">Recent Audit Log (last 30 entries)</h2>
-      <table style="${tableStyle}">
-        <thead><tr>
-          <th style="${thStyle}">Time</th><th style="${thStyle}">Actor</th><th style="${thStyle}">Action</th><th style="${thStyle}">Target</th><th style="${thStyle}">Details</th>
-        </tr></thead>
-        <tbody style="font-size:10px">${auditRows || '<tr><td colspan="5" style="text-align:center;padding:12px;color:#999">No audit entries.</td></tr>'}</tbody>
-      </table>
-    `
-
-    const html = `<!DOCTYPE html><html><head><title>SPARK Reports</title>
-      <style>
-        * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        body { font-family: Arial, sans-serif; color: #111; margin: 24px; }
-        @media print { body { margin: 0; } }
-        td { ${tdStyle} } th { ${thStyle} }
-      </style>
-    </head><body>
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1e3a5f;padding-bottom:10px;margin-bottom:16px">
-        <div>
-          <div style="font-size:18px;font-weight:700;color:#1e3a5f">SPARK Repository — Reports</div>
-          <div style="font-size:11px;color:#666;margin-top:2px">College of Information and Computing Sciences, University of Santo Tomas</div>
-        </div>
-        <div style="text-align:right;font-size:11px;color:#666">
-          <div>Generated: ${new Date().toLocaleString()}</div>
-          <div>Date Filter: ${rangeLabel}</div>
-          <div>Scope: ${graphsOnly ? 'Graphs Only' : 'Complete Summary'}</div>
-        </div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
-        ${report.kpiCards.map(c => `
-          <div style="border:1px solid #e5e7eb;border-radius:6px;padding:12px">
-            <div style="font-size:11px;color:#666">${c.label}</div>
-            <div style="font-size:22px;font-weight:700;color:#1e3a5f;margin-top:2px">${c.value}</div>
-          </div>`).join('')}
-      </div>
-
-      <h2 style="font-size:14px;font-weight:700;margin:0 0 8px;color:#1e3a5f">Submission Volume Trend (Last 6 Months)</h2>
-      <div style="display:flex;align-items:flex-end;gap:8px;height:120px;border-bottom:1px solid #e5e7eb;margin-bottom:20px;padding:0 4px">
-        ${trendBars}
-      </div>
-
-      ${completeSection}
-    </body></html>`
-
-    const win = window.open('', '_blank', 'width=900,height=700')
-    if (!win) return
-    win.document.write(html)
-    win.document.close()
-    win.focus()
-    win.onload = () => win.print()
-  }
-
   return (
     <div className="space-y-4">
       <AdminPageHeader
         title="Reports"
         subtitle="Analytics, performance, usage, and audit reporting for thesis repository operations."
         action={
-          <div className="flex flex-col items-end gap-1.5">
-            {/* Download row */}
-            <div className="flex items-center gap-2">
-              <Select value={selectedFormat} onValueChange={(value) => setSelectedFormat(value as ReportExportFormat)}>
-                <SelectTrigger className="h-9 w-[90px] border-grey-200 bg-white text-xs text-navy dark:text-navy">
-                  <SelectValue placeholder="Format" />
-                </SelectTrigger>
-                <SelectContent>
-                  {EXPORT_FORMAT_OPTIONS.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="flex items-center gap-2">
+            <Select value={selectedPreset} onValueChange={(value) => setSelectedPreset(value as ReportExportPreset)}>
+              <SelectTrigger className="h-9 w-[190px] border-grey-200 bg-white text-xs text-navy dark:text-navy">
+                <SelectValue placeholder="Select report" />
+              </SelectTrigger>
+              <SelectContent>
+                {REPORT_PRESET_OPTIONS.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-              <Button variant="outline" className="h-9 px-3 text-xs" onClick={handleExportReport}>
-                <Download className="mr-1 h-3.5 w-3.5" />
-                Full Report
-              </Button>
+            <Select value={selectedFormat} onValueChange={(value) => setSelectedFormat(value as ReportExportFormat)}>
+              <SelectTrigger className="h-9 w-[110px] border-grey-200 bg-white text-xs text-navy dark:text-navy">
+                <SelectValue placeholder="Format" />
+              </SelectTrigger>
+              <SelectContent>
+                {EXPORT_FORMAT_OPTIONS.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-              <Button variant="outline" className="h-9 px-3 text-xs text-green-700 border-green-200 hover:bg-green-50" onClick={handleExportApproved}>
-                <Download className="mr-1 h-3.5 w-3.5" />
-                Approved Submissions (CSV)
-              </Button>
-            </div>
-
-            {/* Print row */}
-            <div className="flex items-center gap-2">
-              <Select value={printScope} onValueChange={(v) => setPrintScope(v as 'complete' | 'graphs')}>
-                <SelectTrigger className="h-9 w-[170px] border-grey-200 bg-white text-xs text-navy dark:text-navy">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="complete">Complete Summary</SelectItem>
-                  <SelectItem value="graphs">Graphs Only</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button variant="outline" className="h-9 px-3 text-xs" onClick={handlePrint}>
-                <Printer className="mr-1 h-3.5 w-3.5" />
-                Print / PDF
-              </Button>
-            </div>
+            <Button variant="outline" className="h-9 px-3 text-xs" onClick={handleExportReport}>
+              <Download className="mr-1 h-3.5 w-3.5" />
+              Download
+            </Button>
+            <Button variant="outline" className="h-9 px-3 text-xs" onClick={() => globalThis.print()}>
+              <Printer className="mr-1 h-3.5 w-3.5" />
+              Print / PDF
+            </Button>
           </div>
         }
       />
@@ -616,6 +432,18 @@ export default function AdminReportsPage() {
                   <SelectContent>
                     {DATE_RANGE_OPTIONS.map((item) => (
                       <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={filters.department} onValueChange={(value) => updateFilters({ department: value })}>
+                  <SelectTrigger className="h-10 w-[170px] border-grey-200 bg-white text-xs text-navy dark:text-navy">
+                    <SelectValue placeholder="All Departments" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all-departments">All Departments</SelectItem>
+                    {departments.map((item) => (
+                      <SelectItem key={item} value={item}>{item}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -653,12 +481,14 @@ export default function AdminReportsPage() {
           <section className="grid gap-4 xl:grid-cols-2">
             <Card className="border border-grey-200 shadow-none">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-navy">Submission Volume Trend</CardTitle>
+                <CardTitle className="text-sm font-medium text-navy">
+                  Submission Volume Trend{filters.range.startsWith('ay') ? '' : ' (Last 6 Months)'}
+                </CardTitle>
               </CardHeader>
               <CardContent className="px-6 pb-6">
                 <div className="flex items-end justify-between gap-3 h-[180px]">
-                  {report.trend.map((point, i) => (
-                    <div key={i} className="flex flex-col items-center flex-1 h-full">
+                  {report.trend.map((point) => (
+                    <div key={point.label} className="flex flex-col items-center flex-1 h-full">
                       <div className="flex-1 w-full flex items-end justify-center pb-2">
                         <div 
                           className="w-full max-w-[48px] rounded-t-md bg-gradient-to-t from-blue-600 to-blue-400 transition-all hover:opacity-80 relative group"
@@ -728,8 +558,8 @@ export default function AdminReportsPage() {
                 <CardTitle className="text-sm font-medium text-navy">User Growth (Active Departments)</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {report.userGrowth.map((item, i) => (
-                  <div key={i} className="space-y-1">
+                {report.userGrowth.map((item) => (
+                  <div key={item.label} className="space-y-1">
                     <div className="flex items-center justify-between text-xs text-grey-600">
                       <span>{item.label}</span>
                       <span className="font-medium text-grey-700">{item.newUsers} new</span>

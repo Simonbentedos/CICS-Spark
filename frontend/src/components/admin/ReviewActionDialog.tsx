@@ -13,7 +13,7 @@ import type { ReviewActionType } from '@/types/admin'
 export type ReviewPayload = {
   comment?: string
   issues?: string[]
-  requireFiles?: ('manuscript' | 'acm')[]
+  requireFiles?: ('manuscript' | 'acm' | 'itso')[]
 }
 
 export default function ReviewActionDialog({
@@ -28,7 +28,13 @@ export default function ReviewActionDialog({
   const config = useMemo(() => getReviewActionConfig(action), [action])
   const [comment, setComment] = useState('')
   const [issues, setIssues] = useState<string[]>([])
-  const [requireFiles, setRequireFiles] = useState<('manuscript' | 'acm')[]>([])
+  const [requireFiles, setRequireFiles] = useState<('manuscript' | 'acm' | 'itso')[]>([])
+
+  function toggleRequireFile(file: 'manuscript' | 'acm' | 'itso') {
+    setRequireFiles((current) =>
+      current.includes(file) ? current.filter((f) => f !== file) : [...current, file]
+    )
+  }
 
   if (!config) {
     return null
@@ -44,12 +50,6 @@ export default function ReviewActionDialog({
   function toggleIssue(issue: string) {
     setIssues((current) =>
       current.includes(issue) ? current.filter((item) => item !== issue) : [...current, issue]
-    )
-  }
-
-  function toggleRequireFile(file: 'manuscript' | 'acm') {
-    setRequireFiles((current) =>
-      current.includes(file) ? current.filter((f) => f !== file) : [...current, file]
     )
   }
 
@@ -123,7 +123,16 @@ export default function ReviewActionDialog({
                 onChange={() => toggleRequireFile('acm')}
                 className="rounded border-amber-300 accent-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1"
               />
-              ACM/ITSO Abstract PDF
+              ACM Abstract PDF
+            </label>
+            <label className="flex items-center gap-2 text-sm text-amber-700">
+              <input
+                type="checkbox"
+                checked={requireFiles.includes('itso')}
+                onChange={() => toggleRequireFile('itso')}
+                className="rounded border-amber-300 accent-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1"
+              />
+              ITSO Abstract PDF
             </label>
             {requireFiles.length === 0 && (
               <p className="text-[11px] text-amber-600 italic">No file resubmission required — student can revise metadata only.</p>
