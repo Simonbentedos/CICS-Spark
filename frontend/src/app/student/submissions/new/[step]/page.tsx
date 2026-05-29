@@ -211,6 +211,7 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null)
 
   const isDuplicateBlocked = Boolean(duplicateWarning?.startsWith('DUPLICATE:'))
+
   const isCSStudent = getDeptCode(draft.department) === 'CS'
 
   const canProceed = useMemo(() => {
@@ -224,9 +225,9 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
     if (step.key === 'file-upload') {
       return pdfFile !== null && (isCSStudent || (abstractFile !== null && itsoFile !== null))
     }
-    // verify-details: enabled once title + all required files present
+    // verify-details: CS only needs the main PDF; IT/IS need both
     return Boolean(draft.title.trim()) && pdfFile !== null && (isCSStudent || (abstractFile !== null && itsoFile !== null))
-  }, [draft, step?.key, pdfFile, abstractFile, itsoFile, isDuplicateBlocked, isCSStudent])
+  }, [draft, step?.key, pdfFile, abstractFile, itsoFile, isCSStudent, isDuplicateBlocked])
 
   function setPdfFile(file: File | null) {
     _pendingPdfFile = file
@@ -366,7 +367,7 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
   )
   const deptCode = getDeptCode(draft.department)
   const pageTitle = deptCode === 'CS' ? 'Submit New Thesis' : 'Submit New Capstone'
-  
+
   return (
     <SubmissionStepLayout
       step={step.index}
@@ -380,9 +381,9 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
           {missingFile && (
             <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
               {pdfFile === null
-                ? 'No thesis/capstone PDF selected.'
-                : 'ACM and ITSO abstract PDFs are required for IT and IS students.'
-              } Please go back to step 3 and upload the required files.
+                ? 'No manuscript PDF selected.'
+                : 'No ACM/ITSO abstract PDF selected (required for IT and IS).'}
+              {' '}Please go back to step 3 and upload the required file(s).
             </p>
           )}
           <div className="flex items-center justify-between gap-2">
@@ -424,7 +425,6 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
         onAbstractFileChange={setAbstractFile}
         itsoFile={itsoFile}
         onItsoFileChange={setItsoFile}
-        abstractRequired={!isCSStudent}
         duplicateWarning={duplicateWarning}
         onTitleBlur={handleTitleBlur}
       />

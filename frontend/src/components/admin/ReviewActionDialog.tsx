@@ -30,12 +30,6 @@ export default function ReviewActionDialog({
   const [issues, setIssues] = useState<string[]>([])
   const [requireFiles, setRequireFiles] = useState<('manuscript' | 'acm' | 'itso')[]>([])
 
-  function toggleRequireFile(file: 'manuscript' | 'acm' | 'itso') {
-    setRequireFiles((current) =>
-      current.includes(file) ? current.filter((f) => f !== file) : [...current, file]
-    )
-  }
-
   if (!config) {
     return null
   }
@@ -50,6 +44,12 @@ export default function ReviewActionDialog({
   function toggleIssue(issue: string) {
     setIssues((current) =>
       current.includes(issue) ? current.filter((item) => item !== issue) : [...current, issue]
+    )
+  }
+
+  function toggleRequireFile(file: 'manuscript' | 'acm' | 'itso') {
+    setRequireFiles((current) =>
+      current.includes(file) ? current.filter((f) => f !== file) : [...current, file]
     )
   }
 

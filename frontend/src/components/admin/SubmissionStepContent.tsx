@@ -63,7 +63,6 @@ type SubmissionStepContentProps = {
   onItsoFileChange?: (file: File | null) => void
   duplicateWarning?: string | null
   onTitleBlur?: () => void
-  abstractRequired?: boolean
 }
 
 type BasicInfoStepProps = {
@@ -257,23 +256,24 @@ function BasicInfoStep({ draft, onDraftChange, duplicateWarning, onTitleBlur }: 
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="publishedOn" className="text-sm font-medium text-grey-700">Date of Publication *</Label>
+          <Label htmlFor="publishedOn" className="text-sm font-medium text-grey-700">Date Submitted (final manuscript) *</Label>
           <Input
             id="publishedOn"
             type="date"
             className="h-11 border-grey-200"
             value={draft.publishedOn}
+            max={new Date().toISOString().split('T')[0]}
             onChange={(event) => onDraftChange({ publishedOn: event.target.value })}
           />
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-grey-700">Department/College</Label>
-            <div className="h-11 flex items-center rounded-md border border-grey-200 bg-grey-50 px-3 text-sm text-grey-500 select-none">
-              {draft.department || 'Assigned from your account'}
+            <Label className="text-sm font-medium text-grey-700">Program</Label>
+            <div className="h-11 flex items-center rounded-md border border-grey-200 bg-grey-50 px-3 text-sm text-grey-700 select-none">
+              {draft.degree || '—'}
             </div>
-            <p className="text-[11px] text-grey-400">Set by your account — cannot be changed.</p>
+            <p className="text-[11px] text-grey-400">Determined by your department.</p>
           </div>
 
           <div className="space-y-2">
@@ -309,16 +309,17 @@ function BasicInfoStep({ draft, onDraftChange, duplicateWarning, onTitleBlur }: 
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="degree" className="text-sm font-medium text-grey-700">Degree Name</Label>
-          <div className="h-11 flex items-center rounded-md border border-grey-200 bg-grey-50 px-3 text-sm text-grey-700 select-none">
-            {draft.degree || '—'}
+          <Label className="text-sm font-medium text-grey-700">Department/College</Label>
+          <div className="h-11 flex items-center rounded-md border border-grey-200 bg-grey-50 px-3 text-sm text-grey-500 select-none">
+            {draft.department || 'Assigned from your account'}
           </div>
+          <p className="text-[11px] text-grey-400">Set by your account — cannot be changed.</p>
         </div>
       </>
     )
 }
 
-export default function SubmissionStepContent({ step, draft, onDraftChange, pdfFile, onFileChange, abstractFile, onAbstractFileChange, itsoFile, onItsoFileChange, duplicateWarning, onTitleBlur, abstractRequired }: Readonly<SubmissionStepContentProps>) {
+export default function SubmissionStepContent({ step, draft, onDraftChange, pdfFile, onFileChange, abstractFile, onAbstractFileChange, itsoFile, onItsoFileChange, duplicateWarning, onTitleBlur }: Readonly<SubmissionStepContentProps>) {
   if (step.key === 'basic-info') {
     return <BasicInfoStep draft={draft} onDraftChange={onDraftChange} duplicateWarning={duplicateWarning} onTitleBlur={onTitleBlur} />
   }
@@ -327,8 +328,8 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
     return (
       <>
         <div className="space-y-2">
-          <Label htmlFor="advisor" className="text-sm font-medium text-grey-700">Thesis Advisor *</Label>
-          <Input id="advisor" placeholder="Enter advisor name..." className="h-11 border-grey-200" value={draft.thesisAdvisor} onChange={(event) => onDraftChange({ thesisAdvisor: event.target.value })} />
+          <Label htmlFor="advisor" className="text-sm font-medium text-grey-700">Technical Adviser *</Label>
+          <Input id="advisor" placeholder="Enter adviser name..." className="h-11 border-grey-200" value={draft.thesisAdvisor} onChange={(event) => onDraftChange({ thesisAdvisor: event.target.value })} />
         </div>
 
         <div className="space-y-2">
@@ -347,19 +348,20 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
             className="min-h-[180px] w-full rounded-md border border-grey-200 px-3 py-2 text-sm text-grey-700 outline-none focus-visible:ring-2 focus-visible:ring-cics-maroon"
           />
           <p className="text-[11px] text-grey-500">{draft.abstract.length} characters</p>
+          <p className="text-[11px] italic text-grey-400">Paste your abstract here. The ACM/ITSO file upload will be on the next page.</p>
         </div>
       </>
     )
   }
 
   if (step.key === 'file-upload') {
-    const docType = draft.department ? getDocTypeForDept(draft.department) : 'PDF'
-    const uploadLabel = docType === 'Thesis' ? 'Upload Thesis PDF *' : docType === 'Capstone' ? 'Upload Capstone PDF *' : 'Upload PDF *'
-    
+    const isCS = getDocTypeForDept(draft.department) === 'Thesis'
+    const abstractRequired = !isCS
+
     return (
       <>
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-grey-700">{uploadLabel}</Label>
+          <Label className="text-sm font-medium text-grey-700">Upload Complete and Final Manuscript (cover-to-cover in PDF) *</Label>
           {onFileChange ? (
             <label className="flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed border-grey-200 bg-white hover:border-[#0f766e] hover:bg-[#f0fdf9] transition-colors">
               <Upload className="mb-2 h-10 w-10 text-grey-400" />
@@ -416,8 +418,8 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
                 </div>
               ) : (
                 <div className="text-center px-4">
-                  <p className="text-sm font-medium text-grey-700">Click to choose ACM abstract PDF</p>
-                  <p className="text-xs text-grey-500 mt-0.5">ACM format</p>
+                  <p className="text-sm font-medium text-grey-700">Click to choose abstract PDF</p>
+                  <p className="text-xs text-grey-500 mt-0.5">ACM or ITSO format</p>
                 </div>
               )}
               <input
@@ -508,7 +510,7 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
           )}
         </div>
         <div className="rounded-md border border-grey-200 bg-white p-3">
-          <p className="text-xs uppercase tracking-wide text-grey-500">Date of Publication</p>
+          <p className="text-xs uppercase tracking-wide text-grey-500">Date Submitted (Final Manuscript)</p>
           <p className="mt-1 font-medium text-grey-700">
             {draft.publishedOn
               ? new Date(draft.publishedOn + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
@@ -528,11 +530,11 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
           <p className="mt-1 font-medium text-grey-700">{draft.trackSpecialization || '—'}</p>
         </div>
         <div className="rounded-md border border-grey-200 bg-white p-3 md:col-span-2">
-          <p className="text-xs uppercase tracking-wide text-grey-500">Degree Name</p>
+          <p className="text-xs uppercase tracking-wide text-grey-500">Program</p>
           <p className="mt-1 font-medium text-grey-700">{draft.degree || '—'}</p>
         </div>
         <div className="rounded-md border border-grey-200 bg-white p-3">
-          <p className="text-xs uppercase tracking-wide text-grey-500">Thesis Advisor</p>
+          <p className="text-xs uppercase tracking-wide text-grey-500">Technical Adviser</p>
           <p className="mt-1 font-medium text-grey-700">{draft.thesisAdvisor || '—'}</p>
         </div>
         <div className="rounded-md border border-grey-200 bg-white p-3">
@@ -548,7 +550,7 @@ export default function SubmissionStepContent({ step, draft, onDraftChange, pdfF
 
       {draft.abstractFileName ? (
         <div className="rounded-md border border-grey-200 bg-white p-3 text-sm">
-          <p className="text-xs uppercase tracking-wide text-grey-500">ACM Abstract PDF</p>
+          <p className="text-xs uppercase tracking-wide text-grey-500">Abstract PDF</p>
           <p className="mt-1 font-medium text-grey-700">{draft.abstractFileName}</p>
         </div>
       ) : null}

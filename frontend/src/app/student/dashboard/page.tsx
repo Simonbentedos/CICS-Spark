@@ -54,6 +54,7 @@ export default function StudentDashboardPage() {
     { label: 'Pending Review', value: pending, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
     { label: 'Approved', value: approved, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
     { label: 'Rejected', value: rejected, icon: XCircle, color: 'text-red-600', bg: 'bg-red-50' },
+    { label: 'For Revision', value: needsRevision.length, icon: RotateCcw, color: 'text-violet-600', bg: 'bg-violet-50' },
   ]
 
   return (
@@ -77,7 +78,7 @@ export default function StudentDashboardPage() {
         </div>
       )}
 
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {stats.map(({ label, value, icon: Icon, color, bg }) => (
           <Card key={label} className="border border-grey-200 shadow-none">
             <CardContent className="p-4">
@@ -131,11 +132,10 @@ export default function StudentDashboardPage() {
                   <tr className="border-b border-grey-200 bg-grey-50">
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-grey-700">Title</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-grey-700">Type</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-grey-700">Department</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-grey-700">Authors</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-grey-700">Submitted</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-grey-700">Status</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-grey-700">Feedback</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-grey-700">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-grey-100">
@@ -145,11 +145,7 @@ export default function StudentDashboardPage() {
                       .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
                       ?.feedback_text ?? null
 
-                    const deptNames: Record<string, string> = {
-                      CS: 'Computer Science',
-                      IT: 'Information Technology',
-                      IS: 'Information Systems',
-                    }
+                    const authorList = Array.isArray(doc.authors) ? doc.authors : []
 
                     return (
                     <tr key={doc.id} className="hover:bg-grey-50 transition-colors">
@@ -164,59 +160,39 @@ export default function StudentDashboardPage() {
                           {doc.type}
                         </span>
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3.5 text-sm text-grey-600">
-                        {deptNames[doc.department] || doc.department}
+                      <td className="max-w-[200px] px-4 py-3.5 text-sm text-grey-600">
+                        {authorList.length > 0
+                          ? authorList.join(', ')
+                          : <span className="text-grey-400">—</span>}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3.5 text-sm text-grey-600">
                         {new Date(doc.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3.5">
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_STYLES[doc.status] ?? ''}`}>
-                          {STATUS_LABEL[doc.status] ?? doc.status}
-                        </span>
+                        {doc.status === 'revision' ? (
+                          <Link
+                            href={`/student/submissions/revise/${doc.id}`}
+                            className="inline-flex items-center gap-1.5 rounded-md bg-violet-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-700 no-underline transition-colors"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                            Revise
+                          </Link>
+                        ) : (
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_STYLES[doc.status] ?? ''}`}>
+                            {STATUS_LABEL[doc.status] ?? doc.status}
+                          </span>
+                        )}
                       </td>
                       <td className="max-w-[240px] px-4 py-3.5">
                         {latestFeedback ? (
                           <div className={`rounded-md px-2 py-1.5 ${doc.status === 'rejected' ? 'bg-red-50' : 'bg-violet-50'}`}>
-                            <p className={`text-xs ${doc.status === 'rejected' ? 'text-red-700' : 'text-violet-700'}`}>
+                            <p className={`text-xs whitespace-pre-wrap break-words ${doc.status === 'rejected' ? 'text-red-700' : 'text-violet-700'}`}>
                               {formatFeedbackText(latestFeedback)}
                             </p>
                           </div>
                         ) : (
                           <span className="text-xs text-grey-400">No feedback</span>
                         )}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3.5">
-                        {(() => {
-                          if (doc.status === 'revision') {
-                            return (
-                              <Link
-                                href={`/student/submissions/revise/${doc.id}`}
-                                className="inline-flex items-center gap-1.5 rounded-md bg-violet-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-700 no-underline transition-colors"
-                              >
-                                <RotateCcw className="h-3.5 w-3.5" />
-                                Revise
-                              </Link>
-                            )
-                          }
-                          if (doc.status === 'approved') {
-                            return (
-                              <span className="inline-flex items-center gap-1 text-xs text-green-600">
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                Published
-                              </span>
-                            )
-                          }
-                          if (doc.status === 'pending') {
-                            return (
-                              <span className="inline-flex items-center gap-1 text-xs text-amber-600">
-                                <Clock className="h-3.5 w-3.5" />
-                                In Review
-                              </span>
-                            )
-                          }
-                          return <span className="text-xs text-grey-400">—</span>
-                        })()}
                       </td>
                     </tr>
                   )})}
