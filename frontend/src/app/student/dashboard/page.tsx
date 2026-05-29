@@ -22,7 +22,7 @@ const STATUS_STYLES: Record<string, string> = {
 }
 
 function formatFeedbackText(text: string): string {
-  return text.replace(/\[REQUIRE:([^\]]*)\]/, (_match, files: string) =>
+  return text.replace(/\[REQUIRE:([^\]]*)\]/g, (_match, files: string) =>
     `[REQUIRE:${files.split(',').map((f) => f.trim().toUpperCase()).join(',')}]`
   )
 }
