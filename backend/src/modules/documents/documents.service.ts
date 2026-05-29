@@ -22,7 +22,13 @@ export class DocumentsService {
    * uploadDocument stores the PDF in Supabase Storage, then inserts
    * a record into the `documents` table with status='pending'.
    */
-  async uploadDocument(userId: string, file: Express.Multer.File, dto: UploadDocumentDto, abstractFile: Express.Multer.File) {
+  async uploadDocument(
+    userId: string,
+    file: Express.Multer.File,
+    dto: UploadDocumentDto,
+    abstractFile?: Express.Multer.File,
+    itsoFile?: Express.Multer.File,
+  ) {
     // Block submission if title similarity ≥ 80% with any non-rejected document
     const dupeCheck = await this.checkDuplicate(dto.title);
     if (dupeCheck.isDuplicate) {
@@ -47,17 +53,36 @@ export class DocumentsService {
       );
     }
 
-    const abstractStoragePath = `${userId}/${ts}_abstract_${abstractFile.originalname}`;
-    const { error: abstractStorageError } = await this.databaseService.client.storage
-      .from('documents')
-      .upload(abstractStoragePath, abstractFile.buffer, { contentType: abstractFile.mimetype });
-    if (abstractStorageError) {
-      await this.databaseService.client.storage.from('documents').remove([storagePath]);
-      throw new InternalServerErrorException(
-        abstractStorageError.message || 'Failed to upload abstract file to storage.',
-      );
+    let abstractFilePath: string | null = null;
+    if (abstractFile) {
+      const abstractStoragePath = `${userId}/${ts}_abstract_${abstractFile.originalname}`;
+      const { error: abstractStorageError } = await this.databaseService.client.storage
+        .from('documents')
+        .upload(abstractStoragePath, abstractFile.buffer, { contentType: abstractFile.mimetype });
+      if (abstractStorageError) {
+        await this.databaseService.client.storage.from('documents').remove([storagePath]);
+        throw new InternalServerErrorException(
+          abstractStorageError.message || 'Failed to upload ACM abstract file to storage.',
+        );
+      }
+      abstractFilePath = abstractStoragePath;
     }
-    const abstractFilePath = abstractStoragePath;
+
+    let itsoFilePath: string | null = null;
+    if (itsoFile) {
+      const itsoStoragePath = `${userId}/${ts}_itso_${itsoFile.originalname}`;
+      const { error: itsoStorageError } = await this.databaseService.client.storage
+        .from('documents')
+        .upload(itsoStoragePath, itsoFile.buffer, { contentType: itsoFile.mimetype });
+      if (itsoStorageError) {
+        await this.databaseService.client.storage.from('documents').remove([storagePath]);
+        if (abstractFilePath) await this.databaseService.client.storage.from('documents').remove([abstractFilePath]);
+        throw new InternalServerErrorException(
+          itsoStorageError.message || 'Failed to upload ITSO file to storage.',
+        );
+      }
+      itsoFilePath = itsoStoragePath;
+    }
 
     const { data: document, error: dbError } = await this.databaseService.client
       .from('documents')
@@ -74,6 +99,7 @@ export class DocumentsService {
         keywords: dto.keywords ?? null,
         pdf_file_path: storagePath,
         abstract_file_path: abstractFilePath,
+        itso_file_path: itsoFilePath,
         uploaded_by: userId,
         status: 'pending',
         checksum,
@@ -119,6 +145,8 @@ export class DocumentsService {
     userId: string,
     file: Express.Multer.File | undefined,
     dto: ReviseDocumentDto,
+    abstractFile?: Express.Multer.File,
+    itsoFile?: Express.Multer.File,
   ) {
     // Only the owner may revise their document
     const { data: existing, error: fetchError } = await this.databaseService.client
@@ -161,6 +189,42 @@ export class DocumentsService {
       newChecksum = createHash('sha256').update(file.buffer).digest('hex');
     }
 
+    let abstract_file_path = existing.abstract_file_path;
+
+    if (abstractFile) {
+      if (existing.abstract_file_path) {
+        await this.databaseService.client.storage
+          .from('documents')
+          .remove([existing.abstract_file_path]);
+      }
+      const abstractStoragePath = `${userId}/${Date.now()}_abstract_${abstractFile.originalname}`;
+      const { error: abstractStorageError } = await this.databaseService.client.storage
+        .from('documents')
+        .upload(abstractStoragePath, abstractFile.buffer, { contentType: abstractFile.mimetype });
+      if (abstractStorageError) {
+        throw new InternalServerErrorException('Failed to upload revised ACM abstract file.');
+      }
+      abstract_file_path = abstractStoragePath;
+    }
+
+    let itso_file_path = existing.itso_file_path;
+
+    if (itsoFile) {
+      if (existing.itso_file_path) {
+        await this.databaseService.client.storage
+          .from('documents')
+          .remove([existing.itso_file_path]);
+      }
+      const itsoStoragePath = `${userId}/${Date.now()}_itso_${itsoFile.originalname}`;
+      const { error: itsoStorageError } = await this.databaseService.client.storage
+        .from('documents')
+        .upload(itsoStoragePath, itsoFile.buffer, { contentType: itsoFile.mimetype });
+      if (itsoStorageError) {
+        throw new InternalServerErrorException('Failed to upload revised ITSO file.');
+      }
+      itso_file_path = itsoStoragePath;
+    }
+
     // Build the update payload — only include fields explicitly provided
     const updatePayload: Record<string, any> = {
       status: 'pending',
@@ -177,6 +241,8 @@ export class DocumentsService {
     if (dto.keywords !== undefined) updatePayload.keywords = dto.keywords;
     if (pdf_file_path !== existing.pdf_file_path) updatePayload.pdf_file_path = pdf_file_path;
     if (newChecksum) updatePayload.checksum = newChecksum;
+    if (abstract_file_path !== existing.abstract_file_path) updatePayload.abstract_file_path = abstract_file_path;
+    if (itso_file_path !== existing.itso_file_path) updatePayload.itso_file_path = itso_file_path;
 
     const { data: updated, error: updateError } = await this.databaseService.client
       .from('documents')
