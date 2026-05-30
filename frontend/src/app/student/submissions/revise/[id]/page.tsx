@@ -59,6 +59,17 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
   const fileInputRef = useRef<HTMLInputElement>(null)
   const abstractFileInputRef = useRef<HTMLInputElement>(null)
   const itsoFileInputRef = useRef<HTMLInputElement>(null)
+  const [dragOver, setDragOver] = useState<'manuscript' | 'acm' | 'itso' | null>(null)
+
+  function handleDrop(e: React.DragEvent, setter: (f: File | null) => void, zone: 'manuscript' | 'acm' | 'itso') {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOver(null)
+    const file = e.dataTransfer.files?.[0]
+    if (file && (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))) {
+      setter(file)
+    }
+  }
 
   useEffect(() => {
     getMyDocuments()
@@ -292,16 +303,20 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
               tabIndex={0}
               onClick={() => fileInputRef.current?.click()}
               onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
-              className={`flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed py-8 transition-colors ${requireManuscript && !pdfFile ? 'border-amber-300 bg-amber-50 hover:border-amber-400' : 'border-grey-200 bg-white hover:border-[#0f766e] hover:bg-[#f0fdf9]'}`}
+              onDragOver={(e) => { e.preventDefault(); setDragOver('manuscript') }}
+              onDragEnter={(e) => { e.preventDefault(); setDragOver('manuscript') }}
+              onDragLeave={() => setDragOver(null)}
+              onDrop={(e) => handleDrop(e, setPdfFile, 'manuscript')}
+              className={`flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed py-8 transition-colors ${dragOver === 'manuscript' ? 'border-[#0f766e] bg-[#f0fdf9]' : requireManuscript && !pdfFile ? 'border-amber-300 bg-amber-50 hover:border-amber-400' : 'border-grey-200 bg-white hover:border-[#0f766e] hover:bg-[#f0fdf9]'}`}
             >
               <Upload className="mb-2 h-8 w-8 text-grey-400" />
               {pdfFile ? (
                 <div className="text-center px-4">
                   <p className="text-sm font-medium text-[#0f766e]">{pdfFile.name}</p>
-                  <p className="text-xs text-grey-500 mt-0.5">{(pdfFile.size / 1024 / 1024).toFixed(2)} MB — click to replace</p>
+                  <p className="text-xs text-grey-500 mt-0.5">{(pdfFile.size / 1024 / 1024).toFixed(2)} MB — click or drag to replace</p>
                 </div>
               ) : (
-                <p className="text-sm text-grey-500">Click to choose a PDF file</p>
+                <p className="text-sm text-grey-500">Click or drag a PDF file here</p>
               )}
               <input
                 ref={fileInputRef}
@@ -338,16 +353,20 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
               tabIndex={0}
               onClick={() => abstractFileInputRef.current?.click()}
               onKeyDown={(e) => e.key === 'Enter' && abstractFileInputRef.current?.click()}
-              className={`flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed py-8 transition-colors ${requireAcm && !abstractFile ? 'border-amber-300 bg-amber-50 hover:border-amber-400' : 'border-grey-200 bg-white hover:border-[#0f766e] hover:bg-[#f0fdf9]'}`}
+              onDragOver={(e) => { e.preventDefault(); setDragOver('acm') }}
+              onDragEnter={(e) => { e.preventDefault(); setDragOver('acm') }}
+              onDragLeave={() => setDragOver(null)}
+              onDrop={(e) => handleDrop(e, setAbstractFile, 'acm')}
+              className={`flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed py-8 transition-colors ${dragOver === 'acm' ? 'border-[#0f766e] bg-[#f0fdf9]' : requireAcm && !abstractFile ? 'border-amber-300 bg-amber-50 hover:border-amber-400' : 'border-grey-200 bg-white hover:border-[#0f766e] hover:bg-[#f0fdf9]'}`}
             >
               <Upload className="mb-2 h-8 w-8 text-grey-400" />
               {abstractFile ? (
                 <div className="text-center px-4">
                   <p className="text-sm font-medium text-[#0f766e]">{abstractFile.name}</p>
-                  <p className="text-xs text-grey-500 mt-0.5">{(abstractFile.size / 1024 / 1024).toFixed(2)} MB — click to replace</p>
+                  <p className="text-xs text-grey-500 mt-0.5">{(abstractFile.size / 1024 / 1024).toFixed(2)} MB — click or drag to replace</p>
                 </div>
               ) : (
-                <p className="text-sm text-grey-500">Click to choose abstract PDF (ACM format)</p>
+                <p className="text-sm text-grey-500">Click or drag an ACM abstract PDF here</p>
               )}
               <input
                 ref={abstractFileInputRef}
@@ -381,16 +400,20 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
               tabIndex={0}
               onClick={() => itsoFileInputRef.current?.click()}
               onKeyDown={(e) => e.key === 'Enter' && itsoFileInputRef.current?.click()}
-              className={`flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed py-8 transition-colors ${requireItso && !itsoFile ? 'border-amber-300 bg-amber-50 hover:border-amber-400' : 'border-grey-200 bg-white hover:border-[#0f766e] hover:bg-[#f0fdf9]'}`}
+              onDragOver={(e) => { e.preventDefault(); setDragOver('itso') }}
+              onDragEnter={(e) => { e.preventDefault(); setDragOver('itso') }}
+              onDragLeave={() => setDragOver(null)}
+              onDrop={(e) => handleDrop(e, setItsoFile, 'itso')}
+              className={`flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed py-8 transition-colors ${dragOver === 'itso' ? 'border-[#0f766e] bg-[#f0fdf9]' : requireItso && !itsoFile ? 'border-amber-300 bg-amber-50 hover:border-amber-400' : 'border-grey-200 bg-white hover:border-[#0f766e] hover:bg-[#f0fdf9]'}`}
             >
               <Upload className="mb-2 h-8 w-8 text-grey-400" />
               {itsoFile ? (
                 <div className="text-center px-4">
                   <p className="text-sm font-medium text-[#0f766e]">{itsoFile.name}</p>
-                  <p className="text-xs text-grey-500 mt-0.5">{(itsoFile.size / 1024 / 1024).toFixed(2)} MB — click to replace</p>
+                  <p className="text-xs text-grey-500 mt-0.5">{(itsoFile.size / 1024 / 1024).toFixed(2)} MB — click or drag to replace</p>
                 </div>
               ) : (
-                <p className="text-sm text-grey-500">Click to choose ITSO abstract PDF</p>
+                <p className="text-sm text-grey-500">Click or drag an ITSO abstract PDF here</p>
               )}
               <input
                 ref={itsoFileInputRef}
