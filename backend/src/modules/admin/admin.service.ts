@@ -47,7 +47,7 @@ export class AdminService {
     let query = this.databaseService.client
       .from('documents')
       .select(
-        'id, title, authors, abstract, year, department, type, track_specialization, adviser, degree, keywords, pdf_file_path, abstract_file_path, uploaded_by, status, created_at, updated_at',
+        'id, title, authors, abstract, year, department, type, track_specialization, adviser, degree, keywords, pdf_file_path, abstract_file_path, itso_file_path, uploaded_by, status, created_at, updated_at',
       )
       .order('created_at', { ascending: false });
 
@@ -72,7 +72,7 @@ export class AdminService {
     const { data: document, error } = await this.databaseService.client
       .from('documents')
       .select(
-        'id, title, authors, abstract, year, department, type, track_specialization, adviser, degree, keywords, pdf_file_path, abstract_file_path, uploaded_by, status, created_at, updated_at',
+        'id, title, authors, abstract, year, department, type, track_specialization, adviser, degree, keywords, pdf_file_path, abstract_file_path, itso_file_path, uploaded_by, status, created_at, updated_at',
       )
       .eq('id', documentId)
       .single();
@@ -184,6 +184,50 @@ export class AdminService {
 
     if (urlError || !signedUrlData) {
       throw new InternalServerErrorException('Failed to generate abstract PDF URL.');
+    }
+
+    return { pdfUrl: signedUrlData.signedUrl, expiresIn: 3600 };
+  }
+
+  /**
+   * getSubmissionItsoPdfUrl generates a signed URL for the optional ITSO PDF.
+   */
+  async getSubmissionItsoPdfUrl(documentId: string, currentUser: any) {
+    // Select without itso_file_path first to avoid errors if column doesn't exist yet
+    const { data: document, error: fetchError } = await this.databaseService.client
+      .from('documents')
+      .select('id, department, pdf_file_path')
+      .eq('id', documentId)
+      .single();
+
+    if (fetchError || !document) {
+      throw new NotFoundException('Document not found.');
+    }
+
+    // Fetch itso_file_path separately — returns null if column doesn't exist yet
+    const { data: itsoDoc } = await this.databaseService.client
+      .from('documents')
+      .select('itso_file_path')
+      .eq('id', documentId)
+      .single();
+
+    const itsoFilePath = (itsoDoc as any)?.itso_file_path ?? null;
+
+    if (currentUser.role === 'admin' && document.department !== currentUser.department) {
+      throw new ForbiddenException('You can only preview documents from your department.');
+    }
+
+    if (!itsoFilePath) {
+      throw new NotFoundException('No ITSO PDF associated with this document.');
+    }
+
+    const { data: signedUrlData, error: urlError } = await this.databaseService.client
+      .storage
+      .from('documents')
+      .createSignedUrl(itsoFilePath, 3600);
+
+    if (urlError || !signedUrlData) {
+      throw new InternalServerErrorException('Failed to generate ITSO PDF preview URL.');
     }
 
     return { pdfUrl: signedUrlData.signedUrl, expiresIn: 3600 };
@@ -327,7 +371,7 @@ export class AdminService {
       let query = this.databaseService.client
         .from('fulltext_requests')
         .select(
-          'id, document_id, requester_name, requester_email, purpose, department, status, handled_by, created_at, fulfilled_at',
+          'id, document_id, requester_name, requester_email, purpose, department, status, handled_by, created_at, fulfilled_at, document:documents(title)',
         )
         .in('document_id', docIds)
         .order('created_at', { ascending: false });
@@ -336,14 +380,17 @@ export class AdminService {
 
       const { data, error } = await query;
       if (error) throw new InternalServerErrorException(error.message);
-      return data;
+      return (data ?? []).map(({ document, ...rest }: any) => ({
+        ...rest,
+        document_title: (document?.title as string | null) ?? null,
+      }));
     }
 
     // Super admin: see all
     let query = this.databaseService.client
       .from('fulltext_requests')
       .select(
-        'id, document_id, requester_name, requester_email, purpose, department, status, handled_by, created_at, fulfilled_at',
+        'id, document_id, requester_name, requester_email, purpose, department, status, handled_by, created_at, fulfilled_at, document:documents(title)',
       )
       .order('created_at', { ascending: false });
 
@@ -351,7 +398,10 @@ export class AdminService {
 
     const { data, error } = await query;
     if (error) throw new InternalServerErrorException(error.message);
-    return data;
+    return (data ?? []).map(({ document, ...rest }: any) => ({
+      ...rest,
+      document_title: (document?.title as string | null) ?? null,
+    }));
   }
 
   /**

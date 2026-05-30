@@ -7,7 +7,8 @@ function canUseStorage() {
 }
 
 function setCookie(name: string, value: string) {
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; SameSite=Lax`
+  // Max-Age=86400 keeps the cookie alive for 24 h across browser restarts
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; SameSite=Lax; Max-Age=86400`
 }
 
 function deleteCookie(name: string) {

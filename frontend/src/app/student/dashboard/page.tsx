@@ -21,6 +21,17 @@ const STATUS_STYLES: Record<string, string> = {
   revision: 'bg-violet-50 text-violet-700 border border-violet-200',
 }
 
+function formatFeedbackText(text: string): string {
+  return text
+    .split('\n')
+    .map((line) => {
+      if (!line.startsWith('REQUIRE:')) return line
+      const files = line.slice('REQUIRE:'.length).split(',').map((f) => f.trim().toUpperCase())
+      return `REQUIRE:${files.join(',')}`
+    })
+    .join('\n')
+}
+
 export default function StudentDashboardPage() {
   const session = getStudentSession()
   const [docs, setDocs] = useState<ApiDocument[]>([])
@@ -176,7 +187,7 @@ export default function StudentDashboardPage() {
                         {latestFeedback ? (
                           <div className={`rounded-md px-2 py-1.5 ${doc.status === 'rejected' ? 'bg-red-50' : 'bg-violet-50'}`}>
                             <p className={`text-xs whitespace-pre-wrap break-words ${doc.status === 'rejected' ? 'text-red-700' : 'text-violet-700'}`}>
-                              {latestFeedback}
+                              {formatFeedbackText(latestFeedback)}
                             </p>
                           </div>
                         ) : (

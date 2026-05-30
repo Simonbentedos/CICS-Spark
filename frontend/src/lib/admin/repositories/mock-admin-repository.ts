@@ -435,5 +435,6 @@ function defaultSubmissionDraft(): SubmissionDraft {
     abstract: '',
     fileName: '',
     abstractFileName: '',
+    itsoFileName: '',
   }
 }

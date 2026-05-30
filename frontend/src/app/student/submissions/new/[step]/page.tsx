@@ -16,6 +16,7 @@ import type { SubmissionDraft, SubmissionStepMeta } from '@/types/admin'
 // (File objects cannot be stored in localStorage/sessionStorage)
 let _pendingPdfFile: File | null = null
 let _pendingAbstractFile: File | null = null
+let _pendingItsoFile: File | null = null
 let _lastDraftUserId: string | null = null
 
 function emptyDraft(): SubmissionDraft {
@@ -46,6 +47,7 @@ function emptyDraft(): SubmissionDraft {
     abstract: '',
     fileName: '',
     abstractFileName: '',
+    itsoFileName: '',
   }
 }
 
@@ -175,6 +177,7 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
   if (_lastDraftUserId && _lastDraftUserId !== userId) {
     _pendingPdfFile = null
     _pendingAbstractFile = null
+    _pendingItsoFile = null
   }
   _lastDraftUserId = userId
 
@@ -202,6 +205,7 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
   })
   const [pdfFile, setPdfFileState] = useState<File | null>(_pendingPdfFile)
   const [abstractFile, setAbstractFileState] = useState<File | null>(_pendingAbstractFile)
+  const [itsoFile, setItsoFileState] = useState<File | null>(_pendingItsoFile)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null)
@@ -219,11 +223,11 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
       return Boolean(draft.thesisAdvisor.trim() && draft.keywords.trim() && draft.abstract.trim())
     }
     if (step.key === 'file-upload') {
-      return pdfFile !== null && (isCSStudent || abstractFile !== null)
+      return pdfFile !== null && (isCSStudent || (abstractFile !== null && itsoFile !== null))
     }
     // verify-details: CS only needs the main PDF; IT/IS need both
-    return Boolean(draft.title.trim()) && pdfFile !== null && (isCSStudent || abstractFile !== null)
-  }, [draft, step?.key, pdfFile, abstractFile, isCSStudent, isDuplicateBlocked])
+    return Boolean(draft.title.trim()) && pdfFile !== null && (isCSStudent || (abstractFile !== null && itsoFile !== null))
+  }, [draft, step?.key, pdfFile, abstractFile, itsoFile, isCSStudent, isDuplicateBlocked])
 
   function setPdfFile(file: File | null) {
     _pendingPdfFile = file
@@ -233,6 +237,11 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
   function setAbstractFile(file: File | null) {
     _pendingAbstractFile = file
     setAbstractFileState(file)
+  }
+
+  function setItsoFile(file: File | null) {
+    _pendingItsoFile = file
+    setItsoFileState(file)
   }
 
   function updateDraft(patch: Partial<SubmissionDraft>) {
@@ -312,6 +321,7 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
       const formData = new FormData()
       formData.append('file', pdfFile)
       if (abstractFile) formData.append('abstract_file', abstractFile)
+      if (itsoFile) formData.append('itso_file', itsoFile)
       formData.append('title', draft.title)
       formData.append('authors', JSON.stringify(authors))
       formData.append('department', deptCode)
@@ -328,6 +338,7 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
       // Clear draft and pending files on success
       _pendingPdfFile = null
       _pendingAbstractFile = null
+      _pendingItsoFile = null
       clearDraft(userId)
 
       router.push('/student/submissions/new/confirmation')
@@ -350,7 +361,10 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
   }
 
   const isVerifyStep = step.key === 'verify-details'
-  const missingFile = isVerifyStep && (pdfFile === null || (!isCSStudent && abstractFile === null))
+  const missingFile = isVerifyStep && (
+    pdfFile === null ||
+    (!isCSStudent && (abstractFile === null || itsoFile === null))
+  )
   const deptCode = getDeptCode(draft.department)
   const pageTitle = deptCode === 'CS' ? 'Submit New Thesis' : 'Submit New Capstone'
 
@@ -409,6 +423,8 @@ export default function StudentSubmissionStepPage({ params: paramsPromise }: Rea
         onFileChange={setPdfFile}
         abstractFile={abstractFile}
         onAbstractFileChange={setAbstractFile}
+        itsoFile={itsoFile}
+        onItsoFileChange={setItsoFile}
         duplicateWarning={duplicateWarning}
         onTitleBlur={handleTitleBlur}
       />

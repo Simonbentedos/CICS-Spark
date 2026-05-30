@@ -11,6 +11,7 @@ import {
   getAdminSubmissionById,
   getSubmissionPdfUrl,
   getSubmissionAbstractPdfUrl,
+  getSubmissionItsoPdfUrl,
   reviewSubmission,
   downloadAbstractUrl,
   type ApiDocument,
@@ -39,6 +40,7 @@ export default function SubmissionReviewPage({
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [loadingPdf, setLoadingPdf] = useState(false)
   const [abstractPdfUrl, setAbstractPdfUrl] = useState<string | null>(null)
+  const [itsoPdfUrl, setItsoPdfUrl] = useState<string | null>(null)
 
   useEffect(() => {
     getAdminSubmissionById(params.submissionId)
@@ -59,6 +61,12 @@ export default function SubmissionReviewPage({
         getSubmissionAbstractPdfUrl(params.submissionId)
           .then((data) => setAbstractPdfUrl(data.pdfUrl))
           .catch(() => { /* no abstract PDF — silently ignore */ })
+      }
+
+      if (submission.itso_file_path) {
+        getSubmissionItsoPdfUrl(params.submissionId)
+          .then((data) => setItsoPdfUrl(data.pdfUrl))
+          .catch(() => {})
       }
     }
   }, [params.submissionId, submission])
@@ -241,7 +249,7 @@ export default function SubmissionReviewPage({
           {abstractPdfUrl ? (
             <Card className="border border-grey-200 shadow-none">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-navy">ACM/ITSO Abstract PDF</CardTitle>
+                <CardTitle className="text-sm font-medium text-navy">ACM Abstract PDF</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="rounded-md border border-grey-200 bg-white overflow-hidden">
@@ -250,6 +258,19 @@ export default function SubmissionReviewPage({
                     className="w-full h-[500px]"
                     title="Abstract PDF Preview"
                   />
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {itsoPdfUrl ? (
+            <Card className="border border-grey-200 shadow-none">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-navy">ITSO Abstract PDF</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border border-grey-200 bg-white overflow-hidden">
+                  <iframe src={itsoPdfUrl} className="w-full h-[500px]" title="ITSO PDF Preview" />
                 </div>
               </CardContent>
             </Card>
@@ -347,7 +368,12 @@ export default function SubmissionReviewPage({
                         <>
                           {files.length > 0 && (
                             <p className="text-[11px] font-medium text-amber-700">
-                              Requires resubmission: {files.map(f => f === 'manuscript' ? 'Manuscript PDF' : 'ACM/ITSO Abstract PDF').join(' + ')}
+                              Requires resubmission: {files.map(f => {
+                                if (f === 'manuscript') return 'Manuscript PDF'
+                                if (f === 'acm') return 'ACM Abstract PDF'
+                                if (f === 'itso') return 'ITSO Abstract PDF'
+                                return f.toUpperCase()
+                              }).join(' + ')}
                             </p>
                           )}
                           {clean && <p className="text-grey-500 italic whitespace-pre-wrap">{clean}</p>}
