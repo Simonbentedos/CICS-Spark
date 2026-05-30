@@ -82,9 +82,9 @@ export default function FulltextRequestsPage() {
       {
         id: 'document',
         header: 'Document Title',
-        className: 'max-w-[260px]',
+        className: 'max-w-[320px]',
         renderCell: (r: FulltextRequest) => (
-          <span className="line-clamp-2 text-sm text-grey-700">
+          <span className="text-sm text-grey-700 break-words">
             {r.document_title ?? <span className="font-mono text-[11px] text-grey-400">{r.document_id.slice(0, 8)}…</span>}
           </span>
         ),
