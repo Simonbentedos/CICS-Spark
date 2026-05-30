@@ -375,6 +375,10 @@ export default function AdminReportsPage() {
     URL.revokeObjectURL(url)
   }
 
+  function escHtml(v: unknown): string {
+    return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+  }
+
   function handleExportApproved() {
     const rangeLabel = DATE_RANGE_OPTIONS.find(o => o.value === filters.range)?.label ?? filters.range
     const approved = submissions.filter(s => s.status === 'approved' && isWithinRange(s.created_at, filters.range))
@@ -413,17 +417,17 @@ export default function AdminReportsPage() {
     const graphsOnly = printScope === 'graphs'
     const trendBars = report.trend.map(p => {
       const pct = Math.round((p.submitted / Math.max(1, ...report.trend.map(x => x.submitted))) * 100)
-      return `<div style="display:flex;flex-direction:column;align-items:center;flex:1"><div style="background:#2563eb;width:100%;height:${Math.max(4, pct)}px;border-radius:2px 2px 0 0"></div><div style="font-size:10px;color:#555;margin-top:4px">${p.label}</div><div style="font-size:11px;font-weight:600">${p.submitted}</div></div>`
+      return `<div style="display:flex;flex-direction:column;align-items:center;flex:1"><div style="background:#2563eb;width:100%;height:${Math.max(4, pct)}px;border-radius:2px 2px 0 0"></div><div style="font-size:10px;color:#555;margin-top:4px">${escHtml(p.label)}</div><div style="font-size:11px;font-weight:600">${p.submitted}</div></div>`
     }).join('')
     const ts = `border-collapse:collapse;width:100%;font-size:11px;margin-bottom:16px`
     const th = `background:#f3f4f6;border:1px solid #d1d5db;padding:6px 8px;text-align:left;font-weight:600`
     const td = `border:1px solid #d1d5db;padding:5px 8px`
-    const deptRows = report.departmentBreakdown.map(d => `<tr><td style="${td}">${d.department}</td><td style="${td};text-align:center">${d.total}</td><td style="${td};text-align:center">${d.approved}</td><td style="${td};text-align:center">${d.rejected}</td><td style="${td};text-align:center">${d.approvalRate}%</td></tr>`).join('')
-    const statusRows = report.statusBreakdown.map(s => `<tr><td style="${td}">${s.status}</td><td style="${td};text-align:center">${s.count}</td><td style="${td};text-align:center">${s.percentage}%</td></tr>`).join('')
+    const deptRows = report.departmentBreakdown.map(d => `<tr><td style="${td}">${escHtml(d.department)}</td><td style="${td};text-align:center">${d.total}</td><td style="${td};text-align:center">${d.approved}</td><td style="${td};text-align:center">${d.rejected}</td><td style="${td};text-align:center">${d.approvalRate}%</td></tr>`).join('')
+    const statusRows = report.statusBreakdown.map(s => `<tr><td style="${td}">${escHtml(s.status)}</td><td style="${td};text-align:center">${s.count}</td><td style="${td};text-align:center">${s.percentage}%</td></tr>`).join('')
     const approvedRows = approved.map((s, i) => {
       const authors = (Array.isArray(s.authors) ? s.authors : []).join(', ')
       const approvedAt = s.reviews?.filter(r => r.decision === 'approve').sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at ?? ''
-      return `<tr><td style="${td};text-align:center">${i+1}</td><td style="${td}">${s.title}</td><td style="${td}">${authors}</td><td style="${td};text-align:center">${s.department}</td><td style="${td}">${s.track_specialization ?? '—'}</td><td style="${td};text-align:center">${s.year ?? '—'}</td><td style="${td};text-align:center">${approvedAt ? new Date(approvedAt).toLocaleDateString('en-US') : '—'}</td></tr>`
+      return `<tr><td style="${td};text-align:center">${i+1}</td><td style="${td}">${escHtml(s.title)}</td><td style="${td}">${escHtml(authors)}</td><td style="${td};text-align:center">${escHtml(s.department)}</td><td style="${td}">${escHtml(s.track_specialization ?? '—')}</td><td style="${td};text-align:center">${s.year ?? '—'}</td><td style="${td};text-align:center">${approvedAt ? new Date(approvedAt).toLocaleDateString('en-US') : '—'}</td></tr>`
     }).join('')
     const completeSection = graphsOnly ? '' : `
       <h2 style="font-size:14px;font-weight:700;margin:20px 0 8px;color:#1e3a5f">Status Breakdown</h2>
@@ -432,17 +436,18 @@ export default function AdminReportsPage() {
       <table style="${ts}"><thead><tr><th style="${th}">Dept</th><th style="${th};text-align:center">Total</th><th style="${th};text-align:center">Approved</th><th style="${th};text-align:center">Rejected</th><th style="${th};text-align:center">Rate</th></tr></thead><tbody>${deptRows}</tbody></table>
       <h2 style="font-size:14px;font-weight:700;margin:20px 0 8px;color:#1e3a5f">Approved Submissions (${approved.length})</h2>
       <table style="${ts}"><thead><tr><th style="${th};text-align:center">#</th><th style="${th}">Title</th><th style="${th}">Authors</th><th style="${th};text-align:center">Dept</th><th style="${th}">Track</th><th style="${th};text-align:center">Year</th><th style="${th};text-align:center">Approved</th></tr></thead><tbody>${approvedRows || `<tr><td colspan="7" style="text-align:center;padding:12px;color:#999">No approved submissions.</td></tr>`}</tbody></table>`
+    const kpiCards = report.kpiCards.map(c => `<div style="border:1px solid #e5e7eb;border-radius:6px;padding:12px"><div style="font-size:11px;color:#666">${escHtml(c.label)}</div><div style="font-size:22px;font-weight:700;color:#1e3a5f">${c.value}</div></div>`).join('')
     const html = `<!DOCTYPE html><html><head><title>SPARK Reports</title><style>*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{font-family:Arial,sans-serif;color:#111;margin:24px}@media print{body{margin:0}}</style></head><body>
       <div style="display:flex;justify-content:space-between;border-bottom:2px solid #1e3a5f;padding-bottom:10px;margin-bottom:16px">
-        <div><div style="font-size:18px;font-weight:700;color:#1e3a5f">SPARK Repository — Reports</div><div style="font-size:11px;color:#666">College of Information and Computing Sciences, UST</div></div>
-        <div style="text-align:right;font-size:11px;color:#666"><div>Generated: ${new Date().toLocaleString()}</div><div>Filter: ${rangeLabel}</div><div>Scope: ${graphsOnly ? 'Graphs Only' : 'Complete Summary'}</div></div>
+        <div><div style="font-size:18px;font-weight:700;color:#1e3a5f">SPARK Repository &mdash; Reports</div><div style="font-size:11px;color:#666">College of Information and Computing Sciences, UST</div></div>
+        <div style="text-align:right;font-size:11px;color:#666"><div>Generated: ${escHtml(new Date().toLocaleString())}</div><div>Filter: ${escHtml(rangeLabel)}</div><div>Scope: ${graphsOnly ? 'Graphs Only' : 'Complete Summary'}</div></div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">${report.kpiCards.map(c => `<div style="border:1px solid #e5e7eb;border-radius:6px;padding:12px"><div style="font-size:11px;color:#666">${c.label}</div><div style="font-size:22px;font-weight:700;color:#1e3a5f">${c.value}</div></div>`).join('')}</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">${kpiCards}</div>
       <h2 style="font-size:14px;font-weight:700;margin:0 0 8px;color:#1e3a5f">Submission Volume Trend</h2>
       <div style="display:flex;align-items:flex-end;gap:8px;height:120px;border-bottom:1px solid #e5e7eb;margin-bottom:20px;padding:0 4px">${trendBars}</div>
       ${completeSection}
     </body></html>`
-    const win = window.open('', '_blank', 'width=900,height=700')
+    const win = window.open('', '_blank', 'width=900,height=700,noopener,noreferrer')
     if (!win) return
     win.document.write(html); win.document.close(); win.focus()
     win.onload = () => win.print()
