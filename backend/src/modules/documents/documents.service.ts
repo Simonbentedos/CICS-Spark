@@ -200,9 +200,7 @@ export class DocumentsService {
         .from('documents')
         .upload(storagePath, file.buffer, { contentType: file.mimetype });
       if (storageError) {
-        throw new InternalServerErrorException(
-          `Failed to upload revised manuscript: ${storageError.message}`,
-        );
+        throw new InternalServerErrorException('Failed to upload revised file.');
       }
       if (existing.pdf_file_path) oldStoragePathsToClean.push(existing.pdf_file_path);
       pdf_file_path = storagePath;
@@ -218,9 +216,7 @@ export class DocumentsService {
         if (pdf_file_path !== existing.pdf_file_path) {
           await this.databaseService.client.storage.from('documents').remove([pdf_file_path]);
         }
-        throw new InternalServerErrorException(
-          `Failed to upload revised ACM abstract: ${abstractStorageError.message}`,
-        );
+        throw new InternalServerErrorException('Failed to upload revised abstract file.');
       }
       if (existing.abstract_file_path) oldStoragePathsToClean.push(existing.abstract_file_path);
       abstract_file_path = abstractStoragePath;
@@ -238,9 +234,7 @@ export class DocumentsService {
         if (abstract_file_path !== existing.abstract_file_path) {
           await this.databaseService.client.storage.from('documents').remove([abstract_file_path]);
         }
-        throw new InternalServerErrorException(
-          `Failed to upload revised ITSO abstract: ${itsoStorageError.message}`,
-        );
+        throw new InternalServerErrorException('Failed to upload revised ITSO file.');
       }
       if (existingItsoFilePath) oldStoragePathsToClean.push(existingItsoFilePath);
       itso_file_path = itsoStoragePath;
@@ -263,20 +257,31 @@ export class DocumentsService {
     if (pdf_file_path !== existing.pdf_file_path) updatePayload.pdf_file_path = pdf_file_path;
     if (newChecksum) updatePayload.checksum = newChecksum;
     if (abstract_file_path !== existing.abstract_file_path) updatePayload.abstract_file_path = abstract_file_path;
-    // Only set itso_file_path if it changed AND is non-null (column requires DB migration to exist)
+    // Only set itso_file_path if changed AND non-null (column requires DB migration to exist)
     if (itso_file_path !== existingItsoFilePath && itso_file_path !== null) updatePayload.itso_file_path = itso_file_path;
 
-    const { data: updated, error: updateError } = await this.databaseService.client
+    let { data: updated, error: updateError } = await this.databaseService.client
       .from('documents')
       .update(updatePayload)
       .eq('id', documentId)
       .select()
       .single();
 
+    // If itso_file_path column doesn't exist yet (migration not applied), retry without it
+    if (updateError?.message?.includes('itso_file_path')) {
+      const { itso_file_path: _drop, ...payloadWithoutItso } = updatePayload;
+      const retry = await this.databaseService.client
+        .from('documents')
+        .update(payloadWithoutItso)
+        .eq('id', documentId)
+        .select()
+        .single();
+      updated = retry.data;
+      updateError = retry.error;
+    }
+
     if (updateError) {
-      throw new InternalServerErrorException(
-        `Failed to update document record: ${updateError.message}`,
-      );
+      throw new InternalServerErrorException('Failed to update document record.');
     }
 
     // Best-effort cleanup of old blobs after successful DB update
