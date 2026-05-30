@@ -280,7 +280,7 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
               Complete Manuscript PDF
               {requireManuscript
                 ? <span className="text-xs font-semibold text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-2 py-0.5">Required</span>
-                : <span className="text-xs font-normal text-grey-400">(optional)</span>}
+                : null}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 p-4 pt-0">
@@ -326,7 +326,7 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
               ACM Abstract in PDF
               {requireAcm
                 ? <span className="text-xs font-semibold text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-2 py-0.5">Required</span>
-                : <span className="text-xs font-normal text-grey-400">(optional)</span>}
+                : null}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 p-4 pt-0">
@@ -369,7 +369,7 @@ export default function StudentRevisionPage({ params: paramsPromise }: Readonly<
               ITSO Abstract in PDF
               {requireItso
                 ? <span className="text-xs font-semibold text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-2 py-0.5">Required</span>
-                : <span className="text-xs font-normal text-grey-400">(optional)</span>}
+                : null}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 p-4 pt-0">
