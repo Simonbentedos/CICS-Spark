@@ -190,13 +190,19 @@ export class DocumentsService {
     let itso_file_path = existingItsoFilePath;
     let newChecksum: string | undefined;
 
+    // Sanitize filename: replace spaces/special chars so storage paths are valid
+    const safeName = (name: string) => name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const ts = Date.now();
+
     if (file) {
-      const storagePath = `${userId}/${Date.now()}_${file.originalname}`;
+      const storagePath = `${userId}/${ts}_${safeName(file.originalname)}`;
       const { error: storageError } = await this.databaseService.client.storage
         .from('documents')
         .upload(storagePath, file.buffer, { contentType: file.mimetype });
       if (storageError) {
-        throw new InternalServerErrorException('Failed to upload revised file.');
+        throw new InternalServerErrorException(
+          `Failed to upload revised manuscript: ${storageError.message}`,
+        );
       }
       if (existing.pdf_file_path) oldStoragePathsToClean.push(existing.pdf_file_path);
       pdf_file_path = storagePath;
@@ -204,35 +210,37 @@ export class DocumentsService {
     }
 
     if (abstractFile) {
-      const abstractStoragePath = `${userId}/${Date.now()}_abstract_${abstractFile.originalname}`;
+      const abstractStoragePath = `${userId}/${ts}_abstract_${safeName(abstractFile.originalname)}`;
       const { error: abstractStorageError } = await this.databaseService.client.storage
         .from('documents')
         .upload(abstractStoragePath, abstractFile.buffer, { contentType: abstractFile.mimetype });
       if (abstractStorageError) {
-        // Clean up the new main PDF we just uploaded (if we uploaded one this revision)
         if (pdf_file_path !== existing.pdf_file_path) {
           await this.databaseService.client.storage.from('documents').remove([pdf_file_path]);
         }
-        throw new InternalServerErrorException('Failed to upload revised abstract file.');
+        throw new InternalServerErrorException(
+          `Failed to upload revised ACM abstract: ${abstractStorageError.message}`,
+        );
       }
       if (existing.abstract_file_path) oldStoragePathsToClean.push(existing.abstract_file_path);
       abstract_file_path = abstractStoragePath;
     }
 
     if (itsoFile) {
-      const itsoStoragePath = `${userId}/${Date.now()}_itso_${itsoFile.originalname}`;
+      const itsoStoragePath = `${userId}/${ts}_itso_${safeName(itsoFile.originalname)}`;
       const { error: itsoStorageError } = await this.databaseService.client.storage
         .from('documents')
         .upload(itsoStoragePath, itsoFile.buffer, { contentType: itsoFile.mimetype });
       if (itsoStorageError) {
-        // Clean up the new main PDF and abstract we just uploaded
         if (pdf_file_path !== existing.pdf_file_path) {
           await this.databaseService.client.storage.from('documents').remove([pdf_file_path]);
         }
         if (abstract_file_path !== existing.abstract_file_path) {
           await this.databaseService.client.storage.from('documents').remove([abstract_file_path]);
         }
-        throw new InternalServerErrorException('Failed to upload revised ITSO file.');
+        throw new InternalServerErrorException(
+          `Failed to upload revised ITSO abstract: ${itsoStorageError.message}`,
+        );
       }
       if (existingItsoFilePath) oldStoragePathsToClean.push(existingItsoFilePath);
       itso_file_path = itsoStoragePath;
@@ -266,7 +274,9 @@ export class DocumentsService {
       .single();
 
     if (updateError) {
-      throw new InternalServerErrorException('Failed to update document record.');
+      throw new InternalServerErrorException(
+        `Failed to update document record: ${updateError.message}`,
+      );
     }
 
     // Best-effort cleanup of old blobs after successful DB update
