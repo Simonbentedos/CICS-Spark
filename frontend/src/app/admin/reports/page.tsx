@@ -295,52 +295,51 @@ export default function AdminReportsPage() {
       mimeType = 'application/json'
       fileName = `spark-report-${new Date().toISOString().split('T')[0]}.json`
     } else {
-      // CSV format with comprehensive data
+      // Escape CSV cell: quote-wrap, double internal quotes, prefix formula chars
+      const csvEsc = (v: unknown): string => {
+        const s = String(v ?? '')
+        const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s
+        return `"${safe.replace(/"/g, '""')}"`
+      }
       const rows = ['# SPARK Repository Report']
       rows.push(`# Generated: ${new Date().toLocaleString()}`)
       rows.push(`# Filters: ${filters.range} | ${filters.status}`)
       rows.push('')
-      
-      // KPI Summary
+
       rows.push('## Key Performance Indicators')
       rows.push('Metric,Value')
       report.kpiCards.forEach(card => {
-        rows.push(`${card.label},${card.value}`)
+        rows.push(`${csvEsc(card.label)},${card.value}`)
       })
-      
-      // Status Breakdown
+
       rows.push('')
       rows.push('## Status Breakdown')
       rows.push('Status,Count,Percentage')
       report.statusBreakdown.forEach(st => {
-        rows.push(`${st.status},${st.count},${st.percentage}%`)
+        rows.push(`${csvEsc(st.status)},${st.count},${st.percentage}%`)
       })
-      
-      // Department Performance
+
       rows.push('')
       rows.push('## Department Performance')
       rows.push('Department,Total Submissions,Approved,Rejected,Approval Rate')
       report.departmentBreakdown.forEach(d => {
-        rows.push(`${d.department},${d.total},${d.approved},${d.rejected},${d.approvalRate}%`)
+        rows.push(`${csvEsc(d.department)},${d.total},${d.approved},${d.rejected},${d.approvalRate}%`)
       })
-      
-      // Submission Trend
+
       rows.push('')
-      rows.push('## Submission Volume Trend (Last 6 Months)')
+      rows.push('## Submission Volume Trend')
       rows.push('Month,Submissions')
       report.trend.forEach(t => {
-        rows.push(`${t.label},${t.submitted}`)
+        rows.push(`${csvEsc(t.label)},${t.submitted}`)
       })
-      
-      // User Growth
+
       rows.push('')
-      rows.push('## User Growth (Last 6 Months)')
+      rows.push('## User Growth')
       rows.push('Month,New Users')
       report.userGrowth.forEach(u => {
-        rows.push(`${u.label},${u.newUsers}`)
+        rows.push(`${csvEsc(u.label)},${u.newUsers}`)
       })
-      
-      // Usage Metrics
+
       rows.push('')
       rows.push('## Usage Metrics')
       rows.push('Metric,Value')
@@ -348,15 +347,12 @@ export default function AdminReportsPage() {
       rows.push(`Unique Visitors,${report.usage.uniqueVisitors}`)
       rows.push(`Searches,${report.usage.searches}`)
       rows.push(`Downloads,${report.usage.downloads}`)
-      
-      // Audit Logs (top 20)
+
       rows.push('')
       rows.push('## Recent Audit Logs (Top 20)')
       rows.push('Time,Actor,Action,Target,Details')
       report.auditLogs.slice(0, 20).forEach(log => {
-        const details = (log.details || '').replace(/,/g, ';') // Escape commas
-        const target = log.target.replace(/,/g, ';')
-        rows.push(`"${log.at}","${log.actor}","${log.action}","${target}","${details}"`)
+        rows.push(`${csvEsc(log.at)},${csvEsc(log.actor)},${csvEsc(log.action)},${csvEsc(log.target)},${csvEsc(log.details ?? '')}`)
       })
       
       content = rows.join('\n')
@@ -383,7 +379,12 @@ export default function AdminReportsPage() {
     const rangeLabel = DATE_RANGE_OPTIONS.find(o => o.value === filters.range)?.label ?? filters.range
     const approved = submissions.filter(s => s.status === 'approved' && isWithinRange(s.created_at, filters.range))
     const date = new Date().toISOString().split('T')[0]
-    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`
+    // Escape CSV cell: quote-wrap, double internal quotes, and prefix formula chars to prevent injection
+    const esc = (v: unknown): string => {
+      const s = String(v ?? '')
+      const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s
+      return `"${safe.replace(/"/g, '""')}"`
+    }
     const rows: string[] = [
       'SPARK Repository — Published/Approved Submissions',
       `Generated: ${new Date().toLocaleString()}`,
@@ -399,9 +400,9 @@ export default function AdminReportsPage() {
         ?.filter(r => r.decision === 'approve')
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at ?? ''
       rows.push([
-        i + 1, esc(s.title), esc(authors), s.department, s.type,
+        i + 1, esc(s.title), esc(authors), esc(s.department), esc(s.type),
         esc(s.track_specialization ?? ''), esc(s.adviser ?? ''), esc(keywords),
-        s.year ?? '—', new Date(s.created_at).toLocaleDateString('en-US'),
+        esc(s.year ?? '—'), new Date(s.created_at).toLocaleDateString('en-US'),
         approvedAt ? new Date(approvedAt).toLocaleDateString('en-US') : '—',
       ].join(','))
     })
