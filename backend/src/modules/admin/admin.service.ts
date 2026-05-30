@@ -47,7 +47,7 @@ export class AdminService {
     let query = this.databaseService.client
       .from('documents')
       .select(
-        'id, title, authors, abstract, year, department, type, track_specialization, adviser, degree, keywords, pdf_file_path, abstract_file_path, uploaded_by, status, created_at, updated_at',
+        'id, title, authors, abstract, year, department, type, track_specialization, adviser, degree, keywords, pdf_file_path, abstract_file_path, itso_file_path, uploaded_by, status, created_at, updated_at',
       )
       .order('created_at', { ascending: false });
 
@@ -72,7 +72,7 @@ export class AdminService {
     const { data: document, error } = await this.databaseService.client
       .from('documents')
       .select(
-        'id, title, authors, abstract, year, department, type, track_specialization, adviser, degree, keywords, pdf_file_path, abstract_file_path, uploaded_by, status, created_at, updated_at',
+        'id, title, authors, abstract, year, department, type, track_specialization, adviser, degree, keywords, pdf_file_path, abstract_file_path, itso_file_path, uploaded_by, status, created_at, updated_at',
       )
       .eq('id', documentId)
       .single();

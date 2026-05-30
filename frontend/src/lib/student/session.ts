@@ -7,7 +7,7 @@ function canUseStorage() {
 }
 
 function setCookie(name: string, value: string) {
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; SameSite=Lax`
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; SameSite=Lax; Max-Age=86400`
 }
 
 function deleteCookie(name: string) {

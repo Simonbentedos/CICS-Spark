@@ -104,14 +104,20 @@ export default function AdminReportsPage() {
 
   const report: ReportSnapshot = useMemo(() => {
     // 1. Apply filters
+    // For AY filters use the student's manuscript year field; otherwise use system submission date
+    const ayRangeMatch = filters.range.match(/^ay(\d{4})$/)
     const filteredSubmissions = submissions.filter(s => {
-      const inRange = isWithinRange(s.created_at, filters.range)
+      let inRange: boolean
+      if (ayRangeMatch) {
+        const startYear = parseInt(ayRangeMatch[1], 10)
+        inRange = s.year === startYear || s.year === startYear + 1
+      } else {
+        inRange = isWithinRange(s.created_at, filters.range)
+      }
       const matchesDept = filters.department === 'all-departments' || s.department === filters.department
-      
-      let mappedStatus = s.status === 'revision' ? 'Revision Requested' : 
-                         s.status === 'pending' ? 'Pending Review' : 
-                         s.status === 'approved' ? 'Approved' : 'Rejected'
-                         
+      const mappedStatus = s.status === 'revision' ? 'Revision Requested'
+        : s.status === 'pending' ? 'Pending Review'
+        : s.status === 'approved' ? 'Approved' : 'Rejected'
       const matchesStatus = filters.status === 'all-status' || mappedStatus === filters.status
       return inRange && matchesDept && matchesStatus
     })
@@ -377,7 +383,15 @@ export default function AdminReportsPage() {
 
   function handleExportApproved() {
     const rangeLabel = DATE_RANGE_OPTIONS.find(o => o.value === filters.range)?.label ?? filters.range
-    const approved = submissions.filter(s => s.status === 'approved' && isWithinRange(s.created_at, filters.range))
+    const ayMatch2 = filters.range.match(/^ay(\d{4})$/)
+    const approved = submissions.filter(s => {
+      if (s.status !== 'approved') return false
+      if (ayMatch2) {
+        const sy = parseInt(ayMatch2[1], 10)
+        return s.year === sy || s.year === sy + 1
+      }
+      return isWithinRange(s.created_at, filters.range)
+    })
     const date = new Date().toISOString().split('T')[0]
     // Escape CSV cell: quote-wrap, double internal quotes, and prefix formula chars to prevent injection
     const esc = (v: unknown): string => {
@@ -414,7 +428,15 @@ export default function AdminReportsPage() {
 
   function handlePrint() {
     const rangeLabel = DATE_RANGE_OPTIONS.find(o => o.value === filters.range)?.label ?? filters.range
-    const approved = submissions.filter(s => s.status === 'approved' && isWithinRange(s.created_at, filters.range))
+    const ayMatch2 = filters.range.match(/^ay(\d{4})$/)
+    const approved = submissions.filter(s => {
+      if (s.status !== 'approved') return false
+      if (ayMatch2) {
+        const sy = parseInt(ayMatch2[1], 10)
+        return s.year === sy || s.year === sy + 1
+      }
+      return isWithinRange(s.created_at, filters.range)
+    })
     const graphsOnly = printScope === 'graphs'
     const trendBars = report.trend.map(p => {
       const pct = Math.round((p.submitted / Math.max(1, ...report.trend.map(x => x.submitted))) * 100)

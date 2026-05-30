@@ -70,10 +70,16 @@ export default function SuperAdminReportsPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const filtered = useMemo(
-    () => submissions.filter((s) => isWithinRange(s.created_at, range)),
-    [submissions, range],
-  )
+  const filtered = useMemo(() => {
+    const ayMatch = range.match(/^ay(\d{4})$/)
+    return submissions.filter((s) => {
+      if (ayMatch) {
+        const sy = parseInt(ayMatch[1], 10)
+        return s.year === sy || s.year === sy + 1
+      }
+      return isWithinRange(s.created_at, range)
+    })
+  }, [submissions, range])
 
   const filteredUsers = useMemo(
     () => users.filter((u) => isWithinRange(u.created_at, range)),

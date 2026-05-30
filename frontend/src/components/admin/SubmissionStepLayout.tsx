@@ -10,7 +10,7 @@ type SubmissionStepLayoutProps = {
 
 export default function SubmissionStepLayout({ step, sectionTitle, children, footer, pageTitle = 'Submit New Thesis' }: SubmissionStepLayoutProps) {
   return (
-    <div className="mx-auto max-w-[760px] space-y-4 pb-8">
+    <div className="mx-auto max-w-[760px] space-y-4 pb-8 min-h-full">
       <header>
         <h1 className="text-[36px] font-semibold leading-tight text-navy">{pageTitle}</h1>
       </header>
